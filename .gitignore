@@ -1,0 +1,4 @@
+/src/.vs
+/src/NServiceBus.TransactionalSession/obj/
+/src/NServiceBus.TransactionalSession/.vs/
+/src/NServiceBus.TransactionalSession/bin/
