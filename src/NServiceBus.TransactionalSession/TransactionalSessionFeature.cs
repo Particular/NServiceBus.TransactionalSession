@@ -7,7 +7,24 @@
     using Microsoft.Extensions.DependencyInjection;
     using Outbox;
     using Persistence;
+    using Pipeline;
     using Transport;
+
+    class UnitOfWorkDelayControlMessageBehavior : Behavior<IIncomingPhysicalMessageContext>
+    {
+        public override async Task Invoke(IIncomingPhysicalMessageContext context, Func<Task> next)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    class UnitOfWorkControlMessageExceptionBehavior : Behavior<ITransportReceiveContext>
+    {
+        public override async Task Invoke(ITransportReceiveContext context, Func<Task> next)
+        {
+            throw new NotImplementedException();
+        }
+    }
 
     public class TransactionalSessionFeature : Feature
     {
@@ -18,14 +35,25 @@
             bool isOutboxEnabled = context.Settings.IsFeatureActive(typeof(Outbox));
             var sessionCaptureTask = new SessionCaptureTask();
             context.RegisterStartupTask(sessionCaptureTask);
-            context.Services.AddScoped<ITransactionalSession, TransactionalSession>(sp =>
-                new TransactionalSession(
-                    sp.GetRequiredService<IOutboxStorage>(),
-                    sp.GetRequiredService<ICompletableSynchronizedStorageSession>(),
-                    sessionCaptureTask.CapturedSession,
-                    sp.GetRequiredService<IMessageDispatcher>(),
-                    isOutboxEnabled,
-                    sp.GetRequiredService<ITransportAddressResolver>().ToTransportAddress(localQueueAddress)));
+            context.Services.AddScoped<ITransactionalSession>(sp =>
+            {
+                if (isOutboxEnabled)
+                {
+                    return new OutboxTransactionalSession(
+                        sp.GetRequiredService<IOutboxStorage>(),
+                        sp.GetRequiredService<ICompletableSynchronizedStorageSession>(),
+                        sessionCaptureTask.CapturedSession,
+                        sp.GetRequiredService<IMessageDispatcher>(),
+                        sp.GetRequiredService<ITransportAddressResolver>().ToTransportAddress(localQueueAddress));
+                }
+                else
+                {
+                    return new TransactionalSession(
+                        sp.GetRequiredService<ICompletableSynchronizedStorageSession>(),
+                        sessionCaptureTask.CapturedSession,
+                        sp.GetRequiredService<IMessageDispatcher>());
+                }
+            });
         }
 
         public class SessionCaptureTask : FeatureStartupTask
