@@ -1,37 +1,32 @@
 ﻿namespace NServiceBus.TransactionalSession
 {
-    using Features;
-    using Microsoft.Extensions.DependencyInjection;
+    using System;
     using System.Threading;
     using System.Threading.Tasks;
+    using Features;
+    using Microsoft.Extensions.DependencyInjection;
     using Transport;
 
     public class TransactionalSessionFeature : Feature
     {
         protected override void Setup(FeatureConfigurationContext context)
         {
-            var localQueueAddress = context.LocalQueueAddress();
+            QueueAddress localQueueAddress = context.LocalQueueAddress();
 
             context.Services.AddSingleton<DumpingGround>();
-            var isOutboxEnabled = context.Settings.IsFeatureActive(typeof(Outbox));
+            bool isOutboxEnabled = context.Settings.IsFeatureActive(typeof(Outbox));
             context.RegisterStartupTask(provider => new TransactionalSessionStartupTask(
                 localQueueAddress,
                 isOutboxEnabled,
                 provider.GetRequiredService<ITransportAddressResolver>(),
                 provider.GetRequiredService<DumpingGround>()));
             context.Services.AddScoped<ITransactionalSession, TransactionalSession>();
-
         }
 
         public class TransactionalSessionStartupTask : FeatureStartupTask
         {
-            private readonly QueueAddress localQueueAddress;
-            private readonly bool isOutboxEnabled;
-            private readonly ITransportAddressResolver transportAddressResolver;
-            readonly DumpingGround sessionHolder;
-
             public TransactionalSessionStartupTask(QueueAddress localQueueAddress, bool isOutboxEnabled,
-                                                   ITransportAddressResolver transportAddressResolver, DumpingGround sessionHolder)
+                ITransportAddressResolver transportAddressResolver, DumpingGround sessionHolder)
             {
                 this.localQueueAddress = localQueueAddress;
                 this.isOutboxEnabled = isOutboxEnabled;
@@ -47,10 +42,12 @@
                 return Task.CompletedTask;
             }
 
-            protected override Task OnStop(IMessageSession session, CancellationToken cancellationToken = new CancellationToken())
-            {
-                throw new System.NotImplementedException();
-            }
+            protected override Task OnStop(IMessageSession session, CancellationToken cancellationToken = new CancellationToken()) => throw new NotImplementedException();
+
+            readonly QueueAddress localQueueAddress;
+            readonly bool isOutboxEnabled;
+            readonly ITransportAddressResolver transportAddressResolver;
+            readonly DumpingGround sessionHolder;
         }
     }
 }

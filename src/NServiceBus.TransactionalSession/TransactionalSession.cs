@@ -1,34 +1,22 @@
 ﻿namespace NServiceBus.TransactionalSession
 {
-    using Extensibility;
-    using Outbox;
-    using Persistence;
-    using Routing;
     using System;
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
+    using Extensibility;
+    using Outbox;
+    using Persistence;
+    using Routing;
     using Transport;
     using TransportTransportOperation = Transport.TransportOperation;
     using OutboxTransportOperation = Outbox.TransportOperation;
 
-    internal class TransactionalSession : ITransactionalSession
+    class TransactionalSession : ITransactionalSession
     {
-        private readonly ContextBag context;
-        private readonly IMessageDispatcher dispatcher;
-        private readonly DumpingGround dumpingGround;
-
-        private readonly IOutboxStorage outboxStorage;
-        private readonly PendingTransportOperations pendingOperations;
-        private readonly ICompletableSynchronizedStorageSession synchronizedStorageSession;
-        private bool isSessionOpen;
-
-        private IOutboxTransaction outboxTransaction;
-        private readonly TransportTransaction transportTransaction;
-
         public TransactionalSession(IOutboxStorage outboxStorage,
-                                    ICompletableSynchronizedStorageSession synchronizedStorageSession,
-                                    DumpingGround dumpingGround, IMessageDispatcher dispatcher)
+            ICompletableSynchronizedStorageSession synchronizedStorageSession,
+            DumpingGround dumpingGround, IMessageDispatcher dispatcher)
         {
             this.outboxStorage = outboxStorage;
             this.synchronizedStorageSession = synchronizedStorageSession;
@@ -43,79 +31,101 @@
         public async Task Send(object message, SendOptions sendOptions, CancellationToken cancellationToken = default)
         {
             if (!isSessionOpen)
+            {
                 throw new InvalidOperationException("Before sending any messages, make sure to open the session by calling the `Open`-method.");
+            }
 
             sendOptions.GetExtensions().Set(pendingOperations);
-            await dumpingGround.Instance.Send(message, sendOptions, cancellationToken);
+            await dumpingGround.Instance.Send(message, sendOptions, cancellationToken).ConfigureAwait(false);
         }
 
         public async Task Send<T>(Action<T> messageConstructor, SendOptions sendOptions, CancellationToken cancellationToken = default)
         {
             if (!isSessionOpen)
+            {
                 throw new InvalidOperationException("Before sending any messages, make sure to open the session by calling the `Open`-method.");
+            }
 
             sendOptions.GetExtensions().Set(pendingOperations);
-            await dumpingGround.Instance.Send(messageConstructor, sendOptions, cancellationToken);
+            await dumpingGround.Instance.Send(messageConstructor, sendOptions, cancellationToken).ConfigureAwait(false);
         }
 
         public async Task Publish(object message, PublishOptions publishOptions, CancellationToken cancellationToken = default)
         {
             if (!isSessionOpen)
+            {
                 throw new InvalidOperationException("Before publishing any messages, make sure to open the session by calling the `Open`-method.");
+            }
 
             publishOptions.GetExtensions().Set(pendingOperations);
-            await dumpingGround.Instance.Publish(message, publishOptions, cancellationToken);
+            await dumpingGround.Instance.Publish(message, publishOptions, cancellationToken).ConfigureAwait(false);
         }
 
         public async Task Publish<T>(Action<T> messageConstructor, PublishOptions publishOptions, CancellationToken cancellationToken = default)
         {
             if (!isSessionOpen)
+            {
                 throw new InvalidOperationException("Before publishing any messages, make sure to open the session by calling the `Open`-method.");
+            }
 
             publishOptions.GetExtensions().Set(pendingOperations);
-            await dumpingGround.Instance.Publish(messageConstructor, publishOptions, cancellationToken);
+            await dumpingGround.Instance.Publish(messageConstructor, publishOptions, cancellationToken).ConfigureAwait(false);
         }
 
         public async Task Commit(CancellationToken cancellationToken = default)
         {
-            var message = new OutgoingMessage(SessionId, new Dictionary<string, string>
-            {
-                { Headers.ControlMessageHeader, bool.TrueString }
-            }, ReadOnlyMemory<byte>.Empty);
+            var message = new OutgoingMessage(SessionId, new Dictionary<string, string> { { Headers.ControlMessageHeader, bool.TrueString } }, ReadOnlyMemory<byte>.Empty);
 
             var outgoingMessages = new TransportOperations(new TransportTransportOperation(message, new UnicastAddressTag(dumpingGround.PhysicalQueueAddress)));
-            await dispatcher.Dispatch(outgoingMessages, transportTransaction, cancellationToken);
+            await dispatcher.Dispatch(outgoingMessages, transportTransaction, cancellationToken).ConfigureAwait(false);
 
             if (dumpingGround.IsOutboxEnabled)
             {
-
                 var outboxMessage =
                     new OutboxMessage(SessionId, ConvertToOutboxOperations(pendingOperations.Operations));
                 await outboxStorage.Store(outboxMessage, outboxTransaction, context, cancellationToken)
-                                   .ConfigureAwait(false);
+                    .ConfigureAwait(false);
 
-                await synchronizedStorageSession.CompleteAsync(cancellationToken);
+                await synchronizedStorageSession.CompleteAsync(cancellationToken).ConfigureAwait(false);
 
                 context.Remove<IOutboxTransaction>();
                 await outboxTransaction.Commit(cancellationToken).ConfigureAwait(false);
-
             }
 
             // complete/dispose outbox tx
             // dispatch the pending operation
         }
 
+        public void Dispose() => throw new NotImplementedException();
+
+        public ISynchronizedStorageSession SynchronizedStorageSession
+        {
+            get
+            {
+                if (!isSessionOpen)
+                {
+                    throw new InvalidOperationException(
+                        "Before accessing the SynchronizedStorageSession, make sure to open the session by calling the `Open`-method.");
+                }
+
+                return synchronizedStorageSession;
+            }
+        }
+
+        public string SessionId { get; private set; }
+
         static OutboxTransportOperation[] ConvertToOutboxOperations(TransportTransportOperation[] operations)
         {
             var transportOperations = new OutboxTransportOperation[operations.Length];
-            var index = 0;
-            foreach (var operation in operations)
+            int index = 0;
+            foreach (TransportTransportOperation operation in operations)
             {
                 SerializeRoutingStrategy(operation.AddressTag, operation.Properties);
 
-                transportOperations[index] = new Outbox.TransportOperation(operation.Message.MessageId, operation.Properties, operation.Message.Body, operation.Message.Headers);
+                transportOperations[index] = new OutboxTransportOperation(operation.Message.MessageId, operation.Properties, operation.Message.Body, operation.Message.Headers);
                 index++;
             }
+
             return transportOperations;
         }
 
@@ -136,33 +146,26 @@
             throw new Exception($"Unknown routing strategy {addressTag.GetType().FullName}");
         }
 
-        public void Dispose()
-        {
-            throw new NotImplementedException();
-        }
-
-        public ISynchronizedStorageSession SynchronizedStorageSession
-        {
-            get
-            {
-                if (!isSessionOpen)
-                    throw new InvalidOperationException(
-                        "Before accessing the SynchronizedStorageSession, make sure to open the session by calling the `Open`-method.");
-
-                return synchronizedStorageSession;
-            }
-        }
-
-        public string SessionId { get; private set; }
-
         public async Task Open(CancellationToken cancellationToken = default)
         {
-            outboxTransaction = await outboxStorage.BeginTransaction(context, cancellationToken);
+            outboxTransaction = await outboxStorage.BeginTransaction(context, cancellationToken).ConfigureAwait(false);
             context.Set(outboxTransaction);
 
-            await synchronizedStorageSession.Open(outboxTransaction, transportTransaction, context, cancellationToken);
+            await synchronizedStorageSession.Open(outboxTransaction, transportTransaction, context, cancellationToken).ConfigureAwait(false);
             SessionId = Guid.NewGuid().ToString();
             isSessionOpen = true;
         }
+
+        readonly ContextBag context;
+        readonly IMessageDispatcher dispatcher;
+        readonly DumpingGround dumpingGround;
+
+        readonly IOutboxStorage outboxStorage;
+        readonly PendingTransportOperations pendingOperations;
+        readonly ICompletableSynchronizedStorageSession synchronizedStorageSession;
+        readonly TransportTransaction transportTransaction;
+        bool isSessionOpen;
+
+        IOutboxTransaction outboxTransaction;
     }
 }
