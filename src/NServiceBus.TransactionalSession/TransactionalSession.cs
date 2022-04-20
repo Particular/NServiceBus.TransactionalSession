@@ -14,14 +14,20 @@
 
     class TransactionalSession : ITransactionalSession
     {
-        public TransactionalSession(IOutboxStorage outboxStorage,
+        public TransactionalSession(
+            IOutboxStorage outboxStorage,
             ICompletableSynchronizedStorageSession synchronizedStorageSession,
-            DumpingGround dumpingGround, IMessageDispatcher dispatcher)
+            IMessageSession messageSession,
+            IMessageDispatcher dispatcher,
+            bool outboxEnabled,
+            string physicalQueueAddress)
         {
             this.outboxStorage = outboxStorage;
             this.synchronizedStorageSession = synchronizedStorageSession;
-            this.dumpingGround = dumpingGround;
+            this.messageSession = messageSession;
             this.dispatcher = dispatcher;
+            this.outboxEnabled = outboxEnabled;
+            this.physicalQueueAddress = physicalQueueAddress;
             pendingOperations = new PendingTransportOperations();
             context = new ContextBag();
             transportTransaction = new TransportTransaction();
@@ -36,7 +42,7 @@
             }
 
             sendOptions.GetExtensions().Set(pendingOperations);
-            await dumpingGround.Instance.Send(message, sendOptions, cancellationToken).ConfigureAwait(false);
+            await messageSession.Send(message, sendOptions, cancellationToken).ConfigureAwait(false);
         }
 
         public async Task Send<T>(Action<T> messageConstructor, SendOptions sendOptions, CancellationToken cancellationToken = default)
@@ -47,7 +53,7 @@
             }
 
             sendOptions.GetExtensions().Set(pendingOperations);
-            await dumpingGround.Instance.Send(messageConstructor, sendOptions, cancellationToken).ConfigureAwait(false);
+            await messageSession.Send(messageConstructor, sendOptions, cancellationToken).ConfigureAwait(false);
         }
 
         public async Task Publish(object message, PublishOptions publishOptions, CancellationToken cancellationToken = default)
@@ -58,7 +64,7 @@
             }
 
             publishOptions.GetExtensions().Set(pendingOperations);
-            await dumpingGround.Instance.Publish(message, publishOptions, cancellationToken).ConfigureAwait(false);
+            await messageSession.Publish(message, publishOptions, cancellationToken).ConfigureAwait(false);
         }
 
         public async Task Publish<T>(Action<T> messageConstructor, PublishOptions publishOptions, CancellationToken cancellationToken = default)
@@ -69,17 +75,17 @@
             }
 
             publishOptions.GetExtensions().Set(pendingOperations);
-            await dumpingGround.Instance.Publish(messageConstructor, publishOptions, cancellationToken).ConfigureAwait(false);
+            await messageSession.Publish(messageConstructor, publishOptions, cancellationToken).ConfigureAwait(false);
         }
 
         public async Task Commit(CancellationToken cancellationToken = default)
         {
             var message = new OutgoingMessage(SessionId, new Dictionary<string, string> { { Headers.ControlMessageHeader, bool.TrueString } }, ReadOnlyMemory<byte>.Empty);
 
-            var outgoingMessages = new TransportOperations(new TransportTransportOperation(message, new UnicastAddressTag(dumpingGround.PhysicalQueueAddress)));
+            var outgoingMessages = new TransportOperations(new TransportTransportOperation(message, new UnicastAddressTag(physicalQueueAddress)));
             await dispatcher.Dispatch(outgoingMessages, transportTransaction, cancellationToken).ConfigureAwait(false);
 
-            if (dumpingGround.IsOutboxEnabled)
+            if (outboxEnabled)
             {
                 var outboxMessage =
                     new OutboxMessage(SessionId, ConvertToOutboxOperations(pendingOperations.Operations));
@@ -158,11 +164,13 @@
 
         readonly ContextBag context;
         readonly IMessageDispatcher dispatcher;
-        readonly DumpingGround dumpingGround;
+        readonly bool outboxEnabled;
+        readonly string physicalQueueAddress;
 
         readonly IOutboxStorage outboxStorage;
         readonly PendingTransportOperations pendingOperations;
         readonly ICompletableSynchronizedStorageSession synchronizedStorageSession;
+        readonly IMessageSession messageSession;
         readonly TransportTransaction transportTransaction;
         bool isSessionOpen;
 

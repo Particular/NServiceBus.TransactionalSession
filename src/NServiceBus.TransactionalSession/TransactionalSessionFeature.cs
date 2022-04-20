@@ -5,6 +5,8 @@
     using System.Threading.Tasks;
     using Features;
     using Microsoft.Extensions.DependencyInjection;
+    using Outbox;
+    using Persistence;
     using Transport;
 
     public class TransactionalSessionFeature : Feature
@@ -13,41 +15,31 @@
         {
             QueueAddress localQueueAddress = context.LocalQueueAddress();
 
-            context.Services.AddSingleton<DumpingGround>();
             bool isOutboxEnabled = context.Settings.IsFeatureActive(typeof(Outbox));
-            context.RegisterStartupTask(provider => new TransactionalSessionStartupTask(
-                localQueueAddress,
-                isOutboxEnabled,
-                provider.GetRequiredService<ITransportAddressResolver>(),
-                provider.GetRequiredService<DumpingGround>()));
-            context.Services.AddScoped<ITransactionalSession, TransactionalSession>();
+            var sessionCaptureTask = new SessionCaptureTask();
+            context.RegisterStartupTask(sessionCaptureTask);
+            context.Services.AddScoped<ITransactionalSession, TransactionalSession>(sp =>
+                new TransactionalSession(
+                    sp.GetRequiredService<IOutboxStorage>(),
+                    sp.GetRequiredService<ICompletableSynchronizedStorageSession>(),
+                    sessionCaptureTask.CapturedSession,
+                    sp.GetRequiredService<IMessageDispatcher>(),
+                    isOutboxEnabled,
+                    sp.GetRequiredService<ITransportAddressResolver>().ToTransportAddress(localQueueAddress)));
         }
 
-        public class TransactionalSessionStartupTask : FeatureStartupTask
+        public class SessionCaptureTask : FeatureStartupTask
         {
-            public TransactionalSessionStartupTask(QueueAddress localQueueAddress, bool isOutboxEnabled,
-                ITransportAddressResolver transportAddressResolver, DumpingGround sessionHolder)
-            {
-                this.localQueueAddress = localQueueAddress;
-                this.isOutboxEnabled = isOutboxEnabled;
-                this.transportAddressResolver = transportAddressResolver;
-                this.sessionHolder = sessionHolder;
-            }
+            public IMessageSession CapturedSession { get; set; }
 
             protected override Task OnStart(IMessageSession session, CancellationToken cancellationToken = new CancellationToken())
             {
-                sessionHolder.Instance = session;
-                sessionHolder.PhysicalQueueAddress = transportAddressResolver.ToTransportAddress(localQueueAddress);
-                sessionHolder.IsOutboxEnabled = isOutboxEnabled;
+                CapturedSession = session;
                 return Task.CompletedTask;
             }
 
             protected override Task OnStop(IMessageSession session, CancellationToken cancellationToken = new CancellationToken()) => throw new NotImplementedException();
 
-            readonly QueueAddress localQueueAddress;
-            readonly bool isOutboxEnabled;
-            readonly ITransportAddressResolver transportAddressResolver;
-            readonly DumpingGround sessionHolder;
         }
     }
 }
