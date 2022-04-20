@@ -79,7 +79,7 @@
             var message = new OutgoingMessage(SessionId, new Dictionary<string, string>
             {
                 { Headers.ControlMessageHeader, bool.TrueString },
-                { "", "" }
+                { ControlMessageSentAtHeaderName, DateTimeOffsetHelper.ToWireFormattedString(DateTimeOffset.UtcNow) }
             }, ReadOnlyMemory<byte>.Empty);
 
             var outgoingMessages = new TransportOperations(new TransportTransportOperation(message, new UnicastAddressTag(physicalQueueAddress)));
@@ -175,5 +175,6 @@
         bool isSessionOpen;
 
         IOutboxTransaction outboxTransaction;
+        public const string ControlMessageSentAtHeaderName = "NServiceBus.TransactionalSession.CommitStartedAt";
     }
 }
