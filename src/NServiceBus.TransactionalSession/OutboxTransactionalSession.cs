@@ -78,6 +78,7 @@
         {
             var message = new OutgoingMessage(SessionId, new Dictionary<string, string>
             {
+                { Headers.MessageId, SessionId },
                 { Headers.ControlMessageHeader, bool.TrueString },
                 { ControlMessageSentAtHeaderName, DateTimeOffsetHelper.ToWireFormattedString(DateTimeOffset.UtcNow) }
             }, ReadOnlyMemory<byte>.Empty);

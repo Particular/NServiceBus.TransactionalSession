@@ -45,6 +45,23 @@ public class When_running_outbox
             });
         }
 
+        class SampleHandler : IHandleMessages<SampleMessage>
+        {
+            readonly Context context;
+
+            public SampleHandler(Context context)
+            {
+                this.context = context;
+            }
+
+            public Task Handle(SampleMessage message, IMessageHandlerContext context)
+            {
+                this.context.MessageReceived = true;
+
+                return Task.CompletedTask;
+            }
+        }
+
         class SendMessageViaTransactionalSession : FeatureStartupTask
         {
             readonly IServiceProvider serviceProvider;
