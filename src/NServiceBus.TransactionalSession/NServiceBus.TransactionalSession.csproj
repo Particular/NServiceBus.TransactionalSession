@@ -1,7 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net472;netcoreapp3.1</TargetFrameworks>
+    <TargetFrameworks>net472;netcoreapp3.1;net6.0</TargetFrameworks>
+    <SignAssembly>True</SignAssembly>
+    <AssemblyOriginatorKeyFile>..\NServiceBus.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
 
   <ItemGroup>
