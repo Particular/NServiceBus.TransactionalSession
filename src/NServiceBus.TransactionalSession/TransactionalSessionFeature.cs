@@ -6,6 +6,7 @@
     using System.Threading;
     using System.Threading.Tasks;
     using Features;
+    using Logging;
     using Microsoft.Extensions.DependencyInjection;
     using Outbox;
     using Persistence;
@@ -18,7 +19,8 @@
         readonly IOutboxStorage outboxStorage;
         readonly IMessageDispatcher dispatcher;
         readonly string physicalQueueAddress;
-        TimeSpan MaxCommitDelay = TimeSpan.FromSeconds(29.5);
+        TimeSpan MaxCommitDelay = TimeSpan.FromSeconds(30);
+        TimeSpan CommitDelayIncrement = TimeSpan.FromSeconds(10);
 
         public UnitOfWorkDelayControlMessageBehavior(IOutboxStorage outboxStorage, IMessageDispatcher dispatcher, string physicalQueueAddress)
         {
@@ -38,31 +40,35 @@
                 var messageId = context.MessageId;
 
                 var outboxRecord = await outboxStorage.Get(messageId, context.Extensions, CancellationToken.None).ConfigureAwait(false);
-                var transactionNotCommitted = outboxRecord == null;
+                var transactionCommitted = outboxRecord != null;
+                var timeSinceCommitStart = DateTimeOffset.UtcNow.Subtract(commitStartedAt);
 
-                if (DateTimeOffset.UtcNow.Subtract(commitStartedAt) < MaxCommitDelay && transactionNotCommitted)
+                if (transactionCommitted || timeSinceCommitStart > MaxCommitDelay)
                 {
-                    await dispatcher.Dispatch(new TransportOperations(
-                            new Transport.TransportOperation(
-                                new OutgoingMessage(messageId, context.MessageHeaders.ToDictionary(kvp => kvp.Key, kvp => kvp.Value), ReadOnlyMemory<byte>.Empty),
-                                new UnicastAddressTag(physicalQueueAddress),
-                                new DispatchProperties(new Dictionary<string, string>
-                                {
-                                    {Headers.DeliverAt, DateTimeOffsetHelper.ToWireFormattedString(DateTimeOffset.UtcNow.AddSeconds(5))},
-                                }),
-                                DispatchConsistency.Isolated
-                                )
-                            ), new TransportTransaction(), context.CancellationToken)
-                        .ConfigureAwait(false);
+                    await next().ConfigureAwait(false);
+                    return;
+                }
 
-                    throw new ConsumeMessageException();
-                }
-                else
-                {
-                    //TODO: let the transaction commit ot tombstone the record
-                }
+                Log.Debug($"Delaying transaction commit control messages for messageId={messageId}");
+
+                await dispatcher.Dispatch(new TransportOperations(
+                        new Transport.TransportOperation(
+                            new OutgoingMessage(messageId, context.MessageHeaders.ToDictionary(kvp => kvp.Key, kvp => kvp.Value), ReadOnlyMemory<byte>.Empty),
+                            new UnicastAddressTag(physicalQueueAddress),
+                            new DispatchProperties(new Dictionary<string, string>
+                            {
+                                {Headers.DeliverAt, DateTimeOffsetHelper.ToWireFormattedString(DateTimeOffset.UtcNow.Add(CommitDelayIncrement))},
+                            }),
+                            DispatchConsistency.Isolated
+                            )
+                        ), new TransportTransaction(), context.CancellationToken)
+                    .ConfigureAwait(false);
+
+                throw new ConsumeMessageException();
             }
         }
+
+        static ILog Log = LogManager.GetLogger<UnitOfWorkDelayControlMessageBehavior>();
 
     }
 
@@ -76,10 +82,10 @@
             }
             catch (ConsumeMessageException)
             {
-                //TODO: swollow the transaction and commit
-                throw;
+                //HINT: swallow the exception to acknowledge the incoming message and prevent outbox from commiting  
             }
         }
+
     }
 
     class ConsumeMessageException : Exception
@@ -92,11 +98,14 @@
         {
             QueueAddress localQueueAddress = context.LocalQueueAddress();
 
-            bool isOutboxEnabled = context.Settings.IsFeatureActive(typeof(Outbox));
+            var isOutboxEnabled = context.Settings.IsFeatureActive(typeof(Outbox));
             var sessionCaptureTask = new SessionCaptureTask();
             context.RegisterStartupTask(sessionCaptureTask);
             context.Services.AddScoped<ITransactionalSession>(sp =>
             {
+                var physicalLocalQueueAddress = sp.GetRequiredService<ITransportAddressResolver>()
+                    .ToTransportAddress(localQueueAddress);
+
                 if (isOutboxEnabled)
                 {
                     return new OutboxTransactionalSession(
@@ -104,16 +113,24 @@
                         sp.GetRequiredService<ICompletableSynchronizedStorageSession>(),
                         sessionCaptureTask.CapturedSession,
                         sp.GetRequiredService<IMessageDispatcher>(),
-                        sp.GetRequiredService<ITransportAddressResolver>().ToTransportAddress(localQueueAddress));
+                        physicalLocalQueueAddress
+                        );
                 }
-                else
-                {
-                    return new TransactionalSession(
-                        sp.GetRequiredService<ICompletableSynchronizedStorageSession>(),
-                        sessionCaptureTask.CapturedSession,
-                        sp.GetRequiredService<IMessageDispatcher>());
-                }
+
+                return new TransactionalSession(
+                    sp.GetRequiredService<ICompletableSynchronizedStorageSession>(),
+                    sessionCaptureTask.CapturedSession,
+                    sp.GetRequiredService<IMessageDispatcher>());
             });
+
+            context.Pipeline.Register(sp => new UnitOfWorkDelayControlMessageBehavior(
+                sp.GetRequiredService<IOutboxStorage>(),
+                sp.GetRequiredService<IMessageDispatcher>(),
+                sp.GetRequiredService<ITransportAddressResolver>().ToTransportAddress(localQueueAddress)
+                ), "Transaction commit control message delay behavior");
+
+            context.Pipeline.Register(new UnitOfWorkControlMessageExceptionBehavior(),
+                "Transaction commit control message delay acknowledgement behavior");
         }
 
         public class SessionCaptureTask : FeatureStartupTask
