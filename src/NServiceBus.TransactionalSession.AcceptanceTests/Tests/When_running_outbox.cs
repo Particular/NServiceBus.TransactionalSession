@@ -4,10 +4,10 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using NServiceBus;
 using NServiceBus.AcceptanceTesting;
-using NServiceBus.AcceptanceTests;
-using NServiceBus.AcceptanceTests.EndpointTemplates;
 using NServiceBus.Features;
 using NServiceBus.TransactionalSession;
+using NServiceBus.TransactionalSession.AcceptanceTests;
+using NServiceBus.TransactionalSession.AcceptanceTests.EndpointTemplates;
 using NUnit.Framework;
 
 public class When_running_outbox : NServiceBusAcceptanceTest

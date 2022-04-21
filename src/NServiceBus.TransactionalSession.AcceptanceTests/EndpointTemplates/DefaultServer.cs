@@ -1,4 +1,4 @@
-﻿namespace NServiceBus.AcceptanceTests.EndpointTemplates
+﻿namespace NServiceBus.TransactionalSession.AcceptanceTests.EndpointTemplates
 {
     using System;
     using System.Collections.Generic;

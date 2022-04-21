@@ -1,4 +1,4 @@
-﻿namespace NServiceBus.AcceptanceTests.EndpointTemplates
+﻿namespace NServiceBus.TransactionalSession.AcceptanceTests.EndpointTemplates
 {
     using System;
     using System.Collections.Generic;
@@ -7,27 +7,29 @@
     using AcceptanceTesting.Support;
     using Hosting.Helpers;
 
-    public static class EndpointCustomizationConfigurationExtensions
+    public static class Extensions
     {
         public static IEnumerable<Type> GetTypesScopedByTestClass(this EndpointCustomizationConfiguration endpointConfiguration)
         {
+            var types = endpointConfiguration.BuilderType.GetTypesScopedByTestClass();
+            types = types.Union(endpointConfiguration.TypesToInclude);
+            return types.Where(t => !endpointConfiguration.TypesToExclude.Contains(t)).ToList();
+        }
+
+        public static IEnumerable<Type> GetTypesScopedByTestClass(this Type componentType)
+        {
             var assemblies = new AssemblyScanner().GetScannableAssemblies();
 
-            var types = assemblies.Assemblies
-                //exclude all test types by default
-                .Where(a =>
-                {
-                    var references = a.GetReferencedAssemblies();
-
-                    return references.All(an => an.Name != "nunit.framework");
-                })
+            var assembliesToScan = assemblies.Assemblies
+                //exclude acceptance tests by default
+                .Where(a => a != Assembly.GetExecutingAssembly()).ToList();
+            var types = assembliesToScan
                 .SelectMany(a => a.GetTypes());
 
-            types = types.Union(GetNestedTypeRecursive(endpointConfiguration.BuilderType.DeclaringType, endpointConfiguration.BuilderType));
+            types = types.Union(GetNestedTypeRecursive(componentType.DeclaringType, componentType));
 
-            types = types.Union(endpointConfiguration.TypesToInclude);
 
-            return types.Where(t => !endpointConfiguration.TypesToExclude.Contains(t)).ToList();
+            return types.ToList();
         }
 
         static IEnumerable<Type> GetNestedTypeRecursive(Type rootType, Type builderType)

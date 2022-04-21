@@ -1,4 +1,4 @@
-﻿namespace NServiceBus.AcceptanceTests.EndpointTemplates
+﻿namespace NServiceBus.TransactionalSession.AcceptanceTests.EndpointTemplates
 {
     using AcceptanceTesting.Support;
     using Microsoft.Extensions.DependencyInjection;

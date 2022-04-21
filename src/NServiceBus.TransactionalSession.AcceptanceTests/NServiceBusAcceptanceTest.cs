@@ -1,4 +1,4 @@
-﻿namespace NServiceBus.AcceptanceTests
+﻿namespace NServiceBus.TransactionalSession.AcceptanceTests
 {
     using System;
     using System.IO;
