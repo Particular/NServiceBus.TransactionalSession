@@ -8,6 +8,13 @@
     public interface ITransactionalSession : IDisposable
     {
         /// <summary>
+        /// Opens the transaction session.
+        /// </summary>
+        /// <param name="cancellationToken"></param>
+        /// <returns>A <see cref="CancellationToken"/> to observe.</returns>
+        Task Open(CancellationToken cancellationToken = default);
+
+        /// <summary>
         /// Sends the provided message.
         /// </summary>
         /// <param name="message">The message to send.</param>

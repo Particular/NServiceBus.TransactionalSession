@@ -85,7 +85,6 @@
                 //HINT: swallow the exception to acknowledge the incoming message and prevent outbox from commiting  
             }
         }
-
     }
 
     class ConsumeMessageException : Exception
@@ -123,6 +122,8 @@
                     sp.GetRequiredService<IMessageDispatcher>());
             });
 
+            //TODO: we should pass NoOpOutboxStorage here if not running with Outbox
+            //TODO: what happens when someone turns off the Outbox but control messages are still in the input queue?
             context.Pipeline.Register(sp => new UnitOfWorkDelayControlMessageBehavior(
                 sp.GetRequiredService<IOutboxStorage>(),
                 sp.GetRequiredService<IMessageDispatcher>(),
