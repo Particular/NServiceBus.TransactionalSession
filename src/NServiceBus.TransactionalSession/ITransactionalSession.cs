@@ -5,6 +5,9 @@
     using System.Threading;
     using System.Threading.Tasks;
 
+    /// <summary>
+    /// A transactional session that provides basic message operations. 
+    /// </summary>
     public interface ITransactionalSession : IDisposable
     {
         /// <summary>
@@ -54,9 +57,16 @@
         /// </summary>
         ISynchronizedStorageSession SynchronizedStorageSession { get; }
 
+        /// <summary>
+        /// Transactional session globally unique identifier
+        /// </summary>
         string SessionId { get; }
 
-        // Name super temporary
+        /// <summary>
+        /// Commit the session by applying all message and synchronized storage operation in an atomic manner.
+        /// </summary>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
         Task Commit(CancellationToken cancellationToken = default);
     }
 }

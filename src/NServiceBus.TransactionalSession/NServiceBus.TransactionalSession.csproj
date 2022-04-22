@@ -8,6 +8,10 @@
 
   <ItemGroup>
     <PackageReference Include="NServiceBus" Version="8.0.0-storagession.1" />
+    <PackageReference Include="Particular.Packaging" Version="2.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
 </Project>

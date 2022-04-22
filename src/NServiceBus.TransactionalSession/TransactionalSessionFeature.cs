@@ -97,8 +97,14 @@
     {
     }
 
+    /// <summary>
+    /// Provides <see cref="ITransactionalSession" />.
+    /// </summary>
     public class TransactionalSessionFeature : Feature
     {
+        /// <summary>
+        /// See <see cref="Feature.Setup" />.
+        /// </summary>
         protected override void Setup(FeatureConfigurationContext context)
         {
             QueueAddress localQueueAddress = context.LocalQueueAddress();
@@ -140,7 +146,7 @@
                 "Transaction commit control message delay acknowledgement behavior");
         }
 
-        public class SessionCaptureTask : FeatureStartupTask
+        class SessionCaptureTask : FeatureStartupTask
         {
             public IMessageSession CapturedSession { get; set; }
 
