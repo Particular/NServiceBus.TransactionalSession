@@ -2,6 +2,7 @@
 {
     using NUnit.Framework;
     using Particular.Approvals;
+    using PublicApiGenerator;
 
     [TestFixture]
     public class APIApprovals

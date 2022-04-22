@@ -1,0 +1,31 @@
+namespace NServiceBus.TransactionalSession
+{
+    public interface ITransactionalSession : System.IDisposable
+    {
+        string SessionId { get; }
+        NServiceBus.Persistence.ISynchronizedStorageSession SynchronizedStorageSession { get; }
+        System.Threading.Tasks.Task Commit(System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task Open(System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task Publish(object message, NServiceBus.PublishOptions publishOptions, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task Publish<T>(System.Action<T> messageConstructor, NServiceBus.PublishOptions publishOptions, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task Send(object message, NServiceBus.SendOptions sendOptions, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task Send<T>(System.Action<T> messageConstructor, NServiceBus.SendOptions sendOptions, System.Threading.CancellationToken cancellationToken = default);
+    }
+    public static class TransactionalSessionExtensions
+    {
+        public static System.Threading.Tasks.Task Publish(this NServiceBus.TransactionalSession.ITransactionalSession session, object message, System.Threading.CancellationToken cancellationToken = default) { }
+        public static System.Threading.Tasks.Task Publish<T>(this NServiceBus.TransactionalSession.ITransactionalSession session, System.Threading.CancellationToken cancellationToken = default) { }
+        public static System.Threading.Tasks.Task Publish<T>(this NServiceBus.TransactionalSession.ITransactionalSession session, System.Action<T> messageConstructor, System.Threading.CancellationToken cancellationToken = default) { }
+        public static System.Threading.Tasks.Task Send(this NServiceBus.TransactionalSession.ITransactionalSession session, object message, System.Threading.CancellationToken cancellationToken = default) { }
+        public static System.Threading.Tasks.Task Send(this NServiceBus.TransactionalSession.ITransactionalSession session, string destination, object message, System.Threading.CancellationToken cancellationToken = default) { }
+        public static System.Threading.Tasks.Task Send<T>(this NServiceBus.TransactionalSession.ITransactionalSession session, System.Action<T> messageConstructor, System.Threading.CancellationToken cancellationToken = default) { }
+        public static System.Threading.Tasks.Task Send<T>(this NServiceBus.TransactionalSession.ITransactionalSession session, string destination, System.Action<T> messageConstructor, System.Threading.CancellationToken cancellationToken = default) { }
+        public static System.Threading.Tasks.Task SendLocal(this NServiceBus.TransactionalSession.ITransactionalSession session, object message, System.Threading.CancellationToken cancellationToken = default) { }
+        public static System.Threading.Tasks.Task SendLocal<T>(this NServiceBus.TransactionalSession.ITransactionalSession session, System.Action<T> messageConstructor, System.Threading.CancellationToken cancellationToken = default) { }
+    }
+    public class TransactionalSessionFeature : NServiceBus.Features.Feature
+    {
+        public TransactionalSessionFeature() { }
+        protected override void Setup(NServiceBus.Features.FeatureConfigurationContext context) { }
+    }
+}
