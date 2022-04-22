@@ -15,10 +15,18 @@ public class When_running_outbox
     public async Task Should_send_messages_on_transactional_session_commit()
     {
         await Scenario.Define<Context>()
-            .WithEndpoint<AnEndpoint>(s => s.When((ms, ctx) =>
+            .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
             {
-                ctx.Started = true;
-                return Task.CompletedTask;
+                using (var scope = ctx.ServiceProvider.CreateScope())
+                {
+                    var session = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+
+                    await session.Open(CancellationToken.None).ConfigureAwait(false);
+
+                    await session.SendLocal(new SampleMessage(), CancellationToken.None).ConfigureAwait(false);
+
+                    await session.Commit(CancellationToken.None).ConfigureAwait(false);
+                }
             }))
             .Done(c => c.MessageReceived)
             .Run()
@@ -28,7 +36,7 @@ public class When_running_outbox
     class Context : ScenarioContext
     {
         public bool MessageReceived { get; set; }
-        public bool Started { get; set; }
+        public IServiceProvider ServiceProvider { get; set; }
     }
 
     class AnEndpoint : EndpointConfigurationBuilder
@@ -41,7 +49,7 @@ public class When_running_outbox
 
                 c.EnableFeature<TransactionalSessionFeature>();
 
-                c.RegisterStartupTask(sp => new SendMessageViaTransactionalSession(sp, r.ScenarioContext as Context));
+                c.RegisterStartupTask(sp => new CaptureServiceProviderStartupTask(sp, r.ScenarioContext as Context));
             });
         }
 
@@ -62,41 +70,15 @@ public class When_running_outbox
             }
         }
 
-        class SendMessageViaTransactionalSession : FeatureStartupTask
+        class CaptureServiceProviderStartupTask : FeatureStartupTask
         {
-            readonly IServiceProvider serviceProvider;
-            readonly Context context;
 
-            public SendMessageViaTransactionalSession(IServiceProvider serviceProvider, Context context)
+            public CaptureServiceProviderStartupTask(IServiceProvider serviceProvider, Context context)
             {
-                this.serviceProvider = serviceProvider;
-                this.context = context;
+                context.ServiceProvider = serviceProvider;
             }
 
-            protected override Task OnStart(IMessageSession session, CancellationToken cancellationToken = default)
-            {
-                _ = Task.Run(async () =>
-                {
-                    while (context.Started == false)
-                    {
-                        await Task.Delay(TimeSpan.FromMilliseconds(50)).ConfigureAwait(false);
-                    }
-
-                    using (var scope = serviceProvider.CreateScope())
-                    {
-                        var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
-
-                        await transactionalSession.Open(cancellationToken).ConfigureAwait(false);
-
-                        await transactionalSession.SendLocal(new SampleMessage(), cancellationToken)
-                            .ConfigureAwait(false);
-
-                        await transactionalSession.Commit(cancellationToken).ConfigureAwait(false);
-                    }
-                }, cancellationToken).ConfigureAwait(false);
-
-                return Task.CompletedTask;
-            }
+            protected override Task OnStart(IMessageSession session, CancellationToken cancellationToken = default) => Task.CompletedTask;
 
             protected override Task OnStop(IMessageSession session, CancellationToken cancellationToken = default) => Task.CompletedTask;
         }
