@@ -92,10 +92,6 @@
         }
     }
 
-    class ConsumeMessageException : Exception
-    {
-    }
-
     /// <summary>
     /// Provides <see cref="ITransactionalSession" />.
     /// </summary>
@@ -133,16 +129,19 @@
                     sp.GetRequiredService<IMessageDispatcher>());
             });
 
-            //TODO: we should pass NoOpOutboxStorage here if not running with Outbox
-            //TODO: what happens when someone turns off the Outbox but control messages are still in the input queue?
-            context.Pipeline.Register(sp => new TransactionalSessionDelayControlMessageBehavior(
-                sp.GetRequiredService<IOutboxStorage>(),
-                sp.GetRequiredService<IMessageDispatcher>(),
-                sp.GetRequiredService<ITransportAddressResolver>().ToTransportAddress(localQueueAddress)
+            if (isOutboxEnabled)
+            {
+                //TODO: we should pass NoOpOutboxStorage here if not running with Outbox
+                //TODO: what happens when someone turns off the Outbox but control messages are still in the input queue?
+                context.Pipeline.Register(sp => new TransactionalSessionDelayControlMessageBehavior(
+                    sp.GetRequiredService<IOutboxStorage>(),
+                    sp.GetRequiredService<IMessageDispatcher>(),
+                    sp.GetRequiredService<ITransportAddressResolver>().ToTransportAddress(localQueueAddress)
                 ), "Transaction commit control message delay behavior");
 
-            context.Pipeline.Register(new TransactionalSessionControlMessageExceptionBehavior(),
-                "Transaction commit control message delay acknowledgement behavior");
+                context.Pipeline.Register(new TransactionalSessionControlMessageExceptionBehavior(),
+                    "Transaction commit control message delay acknowledgement behavior");
+            }
         }
 
         class SessionCaptureTask : FeatureStartupTask

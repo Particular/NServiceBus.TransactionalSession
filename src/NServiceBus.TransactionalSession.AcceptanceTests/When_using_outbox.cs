@@ -4,12 +4,13 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using NServiceBus;
 using NServiceBus.AcceptanceTesting;
+using NServiceBus.AcceptanceTests;
+using NServiceBus.AcceptanceTests.EndpointTemplates;
 using NServiceBus.Features;
 using NServiceBus.TransactionalSession;
-using NServiceBus.TransactionalSession.AcceptanceTests.EndpointTemplates;
 using NUnit.Framework;
 
-public class When_using_outbox
+public class When_using_outbox : NServiceBusAcceptanceTest
 {
     [Test]
     public async Task Should_send_messages_on_transactional_session_commit()
@@ -99,10 +100,10 @@ public class When_using_outbox
     {
         public AnEndpoint()
         {
-            EndpointSetup<DefaultEndpoint>((c, r) =>
+            EndpointSetup<DefaultServer>((c, r) =>
             {
                 c.EnableOutbox();
-                c.EnableTransactionalSession(TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(3));
+                c.EnableTransactionalSession();
                 c.RegisterStartupTask(sp => new CaptureServiceProviderStartupTask(sp, r.ScenarioContext as Context));
             });
         }

@@ -10,7 +10,7 @@ using NServiceBus.Features;
 using NServiceBus.TransactionalSession;
 using NUnit.Framework;
 
-public class When_not_using_outbox
+public class When_not_using_outbox : NServiceBusAcceptanceTest
 {
     [Test]
     public async Task Should_send_messages_on_transactional_session_commit()
