@@ -14,7 +14,7 @@
     using Routing;
     using Transport;
 
-    class UnitOfWorkDelayControlMessageBehavior : Behavior<IIncomingPhysicalMessageContext>
+    class TransactionalSessionDelayControlMessageBehavior : Behavior<IIncomingPhysicalMessageContext>
     {
         readonly IOutboxStorage outboxStorage;
         readonly IMessageDispatcher dispatcher;
@@ -22,7 +22,7 @@
         TimeSpan MaxCommitDelay = TimeSpan.FromSeconds(30);
         TimeSpan CommitDelayIncrement = TimeSpan.FromSeconds(10);
 
-        public UnitOfWorkDelayControlMessageBehavior(IOutboxStorage outboxStorage, IMessageDispatcher dispatcher, string physicalQueueAddress)
+        public TransactionalSessionDelayControlMessageBehavior(IOutboxStorage outboxStorage, IMessageDispatcher dispatcher, string physicalQueueAddress)
         {
             this.outboxStorage = outboxStorage;
             this.dispatcher = dispatcher;
@@ -37,7 +37,6 @@
             {
                 await next().ConfigureAwait(false);
                 return;
-
             }
 
             var commitStartedAtText = context.Message.Headers[OutboxTransactionalSession.ControlMessageSentAtHeaderName];
@@ -74,11 +73,11 @@
             throw new ConsumeMessageException();
         }
 
-        static ILog Log = LogManager.GetLogger<UnitOfWorkDelayControlMessageBehavior>();
+        static ILog Log = LogManager.GetLogger<TransactionalSessionDelayControlMessageBehavior>();
 
     }
 
-    class UnitOfWorkControlMessageExceptionBehavior : Behavior<ITransportReceiveContext>
+    class TransactionalSessionControlMessageExceptionBehavior : Behavior<ITransportReceiveContext>
     {
         public override async Task Invoke(ITransportReceiveContext context, Func<Task> next)
         {
@@ -88,7 +87,7 @@
             }
             catch (ConsumeMessageException)
             {
-                //HINT: swallow the exception to acknowledge the incoming message and prevent outbox from commiting  
+                //HINT: swallow the exception to acknowledge the incoming message and prevent outbox from commiting
             }
         }
     }
@@ -136,13 +135,13 @@
 
             //TODO: we should pass NoOpOutboxStorage here if not running with Outbox
             //TODO: what happens when someone turns off the Outbox but control messages are still in the input queue?
-            context.Pipeline.Register(sp => new UnitOfWorkDelayControlMessageBehavior(
+            context.Pipeline.Register(sp => new TransactionalSessionDelayControlMessageBehavior(
                 sp.GetRequiredService<IOutboxStorage>(),
                 sp.GetRequiredService<IMessageDispatcher>(),
                 sp.GetRequiredService<ITransportAddressResolver>().ToTransportAddress(localQueueAddress)
                 ), "Transaction commit control message delay behavior");
 
-            context.Pipeline.Register(new UnitOfWorkControlMessageExceptionBehavior(),
+            context.Pipeline.Register(new TransactionalSessionControlMessageExceptionBehavior(),
                 "Transaction commit control message delay acknowledgement behavior");
         }
 
