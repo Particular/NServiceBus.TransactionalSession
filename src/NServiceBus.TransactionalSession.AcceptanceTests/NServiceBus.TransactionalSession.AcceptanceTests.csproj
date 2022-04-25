@@ -12,10 +12,38 @@
     <PackageReference Include="NServiceBus.AcceptanceTesting" Version="8.0.0-storagession.1" />
     <PackageReference Include="NUnit" Version="3.13.2" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.2.1" />
+    <PackageReference Include="NServiceBus.AcceptanceTests.Sources" Version="8.0.0-storagession.1" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\NServiceBus.TransactionalSession\NServiceBus.TransactionalSession.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="\**\ConfigureEndpointInMemoryPersistence.cs" />
+    <Compile Remove="\**\ConfigureEndpointLearningPersistence.cs" />
+    <Compile Remove="\**\ConventionEnforcementTests.cs" />
+    <Compile Remove="\**\DeterministicGuid.cs" />
+    <Compile Remove="\**\Audit\*.*" />
+    <Compile Remove="\**\Correlation\*.*" />
+    <Compile Remove="\**\DataBus\*.*" />
+    <Compile Remove="\**\DelayedDelivery\*.*" />
+    <Compile Remove="\**\Forwarding\*.*" />
+    <Compile Remove="\**\MessageId\*.*" />
+    <Compile Remove="\**\Pipeline\*.*" />
+    <Compile Remove="\**\Recoverability\*.*" />
+    <Compile Remove="\**\Routing\**\*.*" />
+    <Compile Remove="\**\Satellites\*.*" />
+    <Compile Remove="\**\Scheduling\*.*" />
+    <Compile Remove="\**\SelfVerification\*.*" />
+    <Compile Remove="\**\Serialization\*.*" />
+    <Compile Remove="\**\Timeout\*.*" />
+    <Compile Remove="\**\TimeToBeReceived\*.*" />
+    <Compile Remove="\**\Tx\**\*.*" />
+    <Compile Remove="\**\Versioning\*.*" />
+    <Compile Remove="\**\Outbox\*.*" />
+    <Compile Remove="\**\Feature\*.*" />
+    <Compile Remove="\**\Sagas\*.*" />
   </ItemGroup>
 
 </Project>
