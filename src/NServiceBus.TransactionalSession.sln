@@ -9,6 +9,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NServiceBus.TransactionalSe
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NServiceBus.TransactionalSession.Tests", "NServiceBus.TransactionalSession.Tests\NServiceBus.TransactionalSession.Tests.csproj", "{7073F510-9FD4-4D2A-9312-C379827F39F4}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NServiceBus.TransactionalSession.CustomTestingPersistence", "NServiceBus.TransactionalSession.CustomTestingPersistence\NServiceBus.TransactionalSession.CustomTestingPersistence.csproj", "{7A3795DA-3A35-42DA-9B45-E2800D2E2B0E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{7073F510-9FD4-4D2A-9312-C379827F39F4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7073F510-9FD4-4D2A-9312-C379827F39F4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7073F510-9FD4-4D2A-9312-C379827F39F4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7A3795DA-3A35-42DA-9B45-E2800D2E2B0E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7A3795DA-3A35-42DA-9B45-E2800D2E2B0E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7A3795DA-3A35-42DA-9B45-E2800D2E2B0E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7A3795DA-3A35-42DA-9B45-E2800D2E2B0E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

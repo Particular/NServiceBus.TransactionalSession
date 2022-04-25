@@ -9,13 +9,13 @@ namespace NServiceBus.AcceptanceTests
         public bool SupportsCrossQueueTransactions { get; } = true;
         public bool SupportsPurgeOnStartup { get; } = true;
         public bool SupportsNativePubSub { get; } = true;
-        public bool SupportsOutbox { get; } = false;
+        public bool SupportsOutbox { get; } = true;
 
         public IConfigureEndpointTestExecution CreateTransportConfiguration() =>
             new ConfigureEndpointAcceptanceTestingTransport(SupportsNativePubSub, SupportsDelayedDelivery,
                 TransportTransactionMode.ReceiveOnly);
 
         public IConfigureEndpointTestExecution CreatePersistenceConfiguration() =>
-            new ConfigureEndpointAcceptanceTestingPersistence();
+            new ConfigureEndpointCustomTestingPersistence();
     }
 }
