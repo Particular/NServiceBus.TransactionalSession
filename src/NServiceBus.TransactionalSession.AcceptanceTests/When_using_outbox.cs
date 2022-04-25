@@ -61,6 +61,31 @@
         }
 
         [Test]
+        public async Task Should_send_immediate_dispatch_messages_even_if_session_is_not_committed()
+        {
+            var result = await Scenario.Define<Context>()
+                .WithEndpoint<AnEndpoint>(s => s.When(async (statelessSession, ctx) =>
+                {
+                    using (var scope = ctx.ServiceProvider.CreateScope())
+                    {
+                        var session = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+
+                        await session.Open(CancellationToken.None).ConfigureAwait(false);
+
+                        var sendOptions = new SendOptions();
+                        sendOptions.RequireImmediateDispatch();
+                        sendOptions.RouteToThisEndpoint();
+                        await session.Send(new SampleMessage(), sendOptions, CancellationToken.None).ConfigureAwait(false);
+                    }
+                }))
+                .Done(c => c.MessageReceived)
+                .Run()
+                .ConfigureAwait(false);
+
+            Assert.True(result.MessageReceived);
+        }
+
+        [Test]
         public async Task Should_fail_commit_and_not_send_messages_when_timeout_elapsed()
         {
             var result = await Scenario.Define<Context>()
