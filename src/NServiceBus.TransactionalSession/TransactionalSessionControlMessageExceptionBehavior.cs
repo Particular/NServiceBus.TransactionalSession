@@ -1,10 +1,10 @@
-﻿namespace NServiceBus.TransactionalSession
+namespace NServiceBus.TransactionalSession
 {
     using System;
     using System.Threading.Tasks;
     using Pipeline;
 
-    class UnitOfWorkControlMessageExceptionBehavior : Behavior<ITransportReceiveContext>
+    class TransactionalSessionControlMessageExceptionBehavior : Behavior<ITransportReceiveContext>
     {
         public override async Task Invoke(ITransportReceiveContext context, Func<Task> next)
         {
@@ -14,7 +14,7 @@
             }
             catch (ConsumeMessageException)
             {
-                //HINT: swallow the exception to acknowledge the incoming message and prevent outbox from commiting  
+                //HINT: swallow the exception to acknowledge the incoming message and prevent outbox from commiting
             }
         }
     }

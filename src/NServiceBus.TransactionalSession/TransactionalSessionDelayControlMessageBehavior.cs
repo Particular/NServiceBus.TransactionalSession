@@ -1,4 +1,4 @@
-﻿namespace NServiceBus.TransactionalSession
+namespace NServiceBus.TransactionalSession
 {
     using System;
     using System.Collections.Generic;
@@ -11,21 +11,19 @@
     using Routing;
     using Transport;
 
-    class UnitOfWorkDelayControlMessageBehavior : Behavior<IIncomingPhysicalMessageContext>
+    class TransactionalSessionDelayControlMessageBehavior : Behavior<IIncomingPhysicalMessageContext>
     {
         readonly IOutboxStorage outboxStorage;
         readonly IMessageDispatcher dispatcher;
         readonly string physicalQueueAddress;
-        readonly TimeSpan maxCommitDelay;
-        readonly TimeSpan commitDelayIncrement;
+        TimeSpan MaxCommitDelay = TimeSpan.FromSeconds(30);
+        TimeSpan CommitDelayIncrement = TimeSpan.FromSeconds(10);
 
-        public UnitOfWorkDelayControlMessageBehavior(IOutboxStorage outboxStorage, IMessageDispatcher dispatcher, string physicalQueueAddress, TimeSpan maxCommitDelay, TimeSpan commitDelayIncrement)
+        public TransactionalSessionDelayControlMessageBehavior(IOutboxStorage outboxStorage, IMessageDispatcher dispatcher, string physicalQueueAddress)
         {
             this.outboxStorage = outboxStorage;
             this.dispatcher = dispatcher;
             this.physicalQueueAddress = physicalQueueAddress;
-            this.maxCommitDelay = maxCommitDelay;
-            this.commitDelayIncrement = commitDelayIncrement;
         }
 
         public override async Task Invoke(IIncomingPhysicalMessageContext context, Func<Task> next)
@@ -36,7 +34,6 @@
             {
                 await next().ConfigureAwait(false);
                 return;
-
             }
 
             var commitStartedAtText = context.Message.Headers[OutboxTransactionalSession.ControlMessageSentAtHeaderName];
@@ -49,7 +46,7 @@
             var transactionCommitted = outboxRecord != null;
             var timeSinceCommitStart = DateTimeOffset.UtcNow.Subtract(commitStartedAt);
 
-            if (transactionCommitted || timeSinceCommitStart > maxCommitDelay)
+            if (transactionCommitted || timeSinceCommitStart > MaxCommitDelay)
             {
                 await next().ConfigureAwait(false);
                 return;
@@ -63,7 +60,7 @@
                         new UnicastAddressTag(physicalQueueAddress),
                         new DispatchProperties(new Dictionary<string, string>
                         {
-                            {Headers.DeliverAt, DateTimeOffsetHelper.ToWireFormattedString(DateTimeOffset.UtcNow.Add(commitDelayIncrement))},
+                            {Headers.DeliverAt, DateTimeOffsetHelper.ToWireFormattedString(DateTimeOffset.UtcNow.Add(CommitDelayIncrement))},
                         }),
                         DispatchConsistency.Isolated
                     )
@@ -73,7 +70,7 @@
             throw new ConsumeMessageException();
         }
 
-        static ILog Log = LogManager.GetLogger<UnitOfWorkDelayControlMessageBehavior>();
+        static ILog Log = LogManager.GetLogger<TransactionalSessionDelayControlMessageBehavior>();
 
     }
 }
