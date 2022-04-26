@@ -29,7 +29,7 @@ namespace NServiceBus.AcceptanceTesting
             public OutboxCleaner(CustomTestingOutboxStorage storage, TimeSpan timeToKeepDeduplicationData)
             {
                 this.timeToKeepDeduplicationData = timeToKeepDeduplicationData;
-                _customTestingOutboxStorage = storage;
+                customTestingOutboxStorage = storage;
             }
 
             protected override Task OnStart(IMessageSession session, CancellationToken cancellationToken = default)
@@ -52,10 +52,10 @@ namespace NServiceBus.AcceptanceTesting
 
             void PerformCleanup(object state)
             {
-                _customTestingOutboxStorage.RemoveEntriesOlderThan(DateTime.UtcNow - timeToKeepDeduplicationData);
+                customTestingOutboxStorage.RemoveEntriesOlderThan(DateTime.UtcNow - timeToKeepDeduplicationData);
             }
 
-            readonly CustomTestingOutboxStorage _customTestingOutboxStorage;
+            readonly CustomTestingOutboxStorage customTestingOutboxStorage;
             readonly TimeSpan timeToKeepDeduplicationData;
 
             Timer cleanupTimer;

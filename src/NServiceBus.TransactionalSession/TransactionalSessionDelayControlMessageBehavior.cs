@@ -37,7 +37,6 @@ namespace NServiceBus.TransactionalSession
             }
 
             var commitStartedAtText = context.Message.Headers[OutboxTransactionalSession.ControlMessageSentAtHeaderName];
-
             var commitStartedAt = DateTimeOffsetHelper.ToDateTimeOffset(commitStartedAtText);
 
             var messageId = context.MessageId;
