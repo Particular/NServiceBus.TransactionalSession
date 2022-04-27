@@ -16,8 +16,8 @@ namespace NServiceBus.TransactionalSession
         readonly IOutboxStorage outboxStorage;
         readonly IMessageDispatcher dispatcher;
         readonly string physicalQueueAddress;
-        TimeSpan MaxCommitDelay = TimeSpan.FromSeconds(30);
-        TimeSpan CommitDelayIncrement = TimeSpan.FromSeconds(10);
+        TimeSpan MaxCommitDelay = TimeSpan.FromSeconds(15);
+        TimeSpan CommitDelayIncrement = TimeSpan.FromSeconds(5);
 
         public TransactionalSessionDelayControlMessageBehavior(IOutboxStorage outboxStorage, IMessageDispatcher dispatcher, string physicalQueueAddress)
         {

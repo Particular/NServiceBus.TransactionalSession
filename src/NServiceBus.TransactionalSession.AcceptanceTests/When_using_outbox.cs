@@ -99,7 +99,11 @@
 
                         await session.SendLocal(new SampleMessage(), CancellationToken.None).ConfigureAwait(false);
 
-                        await session.Commit(CancellationToken.None).ConfigureAwait(false);
+                        session.SynchronizedStorageSession.DelayCommit(TimeSpan.FromSeconds(30));
+
+                        Assert.ThrowsAsync<Exception>(() => session.Commit(CancellationToken.None));
+
+                        ctx.CompleteMessageReceived = true;
                     }
 
                 }))
@@ -107,11 +111,9 @@
                 .Run()
                 .ConfigureAwait(false);
 
-            Assert.True(result.CompleteMessageReceived);
             Assert.False(result.MessageReceived);
         }
 
-        //Should fail commit if it took longer than the timeout
         //Should commit the DB transaction if message send fails
 
         class Context : ScenarioContext
