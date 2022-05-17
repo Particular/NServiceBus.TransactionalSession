@@ -11,9 +11,7 @@
         /// Enables the transactional session for this endpoint.
         /// </summary>
         /// <param name="endpointConfiguration">Endpoint configuration.</param>
-        public static void EnableTransactionalSession(this EndpointConfiguration endpointConfiguration)
-        {
+        public static void EnableTransactionalSession(this EndpointConfiguration endpointConfiguration) =>
             endpointConfiguration.EnableFeature<TransactionalSessionFeature>();
-        }
     }
 }

@@ -29,3 +29,10 @@ namespace NServiceBus.TransactionalSession
         protected override void Setup(NServiceBus.Features.FeatureConfigurationContext context) { }
     }
 }
+namespace NServiceBus
+{
+    public static class TransactionalSessionConfigurationExtensions
+    {
+        public static void EnableTransactionalSession(this NServiceBus.EndpointConfiguration endpointConfiguration) { }
+    }
+}
