@@ -1,0 +1,101 @@
+namespace NServiceBus.AcceptanceTesting
+{
+    using System;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using System.Transactions;
+    using Extensibility;
+    using Outbox;
+    using Persistence;
+    using Transport;
+
+    class CustomTestingSynchronizedStorageSession : ICompletableSynchronizedStorageSession
+    {
+        public AcceptanceTestingTransaction Transaction { get; private set; }
+
+        public void Dispose() => Transaction = null;
+
+        public void DelayCommit(TimeSpan delay)
+        {
+            commitDelay = delay;
+        }
+
+        public ValueTask<bool> TryOpen(IOutboxTransaction transaction, ContextBag context,
+            CancellationToken cancellationToken = default)
+        {
+            if (transaction is CustomTestingOutboxTransaction inMemOutboxTransaction)
+            {
+                Transaction = inMemOutboxTransaction.Transaction;
+                ownsTransaction = false;
+                return new ValueTask<bool>(true);
+            }
+
+            return new ValueTask<bool>(false);
+        }
+
+        public ValueTask<bool> TryOpen(TransportTransaction transportTransaction, ContextBag context,
+            CancellationToken cancellationToken = default)
+        {
+            if (!transportTransaction.TryGet(out Transaction ambientTransaction))
+            {
+                return new ValueTask<bool>(false);
+            }
+
+            Transaction = new AcceptanceTestingTransaction();
+            ambientTransaction.EnlistVolatile(new EnlistmentNotification(Transaction), EnlistmentOptions.None);
+            ownsTransaction = true;
+            return new ValueTask<bool>(true);
+        }
+
+        public Task Open(ContextBag contextBag, CancellationToken cancellationToken = default)
+        {
+            ownsTransaction = true;
+            Transaction = new AcceptanceTestingTransaction();
+            return Task.CompletedTask;
+        }
+
+        public async Task CompleteAsync(CancellationToken cancellationToken = default)
+        {
+            await Task.Delay(commitDelay, cancellationToken).ConfigureAwait(false);
+            if (ownsTransaction)
+            {
+                Transaction.Commit();
+            }
+        }
+
+        public void Enlist(Action action) => Transaction.Enlist(action);
+
+        TimeSpan commitDelay = TimeSpan.Zero;
+        bool ownsTransaction;
+
+        sealed class EnlistmentNotification : IEnlistmentNotification
+        {
+            public EnlistmentNotification(AcceptanceTestingTransaction transaction) => this.transaction = transaction;
+
+            public void Prepare(PreparingEnlistment preparingEnlistment)
+            {
+                try
+                {
+                    transaction.Commit();
+                    preparingEnlistment.Prepared();
+                }
+                catch (Exception ex)
+                {
+                    preparingEnlistment.ForceRollback(ex);
+                }
+            }
+
+            public void Commit(Enlistment enlistment) => enlistment.Done();
+
+            public void Rollback(Enlistment enlistment)
+            {
+                transaction.Rollback();
+                enlistment.Done();
+            }
+
+            public void InDoubt(Enlistment enlistment) => enlistment.Done();
+
+            readonly AcceptanceTestingTransaction transaction;
+        }
+    }
+}

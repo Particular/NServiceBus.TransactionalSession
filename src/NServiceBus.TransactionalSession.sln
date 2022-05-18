@@ -3,7 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31919.166
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NServiceBus.TransactionalSession", "NServiceBus.TransactionalSession\NServiceBus.TransactionalSession.csproj", "{B4882309-F2E5-4B96-8A98-CFACB30AD117}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NServiceBus.TransactionalSession", "NServiceBus.TransactionalSession\NServiceBus.TransactionalSession.csproj", "{B4882309-F2E5-4B96-8A98-CFACB30AD117}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NServiceBus.TransactionalSession.AcceptanceTests", "NServiceBus.TransactionalSession.AcceptanceTests\NServiceBus.TransactionalSession.AcceptanceTests.csproj", "{4994C04C-42CA-467E-922E-AA1E63E8EAE3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NServiceBus.TransactionalSession.Tests", "NServiceBus.TransactionalSession.Tests\NServiceBus.TransactionalSession.Tests.csproj", "{7073F510-9FD4-4D2A-9312-C379827F39F4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NServiceBus.TransactionalSession.CustomTestingPersistence", "NServiceBus.TransactionalSession.CustomTestingPersistence\NServiceBus.TransactionalSession.CustomTestingPersistence.csproj", "{7A3795DA-3A35-42DA-9B45-E2800D2E2B0E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +21,18 @@ Global
 		{B4882309-F2E5-4B96-8A98-CFACB30AD117}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B4882309-F2E5-4B96-8A98-CFACB30AD117}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B4882309-F2E5-4B96-8A98-CFACB30AD117}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4994C04C-42CA-467E-922E-AA1E63E8EAE3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4994C04C-42CA-467E-922E-AA1E63E8EAE3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4994C04C-42CA-467E-922E-AA1E63E8EAE3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4994C04C-42CA-467E-922E-AA1E63E8EAE3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7073F510-9FD4-4D2A-9312-C379827F39F4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7073F510-9FD4-4D2A-9312-C379827F39F4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7073F510-9FD4-4D2A-9312-C379827F39F4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7073F510-9FD4-4D2A-9312-C379827F39F4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7A3795DA-3A35-42DA-9B45-E2800D2E2B0E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7A3795DA-3A35-42DA-9B45-E2800D2E2B0E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7A3795DA-3A35-42DA-9B45-E2800D2E2B0E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7A3795DA-3A35-42DA-9B45-E2800D2E2B0E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
