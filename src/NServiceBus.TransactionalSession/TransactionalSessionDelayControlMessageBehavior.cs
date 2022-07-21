@@ -1,7 +1,7 @@
 namespace NServiceBus.TransactionalSession
 {
     using System;
-    using System.Collections.Generic;
+    using DelayedDelivery;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
@@ -57,10 +57,10 @@ namespace NServiceBus.TransactionalSession
                     new Transport.TransportOperation(
                         new OutgoingMessage(messageId, context.MessageHeaders.ToDictionary(kvp => kvp.Key, kvp => kvp.Value), ReadOnlyMemory<byte>.Empty),
                         new UnicastAddressTag(physicalQueueAddress),
-                        new DispatchProperties(new Dictionary<string, string>
+                        new DispatchProperties
                         {
-                            {Headers.DeliverAt, DateTimeOffsetHelper.ToWireFormattedString(DateTimeOffset.UtcNow.Add(CommitDelayIncrement))},
-                        }),
+                            DelayDeliveryWith = new DelayDeliveryWith(CommitDelayIncrement)
+                        },
                         DispatchConsistency.Isolated
                     )
                 ), new TransportTransaction(), context.CancellationToken)
