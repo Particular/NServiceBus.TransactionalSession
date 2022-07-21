@@ -4,7 +4,6 @@
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
-    using Extensibility;
     using Outbox;
     using Persistence;
     using Routing;
@@ -12,69 +11,20 @@
     using TransportTransportOperation = Transport.TransportOperation;
     using OutboxTransportOperation = Outbox.TransportOperation;
 
-    class OutboxTransactionalSession : ITransactionalSession
+    class OutboxTransactionalSession : TransactionalSessionBase
     {
         public OutboxTransactionalSession(
             IOutboxStorage outboxStorage,
             ICompletableSynchronizedStorageSession synchronizedStorageSession,
             IMessageSession messageSession,
             IMessageDispatcher dispatcher,
-            string physicalQueueAddress)
+            string physicalQueueAddress) : base(synchronizedStorageSession, messageSession, dispatcher)
         {
             this.outboxStorage = outboxStorage;
-            this.synchronizedStorageSession = synchronizedStorageSession;
-            this.messageSession = messageSession;
-            this.dispatcher = dispatcher;
             this.physicalQueueAddress = physicalQueueAddress;
-            pendingOperations = new PendingTransportOperations();
-            outboxTransactionContext = new ContextBag();
         }
 
-        public async Task Send(object message, SendOptions sendOptions, CancellationToken cancellationToken = default)
-        {
-            if (!isSessionOpen)
-            {
-                throw new InvalidOperationException("Before sending any messages, make sure to open the session by calling the `Open`-method.");
-            }
-
-            sendOptions.GetExtensions().Set(pendingOperations);
-            await messageSession.Send(message, sendOptions, cancellationToken).ConfigureAwait(false);
-        }
-
-        public async Task Send<T>(Action<T> messageConstructor, SendOptions sendOptions, CancellationToken cancellationToken = default)
-        {
-            if (!isSessionOpen)
-            {
-                throw new InvalidOperationException("Before sending any messages, make sure to open the session by calling the `Open`-method.");
-            }
-
-            sendOptions.GetExtensions().Set(pendingOperations);
-            await messageSession.Send(messageConstructor, sendOptions, cancellationToken).ConfigureAwait(false);
-        }
-
-        public async Task Publish(object message, PublishOptions publishOptions, CancellationToken cancellationToken = default)
-        {
-            if (!isSessionOpen)
-            {
-                throw new InvalidOperationException("Before publishing any messages, make sure to open the session by calling the `Open`-method.");
-            }
-
-            publishOptions.GetExtensions().Set(pendingOperations);
-            await messageSession.Publish(message, publishOptions, cancellationToken).ConfigureAwait(false);
-        }
-
-        public async Task Publish<T>(Action<T> messageConstructor, PublishOptions publishOptions, CancellationToken cancellationToken = default)
-        {
-            if (!isSessionOpen)
-            {
-                throw new InvalidOperationException("Before publishing any messages, make sure to open the session by calling the `Open`-method.");
-            }
-
-            publishOptions.GetExtensions().Set(pendingOperations);
-            await messageSession.Publish(messageConstructor, publishOptions, cancellationToken).ConfigureAwait(false);
-        }
-
-        public async Task Commit(CancellationToken cancellationToken = default)
+        public override async Task Commit(CancellationToken cancellationToken = default)
         {
             var message = new OutgoingMessage(SessionId, new Dictionary<string, string>
             {
@@ -88,7 +38,7 @@
 
             var outboxMessage =
                 new OutboxMessage(SessionId, ConvertToOutboxOperations(pendingOperations.Operations));
-            await outboxStorage.Store(outboxMessage, outboxTransaction, outboxTransactionContext, cancellationToken)
+            await outboxStorage.Store(outboxMessage, outboxTransaction, contextBag, cancellationToken)
                 .ConfigureAwait(false);
 
             await synchronizedStorageSession.CompleteAsync(cancellationToken).ConfigureAwait(false);
@@ -96,27 +46,15 @@
             await outboxTransaction.Commit(cancellationToken).ConfigureAwait(false);
         }
 
-        public void Dispose()
+        protected override void Dispose(bool disposing)
         {
-            synchronizedStorageSession.Dispose();
-            outboxTransaction?.Dispose();
-        }
+            base.Dispose(disposing);
 
-        public ISynchronizedStorageSession SynchronizedStorageSession
-        {
-            get
+            if (disposing)
             {
-                if (!isSessionOpen)
-                {
-                    throw new InvalidOperationException(
-                        "Before accessing the SynchronizedStorageSession, make sure to open the session by calling the `Open`-method.");
-                }
-
-                return synchronizedStorageSession;
+                outboxTransaction?.Dispose();
             }
         }
-
-        public string SessionId { get; private set; }
 
         static OutboxTransportOperation[] ConvertToOutboxOperations(TransportTransportOperation[] operations)
         {
@@ -150,31 +88,20 @@
             throw new Exception($"Unknown routing strategy {addressTag.GetType().FullName}");
         }
 
-        public async Task Open(CancellationToken cancellationToken = default)
+        public override async Task Open(CancellationToken cancellationToken = default)
         {
-            transportTransaction = new TransportTransaction();
-            outboxTransaction = await outboxStorage.BeginTransaction(outboxTransactionContext, cancellationToken).ConfigureAwait(false);
+            await base.Open(cancellationToken).ConfigureAwait(false);
 
-            if (!await synchronizedStorageSession.TryOpen(outboxTransaction, outboxTransactionContext, cancellationToken).ConfigureAwait(false))
+            outboxTransaction = await outboxStorage.BeginTransaction(contextBag, cancellationToken).ConfigureAwait(false);
+
+            if (!await synchronizedStorageSession.TryOpen(outboxTransaction, contextBag, cancellationToken).ConfigureAwait(false))
             {
                 throw new Exception("Outbox and synchronized storage persister is not compatible.");
             }
-
-            SessionId = Guid.NewGuid().ToString();
-            isSessionOpen = true;
         }
 
-        readonly ContextBag outboxTransactionContext;
-        readonly IMessageDispatcher dispatcher;
         readonly string physicalQueueAddress;
-
         readonly IOutboxStorage outboxStorage;
-        readonly PendingTransportOperations pendingOperations;
-        readonly ICompletableSynchronizedStorageSession synchronizedStorageSession;
-        readonly IMessageSession messageSession;
-        TransportTransaction transportTransaction;
-        bool isSessionOpen;
-
         IOutboxTransaction outboxTransaction;
         public const string ControlMessageSentAtHeaderName = "NServiceBus.TransactionalSession.CommitStartedAt";
     }
