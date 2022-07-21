@@ -116,7 +116,7 @@ namespace NServiceBus.TransactionalSession
         protected readonly ICompletableSynchronizedStorageSession synchronizedStorageSession;
         protected readonly IMessageDispatcher dispatcher;
         protected readonly PendingTransportOperations pendingOperations;
-        protected readonly ContextBag contextBag;
+        internal readonly ContextBag contextBag;
         protected readonly TransportTransaction transportTransaction;
         readonly IMessageSession messageSession;
         bool isSessionOpen;

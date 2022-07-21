@@ -14,4 +14,7 @@
     </PackageReference>
   </ItemGroup>
 
+	<ItemGroup>
+		<InternalsVisibleTo Include="NServiceBus.TransactionalSession.AcceptanceTests" Key="$(NServiceBusTestsKey)" />
+	</ItemGroup>
 </Project>

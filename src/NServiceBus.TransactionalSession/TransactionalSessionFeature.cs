@@ -1,6 +1,5 @@
 ﻿namespace NServiceBus.TransactionalSession
 {
-    using System;
     using System.Threading;
     using System.Threading.Tasks;
     using Features;
@@ -69,7 +68,7 @@
                 return Task.CompletedTask;
             }
 
-            protected override Task OnStop(IMessageSession session, CancellationToken cancellationToken = new CancellationToken()) => throw new NotImplementedException();
+            protected override Task OnStop(IMessageSession session, CancellationToken cancellationToken = new CancellationToken()) => Task.CompletedTask;
 
         }
     }

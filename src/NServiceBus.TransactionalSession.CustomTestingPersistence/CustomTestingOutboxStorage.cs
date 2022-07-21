@@ -7,21 +7,26 @@ namespace NServiceBus.AcceptanceTesting
     using Extensibility;
     using Outbox;
 
-    class CustomTestingOutboxStorage : IOutboxStorage
+    public class CustomTestingOutboxStorage : IOutboxStorage
     {
         public Task<OutboxMessage> Get(string messageId, ContextBag context, CancellationToken cancellationToken = default)
         {
-            if (!storage.TryGetValue(messageId, out var storedMessage))
+            if (context.TryGet("TestOutboxStorage.GetResult", out OutboxMessage customResult))
             {
-                return NoOutboxMessageTask;
+                return Task.FromResult(customResult);
             }
 
-            return Task.FromResult(new OutboxMessage(messageId, storedMessage.TransportOperations));
+            if (storage.TryGetValue(messageId, out var storedMessage))
+            {
+                return Task.FromResult(new OutboxMessage(messageId, storedMessage.TransportOperations));
+            }
+
+            return NoOutboxMessageTask;
         }
 
         public Task<IOutboxTransaction> BeginTransaction(ContextBag context, CancellationToken cancellationToken = default)
         {
-            return Task.FromResult<IOutboxTransaction>(new CustomTestingOutboxTransaction());
+            return Task.FromResult<IOutboxTransaction>(new CustomTestingOutboxTransaction(context));
         }
 
         public Task Store(OutboxMessage message, IOutboxTransaction transaction, ContextBag context, CancellationToken cancellationToken = default)
@@ -32,6 +37,11 @@ namespace NServiceBus.AcceptanceTesting
                 if (!storage.TryAdd(message.MessageId, new StoredMessage(message.MessageId, message.TransportOperations)))
                 {
                     throw new Exception($"Outbox message with id '{message.MessageId}' is already present in storage.");
+                }
+
+                if (context.TryGet("TestOutboxStorage.StoreCallback", out Action callback))
+                {
+                    callback();
                 }
             });
             return Task.CompletedTask;
@@ -61,6 +71,7 @@ namespace NServiceBus.AcceptanceTesting
         }
 
         ConcurrentDictionary<string, StoredMessage> storage = new ConcurrentDictionary<string, StoredMessage>();
+
         static Task<OutboxMessage> NoOutboxMessageTask = Task.FromResult(default(OutboxMessage));
 
         class StoredMessage
