@@ -4,7 +4,6 @@
     using System;
     using System.Threading;
     using System.Threading.Tasks;
-    using Extensibility;
 
     /// <summary>
     /// A transactional session that provides basic message operations. 
@@ -14,9 +13,9 @@
         /// <summary>
         /// Opens the transaction session.
         /// </summary>
-        /// <param name="context">The context bag containing additional optional information.</param>
+        /// <param name="options">The options.</param>
         /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe.</param>
-        Task Open(ContextBag context = null, CancellationToken cancellationToken = default);
+        Task Open(OpenSessionOptions options = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Sends the provided message.

@@ -3,7 +3,6 @@
     using System;
     using System.Threading;
     using System.Threading.Tasks;
-    using Extensibility;
     using Microsoft.Extensions.DependencyInjection;
     using NServiceBus.AcceptanceTesting;
     using NServiceBus.AcceptanceTesting.Customization;
@@ -27,10 +26,10 @@
                     try
                     {
                         ctx.TransactionTaskCompletionSource = new TaskCompletionSource<bool>();
-                        var contextBag = new ContextBag();
-                        contextBag.Set(CustomTestingOutboxTransaction.TransactionCommitTCSKey, ctx.TransactionTaskCompletionSource);
+                        var options = new OpenSessionOptions();
+                        options.Extensions.Set(CustomTestingOutboxTransaction.TransactionCommitTCSKey, ctx.TransactionTaskCompletionSource);
 
-                        await transactionalSession.Open(contextBag);
+                        await transactionalSession.Open(options);
                         await transactionalSession.Send(new SomeMessage());
                         await transactionalSession.Commit();
                     }

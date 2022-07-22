@@ -25,10 +25,10 @@
                         using var scope = context.ServiceProvider.CreateScope();
                         using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
-                        var contextBag = new ContextBag();
-                        contextBag.Set(CustomTestingOutboxTransaction.TransactionCommitTCSKey, context.TxCommitTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously));
+                        var options = new OpenSessionOptions();
+                        options.Extensions.Set(CustomTestingOutboxTransaction.TransactionCommitTCSKey, context.TxCommitTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously));
 
-                        await transactionalSession.Open(contextBag);
+                        await transactionalSession.Open(options);
                         await transactionalSession.Send(new SomeMessage());
                         await transactionalSession.Send(new SomeMessage());
                         await transactionalSession.Send(new SomeMessage());
