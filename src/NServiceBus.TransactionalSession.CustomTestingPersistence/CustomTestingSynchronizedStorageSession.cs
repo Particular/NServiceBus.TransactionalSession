@@ -15,11 +15,6 @@ namespace NServiceBus.AcceptanceTesting
 
         public void Dispose() => Transaction = null;
 
-        public void DelayCommit(TimeSpan delay)
-        {
-            commitDelay = delay;
-        }
-
         public ValueTask<bool> TryOpen(IOutboxTransaction transaction, ContextBag context,
             CancellationToken cancellationToken = default)
         {
@@ -54,18 +49,18 @@ namespace NServiceBus.AcceptanceTesting
             return Task.CompletedTask;
         }
 
-        public async Task CompleteAsync(CancellationToken cancellationToken = default)
+        public Task CompleteAsync(CancellationToken cancellationToken = default)
         {
-            await Task.Delay(commitDelay, cancellationToken).ConfigureAwait(false);
             if (ownsTransaction)
             {
                 Transaction.Commit();
             }
+
+            return Task.CompletedTask;
         }
 
         public void Enlist(Action action) => Transaction.Enlist(action);
 
-        TimeSpan commitDelay = TimeSpan.Zero;
         bool ownsTransaction;
 
         sealed class EnlistmentNotification : IEnlistmentNotification
