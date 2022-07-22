@@ -75,34 +75,6 @@
             Assert.True(result.MessageReceived);
         }
 
-        [Test]
-        public async Task Should_fail_commit_and_not_send_messages_when_timeout_elapsed()
-        {
-            var result = await Scenario.Define<Context>()
-                .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
-                {
-                    using var scope = ctx.ServiceProvider.CreateScope();
-                    using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
-
-                    await transactionalSession.Open();
-
-                    await transactionalSession.SendLocal(new SampleMessage());
-
-                    transactionalSession.SynchronizedStorageSession.DelayCommit(TimeSpan.FromSeconds(30));
-
-                    Assert.ThrowsAsync<Exception>(() => transactionalSession.Commit());
-
-                    ctx.CompleteMessageReceived = true;
-                }))
-                .Done(c => c.CompleteMessageReceived)
-                .Run()
-                ;
-
-            Assert.False(result.MessageReceived);
-        }
-
-        //Should commit the DB transaction if message send fails
-
         class Context : ScenarioContext, IInjectServiceProvider
         {
             public bool MessageReceived { get; set; }
@@ -121,7 +93,7 @@
 
                 public Task Handle(SampleMessage message, IMessageHandlerContext context)
                 {
-                    this.testContext.MessageReceived = true;
+                    testContext.MessageReceived = true;
 
                     return Task.CompletedTask;
                 }
@@ -131,7 +103,7 @@
 
             class CompleteTestMessageHandler : IHandleMessages<CompleteTestMessage>
             {
-                public CompleteTestMessageHandler(Context context) => this.testContext = context;
+                public CompleteTestMessageHandler(Context context) => testContext = context;
 
                 public Task Handle(CompleteTestMessage message, IMessageHandlerContext context)
                 {
