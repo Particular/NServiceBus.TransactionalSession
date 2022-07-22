@@ -12,9 +12,6 @@ namespace NServiceBus.TransactionalSession
     /// </remarks>
     public class OpenSessionOptions : IExtendable
     {
-        Dictionary<string, string> metadata;
-        ContextBag extensions;
-
         /// <summary>
         /// Options extensions.
         /// </summary>
@@ -36,5 +33,9 @@ namespace NServiceBus.TransactionalSession
         public TimeSpan MaximumCommitDuration { get; set; } = TimeSpan.FromSeconds(15);
 
         internal TimeSpan CommitDelayIncrement { get; set; } = TimeSpan.FromSeconds(2);
+
+        Dictionary<string, string> metadata;
+        ContextBag extensions;
+
     }
 }

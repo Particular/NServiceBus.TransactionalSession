@@ -11,9 +11,6 @@ namespace NServiceBus.TransactionalSession
 
     class TransactionalSessionDelayControlMessageBehavior : Behavior<IIncomingPhysicalMessageContext>
     {
-        readonly IMessageDispatcher dispatcher;
-        readonly string physicalQueueAddress;
-
         public TransactionalSessionDelayControlMessageBehavior(IMessageDispatcher dispatcher, string physicalQueueAddress)
         {
             this.dispatcher = dispatcher;
@@ -72,6 +69,8 @@ namespace NServiceBus.TransactionalSession
             throw new ConsumeMessageException();
         }
 
+        readonly IMessageDispatcher dispatcher;
+        readonly string physicalQueueAddress;
         static readonly ILog Log = LogManager.GetLogger<TransactionalSessionDelayControlMessageBehavior>();
     }
 }
