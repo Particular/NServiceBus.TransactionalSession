@@ -50,9 +50,7 @@
             {
                 //TODO: we should pass NoOpOutboxStorage here if not running with Outbox
                 //TODO: what happens when someone turns off the Outbox but control messages are still in the input queue?
-                context.Pipeline.Register(sp => new TransactionalSessionDelayControlMessageBehavior(
-                    sp.GetRequiredService<IOutboxStorage>(),
-                    sp.GetRequiredService<IMessageDispatcher>(),
+                context.Pipeline.Register(sp => new TransactionalSessionDelayControlMessageBehavior(sp.GetRequiredService<IMessageDispatcher>(),
                     sp.GetRequiredService<ITransportAddressResolver>().ToTransportAddress(localQueueAddress)
                 ), "Transaction commit control message delay behavior");
 
