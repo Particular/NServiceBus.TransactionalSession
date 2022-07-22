@@ -2,6 +2,7 @@
 {
     using System;
     using System.Threading.Tasks;
+    using AcceptanceTesting;
     using AcceptanceTesting.Support;
     using NServiceBus.AcceptanceTests.EndpointTemplates;
 
@@ -12,8 +13,11 @@
             base.GetConfiguration(runDescriptor, endpointConfiguration, async configuration =>
             {
                 await configurationBuilderCustomization(configuration);
+
                 configuration.EnableTransactionalSession();
                 configuration.EnableOutbox();
+
+                configuration.RegisterStartupTask(provider => new CaptureServiceProviderStartupTask(provider, runDescriptor.ScenarioContext));
             });
     }
 }

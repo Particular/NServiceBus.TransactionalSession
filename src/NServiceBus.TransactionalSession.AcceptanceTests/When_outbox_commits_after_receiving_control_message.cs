@@ -6,7 +6,6 @@
     using System.Threading.Tasks;
     using AcceptanceTesting;
     using Extensibility;
-    using Features;
     using Microsoft.Extensions.DependencyInjection;
     using NServiceBus.AcceptanceTests;
     using NServiceBus.AcceptanceTests.EndpointTemplates;
@@ -40,7 +39,7 @@
                 .Run(TimeSpan.FromSeconds(15));
         }
 
-        class Context : ScenarioContext
+        class Context : ScenarioContext, IInjectServiceProvider
         {
             public int MessageReceiveCounter = 0;
             public IServiceProvider ServiceProvider { get; set; }
@@ -55,8 +54,6 @@
                     c.ConfigureRouting().RouteToEndpoint(typeof(SomeMessage), typeof(ReceiverEndpoint));
 
                     c.Pipeline.Register(new DelayedOutboxTransactionCommitBehavior((Context)r.ScenarioContext), "delays the outbox transaction commit");
-
-                    c.RegisterStartupTask(sp => new CaptureServiceProviderStartupTask(sp, (Context)r.ScenarioContext));
                 });
 
 
@@ -80,15 +77,6 @@
                 }
 
                 readonly Context testContext;
-            }
-
-            class CaptureServiceProviderStartupTask : FeatureStartupTask
-            {
-                public CaptureServiceProviderStartupTask(IServiceProvider serviceProvider, Context context) => context.ServiceProvider = serviceProvider;
-
-                protected override Task OnStart(IMessageSession session, CancellationToken cancellationToken = default) => Task.CompletedTask;
-
-                protected override Task OnStop(IMessageSession session, CancellationToken cancellationToken = default) => Task.CompletedTask;
             }
         }
 

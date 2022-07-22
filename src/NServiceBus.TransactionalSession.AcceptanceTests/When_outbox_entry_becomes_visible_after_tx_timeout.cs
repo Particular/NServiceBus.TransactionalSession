@@ -49,7 +49,7 @@
 
         }
 
-        class Context : ScenarioContext
+        class Context : ScenarioContext, IInjectServiceProvider
         {
             public IServiceProvider ServiceProvider { get; set; }
             public bool MessageReceived { get; set; }
@@ -63,7 +63,6 @@
                 {
                     c.ConfigureRouting().RouteToEndpoint(typeof(SomeMessage), typeof(ReceiverEndpoint));
                     c.Pipeline.Register(new StorageManipulationBehavior(), "configures the outbox to not see the commited values yet");
-                    c.RegisterStartupTask(sp => new CaptureServiceProviderStartupTask(sp, (Context)r.ScenarioContext));
                 });
 
             class StorageManipulationBehavior : Behavior<ITransportReceiveContext>
@@ -74,15 +73,6 @@
 
                     return next();
                 }
-            }
-
-            class CaptureServiceProviderStartupTask : FeatureStartupTask
-            {
-                public CaptureServiceProviderStartupTask(IServiceProvider serviceProvider, Context context) => context.ServiceProvider = serviceProvider;
-
-                protected override Task OnStart(IMessageSession session, CancellationToken cancellationToken = default) => Task.CompletedTask;
-
-                protected override Task OnStop(IMessageSession session, CancellationToken cancellationToken = default) => Task.CompletedTask;
             }
         }
 
