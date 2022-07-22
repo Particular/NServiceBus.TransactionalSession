@@ -3,6 +3,7 @@
     using System;
     using System.Threading;
     using System.Threading.Tasks;
+    using Extensibility;
     using Microsoft.Extensions.DependencyInjection;
     using NServiceBus.AcceptanceTesting;
     using NServiceBus.AcceptanceTesting.Customization;
@@ -18,15 +19,18 @@
         public async Task Should_throw_exception_to_session_user()
         {
             var context = await Scenario.Define<Context>()
-                .WithEndpoint<SenderEndpoint>(e => e.When(async (session, ctx) =>
+                .WithEndpoint<SenderEndpoint>(e => e.When(async (_, ctx) =>
                 {
-                    var transactionalSession = ctx.ServiceProvider.GetRequiredService<ITransactionalSession>();
+                    using var scope = ctx.ServiceProvider.CreateScope();
+                    using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+
                     try
                     {
                         ctx.TransactionTaskCompletionSource = new TaskCompletionSource<bool>();
-                        (transactionalSession as OutboxTransactionalSession).contextBag.Set(CustomTestingOutboxTransaction.TransactionCommitTCSKey, ctx.TransactionTaskCompletionSource);
+                        var contextBag = new ContextBag();
+                        contextBag.Set(CustomTestingOutboxTransaction.TransactionCommitTCSKey, ctx.TransactionTaskCompletionSource);
 
-                        await transactionalSession.Open();
+                        await transactionalSession.Open(contextBag);
                         await transactionalSession.Send(new SomeMessage());
                         await transactionalSession.Commit();
                     }
@@ -66,10 +70,7 @@
             {
                 Context testContext;
 
-                public UnblockCommitBehavior(Context testContext)
-                {
-                    this.testContext = testContext;
-                }
+                public UnblockCommitBehavior(Context testContext) => this.testContext = testContext;
 
                 public override async Task Invoke(ITransportReceiveContext context, Func<Task> next)
                 {

@@ -4,6 +4,7 @@
     <TargetFrameworks>net472;net6.0</TargetFrameworks>
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>..\NServiceBus.snk</AssemblyOriginatorKeyFile>
+    <LangVersion>10.0</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,7 +15,4 @@
     </PackageReference>
   </ItemGroup>
 
-	<ItemGroup>
-		<InternalsVisibleTo Include="NServiceBus.TransactionalSession.AcceptanceTests" Key="$(NServiceBusTestsKey)" />
-	</ItemGroup>
 </Project>

@@ -18,7 +18,6 @@ namespace NServiceBus.TransactionalSession
             this.messageSession = messageSession;
             this.dispatcher = dispatcher;
             pendingOperations = new PendingTransportOperations();
-            contextBag = new ContextBag();
             transportTransaction = new TransportTransaction();
         }
 
@@ -39,8 +38,9 @@ namespace NServiceBus.TransactionalSession
         public string SessionId { get; private set; }
         public abstract Task Commit(CancellationToken cancellationToken = default);
 
-        public virtual Task Open(CancellationToken cancellationToken = default)
+        public virtual Task Open(ContextBag context = null, CancellationToken cancellationToken = default)
         {
+            this.context = context ?? new ContextBag();
             SessionId = Guid.NewGuid().ToString();
             isSessionOpen = true;
             return Task.CompletedTask;
@@ -116,7 +116,7 @@ namespace NServiceBus.TransactionalSession
         protected readonly ICompletableSynchronizedStorageSession synchronizedStorageSession;
         protected readonly IMessageDispatcher dispatcher;
         protected readonly PendingTransportOperations pendingOperations;
-        internal readonly ContextBag contextBag;
+        internal ContextBag context;
         protected readonly TransportTransaction transportTransaction;
         readonly IMessageSession messageSession;
         bool isSessionOpen;

@@ -5,6 +5,7 @@
     using System.Threading;
     using System.Threading.Tasks;
     using AcceptanceTesting;
+    using Extensibility;
     using Features;
     using Microsoft.Extensions.DependencyInjection;
     using NServiceBus.AcceptanceTests;
@@ -19,20 +20,20 @@
         {
             await Scenario.Define<Context>()
                 .WithEndpoint<SenderEndpoint>(e => e
-                    .When(async (session, context) =>
+                    .When(async (_, context) =>
                     {
-                        var transactionalSession = context.ServiceProvider.GetRequiredService<ITransactionalSession>();
-                        using (transactionalSession)
-                        {
-                            (transactionalSession as OutboxTransactionalSession).contextBag
-                                .Set(CustomTestingOutboxTransaction.TransactionCommitTCSKey, context.TxCommitTcs = new TaskCompletionSource<bool>());
+                        using var scope = context.ServiceProvider.CreateScope();
+                        using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
-                            await transactionalSession.Open();
-                            await transactionalSession.Send(new SomeMessage());
-                            await transactionalSession.Send(new SomeMessage());
-                            await transactionalSession.Send(new SomeMessage());
-                            await transactionalSession.Commit();
-                        }
+                        var contextBag = new ContextBag();
+                        contextBag.Set(CustomTestingOutboxTransaction.TransactionCommitTCSKey, context.TxCommitTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously));
+
+                        await transactionalSession.Open(contextBag);
+                        await transactionalSession.Send(new SomeMessage());
+                        await transactionalSession.Send(new SomeMessage());
+                        await transactionalSession.Send(new SomeMessage());
+
+                        await transactionalSession.Commit();
                     }))
                 .WithEndpoint<ReceiverEndpoint>()
                 .Done(c => c.MessageReceiveCounter == 3)
@@ -61,12 +62,7 @@
 
             class DelayedOutboxTransactionCommitBehavior : Behavior<ITransportReceiveContext>
             {
-                readonly Context testContext;
-
-                public DelayedOutboxTransactionCommitBehavior(Context testContext)
-                {
-                    this.testContext = testContext;
-                }
+                public DelayedOutboxTransactionCommitBehavior(Context testContext) => this.testContext = testContext;
 
                 public override async Task Invoke(ITransportReceiveContext context, Func<Task> next)
                 {
@@ -82,6 +78,8 @@
                     // unblock transaction once the receive pipeline "completed" once
                     testContext.TxCommitTcs.TrySetResult(true);
                 }
+
+                readonly Context testContext;
             }
 
             class CaptureServiceProviderStartupTask : FeatureStartupTask

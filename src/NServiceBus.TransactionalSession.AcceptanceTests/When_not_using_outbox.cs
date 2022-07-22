@@ -18,43 +18,40 @@
             await Scenario.Define<Context>()
                 .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
                 {
-                    using (var scope = ctx.ServiceProvider.CreateScope())
-                    {
-                        var session = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+                    using var scope = ctx.ServiceProvider.CreateScope();
+                    using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
-                        await session.Open(CancellationToken.None).ConfigureAwait(false);
+                    await transactionalSession.Open();
 
-                        await session.SendLocal(new SampleMessage(), CancellationToken.None).ConfigureAwait(false);
+                    await transactionalSession.SendLocal(new SampleMessage());
 
-                        await session.Commit(CancellationToken.None).ConfigureAwait(false);
-                    }
+                    await transactionalSession.Commit();
                 }))
                 .Done(c => c.MessageReceived)
                 .Run()
-                .ConfigureAwait(false);
+                ;
         }
 
         [Test]
         public async Task Should_not_send_messages_if_session_is_not_committed()
         {
             var result = await Scenario.Define<Context>()
-                .WithEndpoint<AnEndpoint>(s => s.When(async (statelessSession, ctx) =>
+                .WithEndpoint<AnEndpoint>(s => s.When(async (messageSession, ctx) =>
                 {
                     using (var scope = ctx.ServiceProvider.CreateScope())
+                    using (var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>())
                     {
-                        var session = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+                        await transactionalSession.Open();
 
-                        await session.Open(CancellationToken.None).ConfigureAwait(false);
-
-                        await session.SendLocal(new SampleMessage(), CancellationToken.None).ConfigureAwait(false);
+                        await transactionalSession.SendLocal(new SampleMessage());
                     }
 
                     //Send immediately dispatched message to finish the test
-                    await statelessSession.SendLocal(new CompleteTestMessage(), CancellationToken.None).ConfigureAwait(false);
+                    await messageSession.SendLocal(new CompleteTestMessage());
                 }))
                 .Done(c => c.CompleteMessageReceived)
                 .Run()
-                .ConfigureAwait(false);
+                ;
 
             Assert.True(result.CompleteMessageReceived);
             Assert.False(result.MessageReceived);
@@ -80,36 +77,31 @@
 
             class SampleHandler : IHandleMessages<SampleMessage>
             {
-                readonly Context context;
-
-                public SampleHandler(Context context)
-                {
-                    this.context = context;
-                }
+                public SampleHandler(Context testContext) => this.testContext = testContext;
 
                 public Task Handle(SampleMessage message, IMessageHandlerContext context)
                 {
-                    this.context.MessageReceived = true;
+                    testContext.MessageReceived = true;
 
                     return Task.CompletedTask;
                 }
+
+                readonly Context testContext;
             }
 
             class CompleteTestMessageHandler : IHandleMessages<CompleteTestMessage>
             {
-                readonly Context context;
 
-                public CompleteTestMessageHandler(Context context)
-                {
-                    this.context = context;
-                }
+                public CompleteTestMessageHandler(Context testContext) => this.testContext = testContext;
 
                 public Task Handle(CompleteTestMessage message, IMessageHandlerContext context)
                 {
-                    this.context.CompleteMessageReceived = true;
+                    testContext.CompleteMessageReceived = true;
 
                     return Task.CompletedTask;
                 }
+
+                readonly Context testContext;
             }
 
             class CaptureServiceProviderStartupTask : FeatureStartupTask

@@ -18,20 +18,16 @@
             await Scenario.Define<Context>()
                 .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
                 {
-                    using (var scope = ctx.ServiceProvider.CreateScope())
-                    {
-                        var session = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+                    using var scope = ctx.ServiceProvider.CreateScope();
+                    using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+                    await transactionalSession.Open();
 
-                        await session.Open(CancellationToken.None).ConfigureAwait(false);
+                    await transactionalSession.SendLocal(new SampleMessage(), CancellationToken.None);
 
-                        await session.SendLocal(new SampleMessage(), CancellationToken.None).ConfigureAwait(false);
-
-                        await session.Commit(CancellationToken.None).ConfigureAwait(false);
-                    }
+                    await transactionalSession.Commit(CancellationToken.None).ConfigureAwait(false);
                 }))
                 .Done(c => c.MessageReceived)
-                .Run()
-                .ConfigureAwait(false);
+                .Run();
         }
 
         [Test]
@@ -41,20 +37,18 @@
                 .WithEndpoint<AnEndpoint>(s => s.When(async (statelessSession, ctx) =>
                 {
                     using (var scope = ctx.ServiceProvider.CreateScope())
+                    using (var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>())
                     {
-                        var session = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+                        await transactionalSession.Open();
 
-                        await session.Open(CancellationToken.None).ConfigureAwait(false);
-
-                        await session.SendLocal(new SampleMessage(), CancellationToken.None).ConfigureAwait(false);
+                        await transactionalSession.SendLocal(new SampleMessage());
                     }
 
                     //Send immediately dispatched message to finish the test
-                    await statelessSession.SendLocal(new CompleteTestMessage(), CancellationToken.None).ConfigureAwait(false);
+                    await statelessSession.SendLocal(new CompleteTestMessage());
                 }))
                 .Done(c => c.CompleteMessageReceived)
-                .Run()
-                .ConfigureAwait(false);
+                .Run();
 
             Assert.True(result.CompleteMessageReceived);
             Assert.False(result.MessageReceived);
@@ -64,23 +58,21 @@
         public async Task Should_send_immediate_dispatch_messages_even_if_session_is_not_committed()
         {
             var result = await Scenario.Define<Context>()
-                .WithEndpoint<AnEndpoint>(s => s.When(async (statelessSession, ctx) =>
+                .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
                 {
-                    using (var scope = ctx.ServiceProvider.CreateScope())
-                    {
-                        var session = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+                    using var scope = ctx.ServiceProvider.CreateScope();
+                    using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
-                        await session.Open(CancellationToken.None).ConfigureAwait(false);
+                    await transactionalSession.Open();
 
-                        var sendOptions = new SendOptions();
-                        sendOptions.RequireImmediateDispatch();
-                        sendOptions.RouteToThisEndpoint();
-                        await session.Send(new SampleMessage(), sendOptions, CancellationToken.None).ConfigureAwait(false);
-                    }
+                    var sendOptions = new SendOptions();
+                    sendOptions.RequireImmediateDispatch();
+                    sendOptions.RouteToThisEndpoint();
+                    await transactionalSession.Send(new SampleMessage(), sendOptions, CancellationToken.None);
                 }))
                 .Done(c => c.MessageReceived)
                 .Run()
-                .ConfigureAwait(false);
+                ;
 
             Assert.True(result.MessageReceived);
         }
@@ -89,27 +81,24 @@
         public async Task Should_fail_commit_and_not_send_messages_when_timeout_elapsed()
         {
             var result = await Scenario.Define<Context>()
-                .WithEndpoint<AnEndpoint>(s => s.When(async (statelessSession, ctx) =>
+                .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
                 {
-                    using (var scope = ctx.ServiceProvider.CreateScope())
-                    {
-                        var session = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+                    using var scope = ctx.ServiceProvider.CreateScope();
+                    using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
-                        await session.Open(CancellationToken.None).ConfigureAwait(false);
+                    await transactionalSession.Open();
 
-                        await session.SendLocal(new SampleMessage(), CancellationToken.None).ConfigureAwait(false);
+                    await transactionalSession.SendLocal(new SampleMessage());
 
-                        session.SynchronizedStorageSession.DelayCommit(TimeSpan.FromSeconds(30));
+                    transactionalSession.SynchronizedStorageSession.DelayCommit(TimeSpan.FromSeconds(30));
 
-                        Assert.ThrowsAsync<Exception>(() => session.Commit(CancellationToken.None));
+                    Assert.ThrowsAsync<Exception>(() => transactionalSession.Commit());
 
-                        ctx.CompleteMessageReceived = true;
-                    }
-
+                    ctx.CompleteMessageReceived = true;
                 }))
                 .Done(c => c.CompleteMessageReceived)
                 .Run()
-                .ConfigureAwait(false);
+                ;
 
             Assert.False(result.MessageReceived);
         }
@@ -137,36 +126,30 @@
 
             class SampleHandler : IHandleMessages<SampleMessage>
             {
-                readonly Context context;
-
-                public SampleHandler(Context context)
-                {
-                    this.context = context;
-                }
+                public SampleHandler(Context testContext) => this.testContext = testContext;
 
                 public Task Handle(SampleMessage message, IMessageHandlerContext context)
                 {
-                    this.context.MessageReceived = true;
+                    this.testContext.MessageReceived = true;
 
                     return Task.CompletedTask;
                 }
+
+                readonly Context testContext;
             }
 
             class CompleteTestMessageHandler : IHandleMessages<CompleteTestMessage>
             {
-                readonly Context context;
-
-                public CompleteTestMessageHandler(Context context)
-                {
-                    this.context = context;
-                }
+                public CompleteTestMessageHandler(Context context) => this.testContext = context;
 
                 public Task Handle(CompleteTestMessage message, IMessageHandlerContext context)
                 {
-                    this.context.CompleteMessageReceived = true;
+                    testContext.CompleteMessageReceived = true;
 
                     return Task.CompletedTask;
                 }
+
+                readonly Context testContext;
             }
 
             class CaptureServiceProviderStartupTask : FeatureStartupTask

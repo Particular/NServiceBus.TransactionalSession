@@ -22,16 +22,16 @@
             var context = await Scenario.Define<Context>()
                 .WithEndpoint<SenderEndpoint>(e => e
                     .DoNotFailOnErrorMessages()
-                    .When(async (session, ctx) =>
+                    .When(async (_, ctx) =>
                     {
-                        var transactionalSession = ctx.ServiceProvider.GetRequiredService<ITransactionalSession>();
-                        using (transactionalSession)
-                        {
-                            await transactionalSession.Open();
-                            await transactionalSession.Send(new SomeMessage());
-                            await transactionalSession.Commit();
-                            ctx.TransactionalSessionId = transactionalSession.SessionId;
-                        }
+                        using var scope = ctx.ServiceProvider.CreateScope();
+                        using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+
+                        await transactionalSession.Open();
+                        await transactionalSession.Send(new SomeMessage());
+                        await transactionalSession.Commit();
+
+                        ctx.TransactionalSessionId = transactionalSession.SessionId;
                     }))
                 .WithEndpoint<ReceiverEndpoint>()
                 .Done(c => c.FailedMessages.Count > 0)
@@ -89,8 +89,6 @@
 
             class MessageHandler : IHandleMessages<SomeMessage>
             {
-                Context testContext;
-
                 public MessageHandler(Context testContext) => this.testContext = testContext;
 
                 public Task Handle(SomeMessage message, IMessageHandlerContext context)
@@ -98,6 +96,8 @@
                     testContext.MessageReceived = true;
                     return Task.CompletedTask;
                 }
+
+                Context testContext;
             }
         }
 
