@@ -3,7 +3,6 @@
     using System;
     using System.Threading;
     using System.Threading.Tasks;
-    using Extensibility;
     using Microsoft.Extensions.DependencyInjection;
     using NServiceBus.AcceptanceTesting;
     using NServiceBus.AcceptanceTesting.Customization;
@@ -26,11 +25,15 @@
 
                     try
                     {
-                        ctx.TransactionTaskCompletionSource = new TaskCompletionSource<bool>();
-                        var contextBag = new ContextBag();
-                        contextBag.Set(CustomTestingOutboxTransaction.TransactionCommitTCSKey, ctx.TransactionTaskCompletionSource);
+                        ctx.TransactionTaskCompletionSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                        var options = new OpenSessionOptions
+                        {
+                            CommitDelayIncrement = TimeSpan.FromSeconds(1),
+                            MaximumCommitDuration = TimeSpan.FromSeconds(8)
+                        };
+                        options.Extensions.Set(CustomTestingOutboxTransaction.TransactionCommitTCSKey, ctx.TransactionTaskCompletionSource);
 
-                        await transactionalSession.Open(contextBag);
+                        await transactionalSession.Open(options);
                         await transactionalSession.Send(new SomeMessage());
                         await transactionalSession.Commit();
                     }
@@ -68,13 +71,11 @@
 
             class UnblockCommitBehavior : Behavior<ITransportReceiveContext>
             {
-                Context testContext;
-
                 public UnblockCommitBehavior(Context testContext) => this.testContext = testContext;
 
                 public override async Task Invoke(ITransportReceiveContext context, Func<Task> next)
                 {
-                    if (context.Message.Headers.ContainsKey(OutboxTransactionalSession.ControlMessageSentAtHeaderName))
+                    if (context.Message.Headers.ContainsKey(OutboxTransactionalSession.RemainingCommitDurationHeaderName))
                     {
                         context.Extensions.Set<Action>("TestOutboxStorage.StoreCallback", () =>
                         {
@@ -87,6 +88,8 @@
 
                     await next();
                 }
+
+                readonly Context testContext;
             }
         }
 

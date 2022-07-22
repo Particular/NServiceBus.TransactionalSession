@@ -25,7 +25,7 @@ namespace NServiceBus.TransactionalSession
         {
             get
             {
-                if (!isSessionOpen)
+                if (!IsOpen)
                 {
                     throw new InvalidOperationException(
                         "Before accessing the SynchronizedStorageSession, make sure to open the session by calling the `Open`-method.");
@@ -36,19 +36,23 @@ namespace NServiceBus.TransactionalSession
         }
 
         public string SessionId { get; private set; }
+
+        protected ContextBag Context => options.Extensions;
+
+        protected bool IsOpen => options != null;
+
         public abstract Task Commit(CancellationToken cancellationToken = default);
 
-        public virtual Task Open(ContextBag context = null, CancellationToken cancellationToken = default)
+        public virtual Task Open(OpenSessionOptions options = null, CancellationToken cancellationToken = default)
         {
-            this.context = context ?? new ContextBag();
+            this.options = options ?? new OpenSessionOptions();
             SessionId = Guid.NewGuid().ToString();
-            isSessionOpen = true;
             return Task.CompletedTask;
         }
 
         public async Task Send(object message, SendOptions sendOptions, CancellationToken cancellationToken = default)
         {
-            if (!isSessionOpen)
+            if (!IsOpen)
             {
                 throw new InvalidOperationException("Before sending any messages, make sure to open the session by calling the `Open`-method.");
             }
@@ -59,7 +63,7 @@ namespace NServiceBus.TransactionalSession
 
         public async Task Send<T>(Action<T> messageConstructor, SendOptions sendOptions, CancellationToken cancellationToken = default)
         {
-            if (!isSessionOpen)
+            if (!IsOpen)
             {
                 throw new InvalidOperationException("Before sending any messages, make sure to open the session by calling the `Open`-method.");
             }
@@ -70,7 +74,7 @@ namespace NServiceBus.TransactionalSession
 
         public async Task Publish(object message, PublishOptions publishOptions, CancellationToken cancellationToken = default)
         {
-            if (!isSessionOpen)
+            if (!IsOpen)
             {
                 throw new InvalidOperationException("Before publishing any messages, make sure to open the session by calling the `Open`-method.");
             }
@@ -81,7 +85,7 @@ namespace NServiceBus.TransactionalSession
 
         public async Task Publish<T>(Action<T> messageConstructor, PublishOptions publishOptions, CancellationToken cancellationToken = default)
         {
-            if (!isSessionOpen)
+            if (!IsOpen)
             {
                 throw new InvalidOperationException("Before publishing any messages, make sure to open the session by calling the `Open`-method.");
             }
@@ -116,10 +120,9 @@ namespace NServiceBus.TransactionalSession
         protected readonly ICompletableSynchronizedStorageSession synchronizedStorageSession;
         protected readonly IMessageDispatcher dispatcher;
         protected readonly PendingTransportOperations pendingOperations;
-        internal ContextBag context;
         protected readonly TransportTransaction transportTransaction;
+        protected OpenSessionOptions options;
         readonly IMessageSession messageSession;
-        bool isSessionOpen;
         bool disposed;
     }
 }

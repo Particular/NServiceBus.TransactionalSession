@@ -6,11 +6,18 @@ namespace NServiceBus.TransactionalSession
         string SessionId { get; }
         NServiceBus.Persistence.ISynchronizedStorageSession SynchronizedStorageSession { get; }
         System.Threading.Tasks.Task Commit(System.Threading.CancellationToken cancellationToken = default);
-        System.Threading.Tasks.Task Open(NServiceBus.Extensibility.ContextBag context = null, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task Open(NServiceBus.TransactionalSession.OpenSessionOptions options = null, System.Threading.CancellationToken cancellationToken = default);
         System.Threading.Tasks.Task Publish(object message, NServiceBus.PublishOptions publishOptions, System.Threading.CancellationToken cancellationToken = default);
         System.Threading.Tasks.Task Publish<T>(System.Action<T> messageConstructor, NServiceBus.PublishOptions publishOptions, System.Threading.CancellationToken cancellationToken = default);
         System.Threading.Tasks.Task Send(object message, NServiceBus.SendOptions sendOptions, System.Threading.CancellationToken cancellationToken = default);
         System.Threading.Tasks.Task Send<T>(System.Action<T> messageConstructor, NServiceBus.SendOptions sendOptions, System.Threading.CancellationToken cancellationToken = default);
+    }
+    public class OpenSessionOptions : NServiceBus.Extensibility.IExtendable
+    {
+        public OpenSessionOptions() { }
+        public NServiceBus.Extensibility.ContextBag Extensions { get; }
+        public System.TimeSpan MaximumCommitDuration { get; set; }
+        public System.Collections.Generic.IDictionary<string, string> Metadata { get; }
     }
     public static class TransactionalSessionExtensions
     {

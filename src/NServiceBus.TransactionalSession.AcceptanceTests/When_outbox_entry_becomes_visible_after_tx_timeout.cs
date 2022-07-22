@@ -27,8 +27,11 @@
                         using var scope = ctx.ServiceProvider.CreateScope();
                         using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
-                        await transactionalSession.Open();
+                        var options = new OpenSessionOptions { MaximumCommitDuration = TimeSpan.Zero };
+                        await transactionalSession.Open(options);
+
                         await transactionalSession.Send(new SomeMessage());
+
                         await transactionalSession.Commit();
 
                         ctx.TransactionalSessionId = transactionalSession.SessionId;

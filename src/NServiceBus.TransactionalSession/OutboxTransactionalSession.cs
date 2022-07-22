@@ -4,7 +4,6 @@
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
-    using Extensibility;
     using Outbox;
     using Persistence;
     using Routing;
@@ -27,19 +26,28 @@
 
         public override async Task Commit(CancellationToken cancellationToken = default)
         {
-            var message = new OutgoingMessage(SessionId, new Dictionary<string, string>
+            var headers = new Dictionary<string, string>
             {
                 { Headers.MessageId, SessionId },
                 { Headers.ControlMessageHeader, bool.TrueString },
-                { ControlMessageSentAtHeaderName, DateTimeOffsetHelper.ToWireFormattedString(DateTimeOffset.UtcNow) }
-            }, ReadOnlyMemory<byte>.Empty);
+                { RemainingCommitDurationHeaderName, options.MaximumCommitDuration.ToString() },
+                { CommitDelayIncrementHeaderName, options.CommitDelayIncrement.ToString() },
+            };
+            if (options.HasMetadata)
+            {
+                foreach (KeyValuePair<string, string> keyValuePair in options.Metadata)
+                {
+                    headers.Add(keyValuePair.Key, keyValuePair.Value);
+                }
+            }
+            var message = new OutgoingMessage(SessionId, headers, ReadOnlyMemory<byte>.Empty);
 
             var outgoingMessages = new TransportOperations(new TransportTransportOperation(message, new UnicastAddressTag(physicalQueueAddress)));
             await dispatcher.Dispatch(outgoingMessages, transportTransaction, cancellationToken).ConfigureAwait(false);
 
             var outboxMessage =
                 new OutboxMessage(SessionId, ConvertToOutboxOperations(pendingOperations.Operations));
-            await outboxStorage.Store(outboxMessage, outboxTransaction, context, cancellationToken)
+            await outboxStorage.Store(outboxMessage, outboxTransaction, Context, cancellationToken)
                 .ConfigureAwait(false);
 
             await synchronizedStorageSession.CompleteAsync(cancellationToken).ConfigureAwait(false);
@@ -89,13 +97,13 @@
             throw new Exception($"Unknown routing strategy {addressTag.GetType().FullName}");
         }
 
-        public override async Task Open(ContextBag context = null, CancellationToken cancellationToken = default)
+        public override async Task Open(OpenSessionOptions options = null, CancellationToken cancellationToken = default)
         {
-            await base.Open(context, cancellationToken).ConfigureAwait(false);
+            await base.Open(options, cancellationToken).ConfigureAwait(false);
 
-            outboxTransaction = await outboxStorage.BeginTransaction(this.context, cancellationToken).ConfigureAwait(false);
+            outboxTransaction = await outboxStorage.BeginTransaction(Context, cancellationToken).ConfigureAwait(false);
 
-            if (!await synchronizedStorageSession.TryOpen(outboxTransaction, this.context, cancellationToken).ConfigureAwait(false))
+            if (!await synchronizedStorageSession.TryOpen(outboxTransaction, Context, cancellationToken).ConfigureAwait(false))
             {
                 throw new Exception("Outbox and synchronized storage persister is not compatible.");
             }
@@ -104,6 +112,7 @@
         readonly string physicalQueueAddress;
         readonly IOutboxStorage outboxStorage;
         IOutboxTransaction outboxTransaction;
-        public const string ControlMessageSentAtHeaderName = "NServiceBus.TransactionalSession.CommitStartedAt";
+        public const string RemainingCommitDurationHeaderName = "NServiceBus.TransactionalSession.RemainingCommitDuration";
+        public const string CommitDelayIncrementHeaderName = "NServiceBus.TransactionalSession.CommitDelayIncrement";
     }
 }
