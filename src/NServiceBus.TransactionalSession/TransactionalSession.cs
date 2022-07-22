@@ -26,7 +26,7 @@
         {
             await base.Open(context, cancellationToken).ConfigureAwait(false);
 
-            await synchronizedStorageSession.Open(null, transportTransaction, context, cancellationToken).ConfigureAwait(false);
+            await synchronizedStorageSession.Open(null, transportTransaction, this.context, cancellationToken).ConfigureAwait(false);
         }
     }
 }

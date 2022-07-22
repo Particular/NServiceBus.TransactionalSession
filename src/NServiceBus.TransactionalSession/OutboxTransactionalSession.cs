@@ -89,13 +89,13 @@
             throw new Exception($"Unknown routing strategy {addressTag.GetType().FullName}");
         }
 
-        public override async Task Open(ContextBag context, CancellationToken cancellationToken = default)
+        public override async Task Open(ContextBag context = null, CancellationToken cancellationToken = default)
         {
             await base.Open(context, cancellationToken).ConfigureAwait(false);
 
-            outboxTransaction = await outboxStorage.BeginTransaction(context, cancellationToken).ConfigureAwait(false);
+            outboxTransaction = await outboxStorage.BeginTransaction(this.context, cancellationToken).ConfigureAwait(false);
 
-            if (!await synchronizedStorageSession.TryOpen(outboxTransaction, context, cancellationToken).ConfigureAwait(false))
+            if (!await synchronizedStorageSession.TryOpen(outboxTransaction, this.context, cancellationToken).ConfigureAwait(false))
             {
                 throw new Exception("Outbox and synchronized storage persister is not compatible.");
             }
