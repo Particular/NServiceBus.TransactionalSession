@@ -3,12 +3,22 @@ namespace NServiceBus.AcceptanceTesting
     using System;
     using System.Threading;
     using System.Threading.Tasks;
+    using Extensibility;
     using Outbox;
 
-    class CustomTestingOutboxTransaction : IOutboxTransaction
+    public class CustomTestingOutboxTransaction : IOutboxTransaction
     {
-        public CustomTestingOutboxTransaction()
+        public const string TransactionCommitTCSKey = "TestingTransport.TxCommitTCS";
+
+        public TaskCompletionSource<bool> CommitTaskCompletionSource { get; set; } = null;
+
+        public CustomTestingOutboxTransaction(ContextBag contextBag)
         {
+            if (contextBag.TryGet(TransactionCommitTCSKey, out TaskCompletionSource<bool> tcs))
+            {
+                CommitTaskCompletionSource = tcs;
+            }
+
             Transaction = new AcceptanceTestingTransaction();
         }
 
@@ -19,10 +29,14 @@ namespace NServiceBus.AcceptanceTesting
             Transaction = null;
         }
 
-        public Task Commit(CancellationToken cancellationToken = default)
+        public async Task Commit(CancellationToken cancellationToken = default)
         {
+            if (CommitTaskCompletionSource != null)
+            {
+                await CommitTaskCompletionSource.Task.ConfigureAwait(false);
+            }
+
             Transaction.Commit();
-            return Task.CompletedTask;
         }
 
         public void Enlist(Action action)

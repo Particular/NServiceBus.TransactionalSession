@@ -2,6 +2,7 @@
 {
     using System.Threading;
     using System.Threading.Tasks;
+    using Extensibility;
     using Persistence;
     using Transport;
 
@@ -21,11 +22,11 @@
             await dispatcher.Dispatch(new TransportOperations(pendingOperations.Operations), new TransportTransaction(), cancellationToken).ConfigureAwait(false);
         }
 
-        public override async Task Open(CancellationToken cancellationToken = default)
+        public override async Task Open(ContextBag context = null, CancellationToken cancellationToken = default)
         {
-            await base.Open(cancellationToken).ConfigureAwait(false);
+            await base.Open(context, cancellationToken).ConfigureAwait(false);
 
-            await synchronizedStorageSession.Open(null, transportTransaction, contextBag, cancellationToken).ConfigureAwait(false);
+            await synchronizedStorageSession.Open(null, transportTransaction, this.context, cancellationToken).ConfigureAwait(false);
         }
     }
 }

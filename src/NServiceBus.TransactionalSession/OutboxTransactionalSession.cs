@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
+    using Extensibility;
     using Outbox;
     using Persistence;
     using Routing;
@@ -38,7 +39,7 @@
 
             var outboxMessage =
                 new OutboxMessage(SessionId, ConvertToOutboxOperations(pendingOperations.Operations));
-            await outboxStorage.Store(outboxMessage, outboxTransaction, contextBag, cancellationToken)
+            await outboxStorage.Store(outboxMessage, outboxTransaction, context, cancellationToken)
                 .ConfigureAwait(false);
 
             await synchronizedStorageSession.CompleteAsync(cancellationToken).ConfigureAwait(false);
@@ -88,13 +89,13 @@
             throw new Exception($"Unknown routing strategy {addressTag.GetType().FullName}");
         }
 
-        public override async Task Open(CancellationToken cancellationToken = default)
+        public override async Task Open(ContextBag context = null, CancellationToken cancellationToken = default)
         {
-            await base.Open(cancellationToken).ConfigureAwait(false);
+            await base.Open(context, cancellationToken).ConfigureAwait(false);
 
-            outboxTransaction = await outboxStorage.BeginTransaction(contextBag, cancellationToken).ConfigureAwait(false);
+            outboxTransaction = await outboxStorage.BeginTransaction(this.context, cancellationToken).ConfigureAwait(false);
 
-            if (!await synchronizedStorageSession.TryOpen(outboxTransaction, contextBag, cancellationToken).ConfigureAwait(false))
+            if (!await synchronizedStorageSession.TryOpen(outboxTransaction, this.context, cancellationToken).ConfigureAwait(false))
             {
                 throw new Exception("Outbox and synchronized storage persister is not compatible.");
             }
