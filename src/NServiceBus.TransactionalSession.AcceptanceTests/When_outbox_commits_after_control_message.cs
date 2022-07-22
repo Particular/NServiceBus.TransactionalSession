@@ -1,14 +1,12 @@
 ﻿namespace NServiceBus.TransactionalSession.AcceptanceTests
 {
     using System;
-    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Extensions.DependencyInjection;
     using NServiceBus.AcceptanceTesting;
     using NServiceBus.AcceptanceTesting.Customization;
     using NServiceBus.AcceptanceTests;
     using NServiceBus.AcceptanceTests.EndpointTemplates;
-    using NServiceBus.Features;
     using NServiceBus.Pipeline;
     using NUnit.Framework;
 
@@ -50,7 +48,7 @@
 
         }
 
-        class Context : ScenarioContext
+        class Context : ScenarioContext, IInjectServiceProvider
         {
             public IServiceProvider ServiceProvider { get; set; }
             public bool MessageReceived { get; set; }
@@ -64,8 +62,6 @@
                 EndpointSetup<TransactionSessionWithOutboxEndpoint>((c, r) =>
                 {
                     c.Pipeline.Register(new UnblockCommitBehavior((Context)r.ScenarioContext), "unblocks the transactional session commit operation");
-                    c.RegisterStartupTask(provider =>
-                            new CaptureServiceProviderStartupTask(provider, (Context)r.ScenarioContext));
                     c.ConfigureRouting().RouteToEndpoint(typeof(SomeMessage), typeof(ReceiverEndpoint));
                 });
 
@@ -114,18 +110,6 @@
 
         class SomeMessage : IMessage
         {
-        }
-
-        class CaptureServiceProviderStartupTask : FeatureStartupTask
-        {
-            public CaptureServiceProviderStartupTask(IServiceProvider serviceProvider, Context context)
-            {
-                context.ServiceProvider = serviceProvider;
-            }
-
-            protected override Task OnStart(IMessageSession session, CancellationToken cancellationToken = default) => Task.CompletedTask;
-
-            protected override Task OnStop(IMessageSession session, CancellationToken cancellationToken = default) => Task.CompletedTask;
         }
     }
 }

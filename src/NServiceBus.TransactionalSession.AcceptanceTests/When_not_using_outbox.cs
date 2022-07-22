@@ -7,7 +7,6 @@
     using AcceptanceTesting;
     using NServiceBus.AcceptanceTests;
     using NServiceBus.AcceptanceTests.EndpointTemplates;
-    using Features;
     using NUnit.Framework;
 
     public class When_not_using_outbox : NServiceBusAcceptanceTest
@@ -57,7 +56,7 @@
             Assert.False(result.MessageReceived);
         }
 
-        class Context : ScenarioContext
+        class Context : ScenarioContext, IInjectServiceProvider
         {
             public bool MessageReceived { get; set; }
             public bool CompleteMessageReceived { get; set; }
@@ -102,19 +101,6 @@
                 }
 
                 readonly Context testContext;
-            }
-
-            class CaptureServiceProviderStartupTask : FeatureStartupTask
-            {
-
-                public CaptureServiceProviderStartupTask(IServiceProvider serviceProvider, Context context)
-                {
-                    context.ServiceProvider = serviceProvider;
-                }
-
-                protected override Task OnStart(IMessageSession session, CancellationToken cancellationToken = default) => Task.CompletedTask;
-
-                protected override Task OnStop(IMessageSession session, CancellationToken cancellationToken = default) => Task.CompletedTask;
             }
         }
 
