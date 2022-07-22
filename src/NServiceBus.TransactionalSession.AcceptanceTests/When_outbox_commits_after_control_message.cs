@@ -25,8 +25,12 @@
 
                     try
                     {
-                        ctx.TransactionTaskCompletionSource = new TaskCompletionSource<bool>();
-                        var options = new OpenSessionOptions();
+                        ctx.TransactionTaskCompletionSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                        var options = new OpenSessionOptions
+                        {
+                            CommitDelayIncrement = TimeSpan.FromSeconds(1),
+                            MaximumCommitDuration = TimeSpan.FromSeconds(8)
+                        };
                         options.Extensions.Set(CustomTestingOutboxTransaction.TransactionCommitTCSKey, ctx.TransactionTaskCompletionSource);
 
                         await transactionalSession.Open(options);
@@ -67,13 +71,11 @@
 
             class UnblockCommitBehavior : Behavior<ITransportReceiveContext>
             {
-                Context testContext;
-
                 public UnblockCommitBehavior(Context testContext) => this.testContext = testContext;
 
                 public override async Task Invoke(ITransportReceiveContext context, Func<Task> next)
                 {
-                    if (context.Message.Headers.ContainsKey(OutboxTransactionalSession.ControlMessageSentAtHeaderName))
+                    if (context.Message.Headers.ContainsKey(OutboxTransactionalSession.RemainingCommitDurationHeaderName))
                     {
                         context.Extensions.Set<Action>("TestOutboxStorage.StoreCallback", () =>
                         {
@@ -86,6 +88,8 @@
 
                     await next();
                 }
+
+                readonly Context testContext;
             }
         }
 

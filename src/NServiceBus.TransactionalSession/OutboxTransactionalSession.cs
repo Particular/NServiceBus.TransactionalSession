@@ -30,7 +30,8 @@
             {
                 { Headers.MessageId, SessionId },
                 { Headers.ControlMessageHeader, bool.TrueString },
-                { ControlMessageSentAtHeaderName, DateTimeOffsetHelper.ToWireFormattedString(DateTimeOffset.UtcNow) }
+                { RemainingCommitDurationHeaderName, options.MaximumCommitDuration.ToString() },
+                { CommitDelayIncrementHeaderName, options.CommitDelayIncrement.ToString() },
             };
             if (options.HasMetadata)
             {
@@ -111,6 +112,7 @@
         readonly string physicalQueueAddress;
         readonly IOutboxStorage outboxStorage;
         IOutboxTransaction outboxTransaction;
-        public const string ControlMessageSentAtHeaderName = "NServiceBus.TransactionalSession.CommitStartedAt";
+        public const string RemainingCommitDurationHeaderName = "NServiceBus.TransactionalSession.RemainingCommitDuration";
+        public const string CommitDelayIncrementHeaderName = "NServiceBus.TransactionalSession.CommitDelayIncrement";
     }
 }

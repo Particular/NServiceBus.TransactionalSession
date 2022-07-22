@@ -1,8 +1,8 @@
 namespace NServiceBus.TransactionalSession
 {
     using System;
+    using System.Collections.Generic;
     using DelayedDelivery;
-    using System.Linq;
     using System.Threading.Tasks;
     using Logging;
     using Pipeline;
@@ -13,8 +13,6 @@ namespace NServiceBus.TransactionalSession
     {
         readonly IMessageDispatcher dispatcher;
         readonly string physicalQueueAddress;
-        TimeSpan MaxCommitDelay = TimeSpan.FromSeconds(15);
-        TimeSpan CommitDelayIncrement = TimeSpan.FromSeconds(5);
 
         public TransactionalSessionDelayControlMessageBehavior(IMessageDispatcher dispatcher, string physicalQueueAddress)
         {
@@ -24,7 +22,7 @@ namespace NServiceBus.TransactionalSession
 
         public override async Task Invoke(IIncomingPhysicalMessageContext context, Func<Task> next)
         {
-            var isCommitControlMessage = context.Message.Headers.ContainsKey(OutboxTransactionalSession.ControlMessageSentAtHeaderName);
+            var isCommitControlMessage = context.Message.Headers.ContainsKey(OutboxTransactionalSession.RemainingCommitDurationHeaderName);
 
             if (isCommitControlMessage == false)
             {
@@ -32,13 +30,11 @@ namespace NServiceBus.TransactionalSession
                 return;
             }
 
-            var commitStartedAtText = context.Message.Headers[OutboxTransactionalSession.ControlMessageSentAtHeaderName];
-            var commitStartedAt = DateTimeOffsetHelper.ToDateTimeOffset(commitStartedAtText);
-
-            var timeSinceCommitStart = DateTimeOffset.UtcNow.Subtract(commitStartedAt);
+            var remainingCommitDuration = TimeSpan.Parse(context.Message.Headers[OutboxTransactionalSession.RemainingCommitDurationHeaderName]);
+            var commitDelayIncrement = TimeSpan.Parse(context.Message.Headers[OutboxTransactionalSession.CommitDelayIncrementHeaderName]);
 
             var messageId = context.MessageId;
-            if (timeSinceCommitStart > MaxCommitDelay)
+            if (remainingCommitDuration <= TimeSpan.Zero)
             {
                 if (Log.IsInfoEnabled)
                 {
@@ -52,13 +48,21 @@ namespace NServiceBus.TransactionalSession
                 Log.Debug($"Delaying transaction commit control messages for messageId={messageId}");
             }
 
+            var newCommitDelay = commitDelayIncrement.Add(commitDelayIncrement);
+            commitDelayIncrement = newCommitDelay > remainingCommitDuration ? remainingCommitDuration : newCommitDelay;
+
+            var headers = new Dictionary<string, string>(context.Message.Headers)
+            {
+                [OutboxTransactionalSession.RemainingCommitDurationHeaderName] = (remainingCommitDuration - commitDelayIncrement).ToString(),
+                [OutboxTransactionalSession.CommitDelayIncrementHeaderName] = commitDelayIncrement.ToString()
+            };
             await dispatcher.Dispatch(new TransportOperations(
                     new TransportOperation(
-                        new OutgoingMessage(messageId, context.MessageHeaders.ToDictionary(kvp => kvp.Key, kvp => kvp.Value), ReadOnlyMemory<byte>.Empty),
+                        new OutgoingMessage(messageId, headers, ReadOnlyMemory<byte>.Empty),
                         new UnicastAddressTag(physicalQueueAddress),
                         new DispatchProperties
                         {
-                            DelayDeliveryWith = new DelayDeliveryWith(CommitDelayIncrement)
+                            DelayDeliveryWith = new DelayDeliveryWith(commitDelayIncrement)
                         },
                         DispatchConsistency.Isolated
                     )

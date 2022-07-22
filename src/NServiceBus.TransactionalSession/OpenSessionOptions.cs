@@ -1,5 +1,6 @@
 namespace NServiceBus.TransactionalSession
 {
+    using System;
     using System.Collections.Generic;
     using Extensibility;
 
@@ -27,5 +28,15 @@ namespace NServiceBus.TransactionalSession
         public IDictionary<string, string> Metadata => metadata ??= new Dictionary<string, string>();
 
         internal bool HasMetadata => metadata != null;
+
+        /// <summary>
+        /// TBD
+        /// </summary>
+        public TimeSpan MaximumCommitDuration { get; set; } = TimeSpan.FromSeconds(15);
+
+        /// <summary>
+        ///
+        /// </summary>
+        internal TimeSpan CommitDelayIncrement { get; set; } = TimeSpan.FromSeconds(2);
     }
 }
