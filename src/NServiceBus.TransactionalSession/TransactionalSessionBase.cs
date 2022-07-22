@@ -45,6 +45,11 @@ namespace NServiceBus.TransactionalSession
 
         public virtual Task Open(OpenSessionOptions options = null, CancellationToken cancellationToken = default)
         {
+            if (IsOpen)
+            {
+                throw new InvalidOperationException($"This session is already open. {nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)} should only be called once.");
+            }
+
             this.options = options ?? new OpenSessionOptions();
             SessionId = Guid.NewGuid().ToString();
             return Task.CompletedTask;

@@ -105,7 +105,7 @@
 
             if (!await synchronizedStorageSession.TryOpen(outboxTransaction, Context, cancellationToken).ConfigureAwait(false))
             {
-                throw new Exception("Outbox and synchronized storage persister is not compatible.");
+                throw new Exception("Outbox and synchronized storage persister are not compatible.");
             }
         }
 
