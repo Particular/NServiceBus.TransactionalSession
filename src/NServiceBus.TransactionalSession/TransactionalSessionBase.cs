@@ -18,7 +18,6 @@ namespace NServiceBus.TransactionalSession
             this.messageSession = messageSession;
             this.dispatcher = dispatcher;
             pendingOperations = new PendingTransportOperations();
-            transportTransaction = new TransportTransaction();
         }
 
         public ISynchronizedStorageSession SynchronizedStorageSession
@@ -125,7 +124,6 @@ namespace NServiceBus.TransactionalSession
         protected readonly ICompletableSynchronizedStorageSession synchronizedStorageSession;
         protected readonly IMessageDispatcher dispatcher;
         protected readonly PendingTransportOperations pendingOperations;
-        protected readonly TransportTransaction transportTransaction;
         protected OpenSessionOptions options;
         readonly IMessageSession messageSession;
         bool disposed;

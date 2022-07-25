@@ -43,7 +43,7 @@
             var message = new OutgoingMessage(SessionId, headers, ReadOnlyMemory<byte>.Empty);
 
             var outgoingMessages = new TransportOperations(new TransportTransportOperation(message, new UnicastAddressTag(physicalQueueAddress)));
-            await dispatcher.Dispatch(outgoingMessages, transportTransaction, cancellationToken).ConfigureAwait(false);
+            await dispatcher.Dispatch(outgoingMessages, new TransportTransaction(), cancellationToken).ConfigureAwait(false);
 
             var outboxMessage =
                 new OutboxMessage(SessionId, ConvertToOutboxOperations(pendingOperations.Operations));
