@@ -1,19 +1,11 @@
 ﻿namespace NServiceBus.TransactionalSession.Tests;
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using Extensibility;
+using Fakes;
 using NUnit.Framework;
-using Outbox;
-using Persistence;
-using Routing;
-using Testing;
-using Transport;
-using TransportOperation = Transport.TransportOperation;
 
 [TestFixture]
 public class OutboxTransactionalSessionTests
@@ -123,8 +115,10 @@ public class OutboxTransactionalSessionTests
         var messageSession = new FakeMessageSession();
         var dispatcher = new FakeDispatcher();
         var outboxStorage = new FakeOutboxStorage();
+        var synchronizedSession = new FakeSynchronizableStorageSession();
         string queueAddress = "queue address";
-        using var session = new OutboxTransactionalSession(outboxStorage, new FakeSynchronizableStorageSession(), messageSession, dispatcher, queueAddress);
+
+        using var session = new OutboxTransactionalSession(outboxStorage, synchronizedSession, messageSession, dispatcher, queueAddress);
 
         await session.Open();
         var sendOptions = new SendOptions();
@@ -151,6 +145,7 @@ public class OutboxTransactionalSessionTests
         var outboxMessage = outboxRecord.outboxMessage.TransportOperations.Single();
         Assert.AreEqual(messageId, outboxMessage.MessageId);
 
+        Assert.IsTrue(synchronizedSession.Completed);
         Assert.IsTrue(outboxStorage.StartedTransactions.Single().Commited);
     }
 
@@ -160,7 +155,8 @@ public class OutboxTransactionalSessionTests
         var messageSession = new FakeMessageSession();
         var dispatcher = new FakeDispatcher();
         var outboxStorage = new FakeOutboxStorage { StoreCallback = (_, _, _) => throw new Exception("some error") };
-        using var session = new OutboxTransactionalSession(outboxStorage, new FakeSynchronizableStorageSession(), messageSession, dispatcher, "queue address");
+        var completableSynchronizedStorageSession = new FakeSynchronizableStorageSession();
+        using var session = new OutboxTransactionalSession(outboxStorage, completableSynchronizedStorageSession, messageSession, dispatcher, "queue address");
 
         await session.Open();
         await session.Send(new object());
@@ -174,6 +170,7 @@ public class OutboxTransactionalSessionTests
         Assert.AreEqual(bool.TrueString, controlMessage.Message.Headers[Headers.ControlMessageHeader]);
 
         var outboxTransaction = outboxStorage.StartedTransactions.Single();
+        Assert.IsFalse(completableSynchronizedStorageSession.Completed, "should not have completed synchronized storage session");
         Assert.IsFalse(outboxTransaction.Commited, "should not have commited outbox operations");
     }
 
@@ -206,124 +203,5 @@ public class OutboxTransactionalSessionTests
         Assert.AreEqual(expectedMaximumCommitDuration.ToString("c"), controlMessage.Message.Headers[OutboxTransactionalSession.RemainingCommitDurationHeaderName]);
         Assert.AreEqual(expectedMetadataValue, controlMessage.Message.Headers["metadata-key"], "metadata should be propagated to headers");
         Assert.IsFalse(controlMessage.Message.Headers.ContainsKey("extensions-key"), "extensions should not be propagated to headers");
-    }
-
-    class FakeDispatcher : IMessageDispatcher
-    {
-        public List<(TransportOperations outgoingMessages, TransportTransaction transaction)> Dispatched = new();
-
-        public Task Dispatch(TransportOperations outgoingMessages, TransportTransaction transaction,
-            CancellationToken cancellationToken = new CancellationToken())
-        {
-            Dispatched.Add((outgoingMessages, transaction));
-            return Task.CompletedTask;
-        }
-    }
-
-    class FakeSynchronizableStorageSession : ICompletableSynchronizedStorageSession
-    {
-        public List<(IOutboxTransaction, ContextBag)> OpenedOutboxTransactionSessions { get; } = new();
-        public Func<IOutboxTransaction, ContextBag, bool> TryOpenCallback { get; set; } = null;
-
-        public void Dispose() { }
-
-        public ValueTask<bool> TryOpen(IOutboxTransaction transaction, ContextBag context,
-            CancellationToken cancellationToken = new CancellationToken())
-        {
-            OpenedOutboxTransactionSessions.Add((transaction, context));
-            return new ValueTask<bool>(TryOpenCallback?.Invoke(transaction, context) ?? true);
-        }
-
-        public ValueTask<bool> TryOpen(TransportTransaction transportTransaction, ContextBag context,
-            CancellationToken cancellationToken = new CancellationToken()) =>
-            throw new InvalidOperationException("TransactionalSession must not adapt a transport transaction");
-
-        public Task Open(ContextBag contextBag, CancellationToken cancellationToken = new CancellationToken()) => throw new System.NotImplementedException();
-
-        public Task CompleteAsync(CancellationToken cancellationToken = new CancellationToken()) => Task.CompletedTask;
-    }
-
-    class FakeOutboxStorage : IOutboxStorage
-    {
-        public List<(OutboxMessage outboxMessage, IOutboxTransaction transaction, ContextBag context)> Stored { get; } = new();
-        public Action<OutboxMessage, IOutboxTransaction, ContextBag> StoreCallback { get; set; } = null;
-
-        public List<FakeOutboxTransaction> StartedTransactions { get; } = new();
-
-        public Task<OutboxMessage> Get(string messageId, ContextBag context, CancellationToken cancellationToken = new CancellationToken()) => throw new System.NotImplementedException();
-
-        public Task Store(OutboxMessage message, IOutboxTransaction transaction, ContextBag context,
-            CancellationToken cancellationToken = new CancellationToken())
-        {
-            Stored.Add((message, transaction, context));
-            StoreCallback?.Invoke(message, transaction, context);
-
-            return Task.CompletedTask;
-        }
-
-        public Task SetAsDispatched(string messageId, ContextBag context,
-            CancellationToken cancellationToken = new CancellationToken()) =>
-            throw new System.NotImplementedException();
-
-        public Task<IOutboxTransaction> BeginTransaction(ContextBag context, CancellationToken cancellationToken = new CancellationToken())
-        {
-            var tx = new FakeOutboxTransaction();
-            StartedTransactions.Add(tx);
-            return Task.FromResult<IOutboxTransaction>(tx);
-        }
-    }
-
-    class FakeOutboxTransaction : IOutboxTransaction
-    {
-        public bool Commited { get; private set; }
-
-        public void Dispose() { }
-
-        public Task Commit(CancellationToken cancellationToken = new CancellationToken())
-        {
-            Commited = true;
-            return Task.CompletedTask;
-        }
-    }
-
-    class FakeMessageSession : TestableMessageSession
-    {
-        public override Task Send(object message, SendOptions sendOptions, CancellationToken cancellationToken = new CancellationToken())
-        {
-            AddToPendingOperations(sendOptions);
-            return base.Send(message, sendOptions, cancellationToken);
-        }
-
-        public override Task Send<T>(Action<T> messageConstructor, SendOptions sendOptions,
-            CancellationToken cancellationToken = new CancellationToken())
-        {
-            AddToPendingOperations(sendOptions);
-            return base.Send(messageConstructor, sendOptions, cancellationToken);
-        }
-
-        public override Task Publish(object message, PublishOptions publishOptions,
-            CancellationToken cancellationToken = new CancellationToken())
-        {
-            AddToPendingOperations(publishOptions);
-            return base.Publish(message, publishOptions, cancellationToken);
-        }
-
-        public override Task Publish<T>(Action<T> messageConstructor, PublishOptions publishOptions,
-            CancellationToken cancellationToken = new CancellationToken())
-        {
-            AddToPendingOperations(publishOptions);
-            return base.Publish(messageConstructor, publishOptions, cancellationToken);
-        }
-
-        static void AddToPendingOperations(ExtendableOptions sendOptions)
-        {
-            // we need to fake the pipeline behavior to add outgoing messages to the PendingTransportOperations for the TransactionalSession to work.
-            var pendingOperations = sendOptions.GetExtensions().Get<PendingTransportOperations>();
-            pendingOperations.Add(new TransportOperation(
-                new OutgoingMessage(sendOptions.GetMessageId() ?? Guid.NewGuid().ToString(),
-                    sendOptions.GetHeaders().ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
-                    Encoding.UTF8.GetBytes("fake body")),
-                new UnicastAddressTag("fake address")));
-        }
     }
 }
