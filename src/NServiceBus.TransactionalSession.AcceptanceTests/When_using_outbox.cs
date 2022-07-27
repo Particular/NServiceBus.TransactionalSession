@@ -10,12 +10,16 @@
 
     public class When_using_outbox : NServiceBusAcceptanceTest
     {
+        [SetUp]
+        public void LoadAssemblies()
+        {
+            _ = typeof(ITransactionalSession).GetType();
+            _ = typeof(CustomTestingPersistence).GetType();
+        }
+
         [Test]
         public async Task Should_send_messages_on_transactional_session_commit()
         {
-            var typeA = typeof(ITransactionalSession).GetType();
-            var typeB = typeof(CustomTestingPersistence).GetType();
-
             await Scenario.Define<Context>()
                 .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
                 {
@@ -31,80 +35,52 @@
                 .Run();
         }
 
-        public class CaptureBuilderFeature : Feature
+        [Test]
+        public async Task Should_not_send_messages_if_session_is_not_committed()
         {
-            protected override void Setup(FeatureConfigurationContext context)
-            {
-                var scenarioContext = context.Settings.Get<ScenarioContext>();
-                context.RegisterStartupTask(builder => new CaptureServiceProviderStartupTask(builder, scenarioContext));
-            }
-
-            class CaptureServiceProviderStartupTask : FeatureStartupTask
-            {
-                public CaptureServiceProviderStartupTask(IBuilder builder, ScenarioContext context)
+            var result = await Scenario.Define<Context>()
+                .WithEndpoint<AnEndpoint>(s => s.When(async (statelessSession, ctx) =>
                 {
-                    if (context is IInjectBuilder c)
+                    using (var scope = ctx.Builder.CreateChildBuilder())
+                    using (var transactionalSession = scope.Build<ITransactionalSession>())
                     {
-                        c.Builder = builder;
+                        await transactionalSession.Open();
+
+                        await transactionalSession.SendLocal(new SampleMessage());
                     }
-                }
 
-                protected override Task OnStart(IMessageSession session) => Task.CompletedTask;
+                    //Send immediately dispatched message to finish the test
+                    await statelessSession.SendLocal(new CompleteTestMessage());
+                }))
+                .Done(c => c.CompleteMessageReceived)
+                .Run();
 
-                protected override Task OnStop(IMessageSession session) => Task.CompletedTask;
-            }
+            Assert.True(result.CompleteMessageReceived);
+            Assert.False(result.MessageReceived);
         }
 
-        public interface IInjectBuilder
+        [Test]
+        public async Task Should_send_immediate_dispatch_messages_even_if_session_is_not_committed()
         {
-            IBuilder Builder { get; set; }
+            var result = await Scenario.Define<Context>()
+                .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
+                {
+                    using var scope = ctx.Builder.CreateChildBuilder();
+                    using var transactionalSession = scope.Build<ITransactionalSession>();
+
+                    await transactionalSession.Open();
+
+                    var sendOptions = new SendOptions();
+                    sendOptions.RequireImmediateDispatch();
+                    sendOptions.RouteToThisEndpoint();
+                    await transactionalSession.Send(new SampleMessage(), sendOptions);
+                }))
+                .Done(c => c.MessageReceived)
+                .Run()
+                ;
+
+            Assert.True(result.MessageReceived);
         }
-        //[Test]
-        //public async Task Should_not_send_messages_if_session_is_not_committed()
-        //{
-        //    var result = await Scenario.Define<Context>()
-        //        .WithEndpoint<AnEndpoint>(s => s.When(async (statelessSession, ctx) =>
-        //        {
-        //            using (var scope = ctx.ServiceProvider.CreateScope())
-        //            using (var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>())
-        //            {
-        //                await transactionalSession.Open();
-
-        //                await transactionalSession.SendLocal(new SampleMessage());
-        //            }
-
-        //            //Send immediately dispatched message to finish the test
-        //            await statelessSession.SendLocal(new CompleteTestMessage());
-        //        }))
-        //        .Done(c => c.CompleteMessageReceived)
-        //        .Run();
-
-        //    Assert.True(result.CompleteMessageReceived);
-        //    Assert.False(result.MessageReceived);
-        //}
-
-        //[Test]
-        //public async Task Should_send_immediate_dispatch_messages_even_if_session_is_not_committed()
-        //{
-        //    var result = await Scenario.Define<Context>()
-        //        .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
-        //        {
-        //            using var scope = ctx.ServiceProvider.CreateScope();
-        //            using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
-
-        //            await transactionalSession.Open();
-
-        //            var sendOptions = new SendOptions();
-        //            sendOptions.RequireImmediateDispatch();
-        //            sendOptions.RouteToThisEndpoint();
-        //            await transactionalSession.Send(new SampleMessage(), sendOptions, CancellationToken.None);
-        //        }))
-        //        .Done(c => c.MessageReceived)
-        //        .Run()
-        //        ;
-
-        //    Assert.True(result.MessageReceived);
-        //}
 
         class Context : ScenarioContext, IInjectBuilder
         {
@@ -153,6 +129,35 @@
 
         class CompleteTestMessage : ICommand
         {
+        }
+
+        public class CaptureBuilderFeature : Feature
+        {
+            protected override void Setup(FeatureConfigurationContext context)
+            {
+                var scenarioContext = context.Settings.Get<ScenarioContext>();
+                context.RegisterStartupTask(builder => new CaptureServiceProviderStartupTask(builder, scenarioContext));
+            }
+
+            class CaptureServiceProviderStartupTask : FeatureStartupTask
+            {
+                public CaptureServiceProviderStartupTask(IBuilder builder, ScenarioContext context)
+                {
+                    if (context is IInjectBuilder c)
+                    {
+                        c.Builder = builder;
+                    }
+                }
+
+                protected override Task OnStart(IMessageSession session) => Task.CompletedTask;
+
+                protected override Task OnStop(IMessageSession session) => Task.CompletedTask;
+            }
+        }
+
+        public interface IInjectBuilder
+        {
+            IBuilder Builder { get; set; }
         }
     }
 }
