@@ -24,7 +24,6 @@
         /// <param name="sendOptions">The options for the send.</param>
 #pragma warning disable PS0018 // A task-returning method should have a CancellationToken parameter unless it has a parameter implementing ICancellableContext
         Task Send(object message, SendOptions sendOptions);
-#pragma warning restore PS0018 // A task-returning method should have a CancellationToken parameter unless it has a parameter implementing ICancellableContext
 
         /// <summary>
         /// Instantiates a message of type T and sends it.
@@ -32,18 +31,14 @@
         /// <typeparam name="T">The type of message, usually an interface.</typeparam>
         /// <param name="messageConstructor">An action which initializes properties of the message.</param>
         /// <param name="sendOptions">The options for the send.</param>
-#pragma warning disable PS0018 // A task-returning method should have a CancellationToken parameter unless it has a parameter implementing ICancellableContext
         Task Send<T>(Action<T> messageConstructor, SendOptions sendOptions);
-#pragma warning restore PS0018 // A task-returning method should have a CancellationToken parameter unless it has a parameter implementing ICancellableContext
 
         /// <summary>
         /// Publish the message to subscribers.
         /// </summary>
         /// <param name="message">The message to publish.</param>
         /// <param name="publishOptions">The options for the publish.</param>
-#pragma warning disable PS0018 // A task-returning method should have a CancellationToken parameter unless it has a parameter implementing ICancellableContext
         Task Publish(object message, PublishOptions publishOptions);
-#pragma warning restore PS0018 // A task-returning method should have a CancellationToken parameter unless it has a parameter implementing ICancellableContext
 
         /// <summary>
         /// Instantiates a message of type T and publishes it.
@@ -51,7 +46,6 @@
         /// <typeparam name="T">The type of message, usually an interface.</typeparam>
         /// <param name="messageConstructor">An action which initializes properties of the message.</param>
         /// <param name="publishOptions">Specific options for this event.</param>
-#pragma warning disable PS0018 // A task-returning method should have a CancellationToken parameter unless it has a parameter implementing ICancellableContext
         Task Publish<T>(Action<T> messageConstructor, PublishOptions publishOptions);
 #pragma warning restore PS0018 // A task-returning method should have a CancellationToken parameter unless it has a parameter implementing ICancellableContext
 
