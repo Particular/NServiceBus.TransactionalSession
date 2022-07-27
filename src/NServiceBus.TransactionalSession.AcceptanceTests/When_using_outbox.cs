@@ -3,6 +3,7 @@
     using System.Threading;
     using System.Threading.Tasks;
     using AcceptanceTesting;
+    using Features;
     using NServiceBus.AcceptanceTests;
     using NUnit.Framework;
     using ObjectBuilder;
@@ -12,6 +13,9 @@
         [Test]
         public async Task Should_send_messages_on_transactional_session_commit()
         {
+            var typeA = typeof(ITransactionalSession).GetType();
+            var typeB = typeof(CustomTestingPersistence).GetType();
+
             await Scenario.Define<Context>()
                 .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
                 {
@@ -27,6 +31,34 @@
                 .Run();
         }
 
+        public class CaptureBuilderFeature : Feature
+        {
+            protected override void Setup(FeatureConfigurationContext context)
+            {
+                var scenarioContext = context.Settings.Get<ScenarioContext>();
+                context.RegisterStartupTask(builder => new CaptureServiceProviderStartupTask(builder, scenarioContext));
+            }
+
+            class CaptureServiceProviderStartupTask : FeatureStartupTask
+            {
+                public CaptureServiceProviderStartupTask(IBuilder builder, ScenarioContext context)
+                {
+                    if (context is IInjectBuilder c)
+                    {
+                        c.Builder = builder;
+                    }
+                }
+
+                protected override Task OnStart(IMessageSession session) => Task.CompletedTask;
+
+                protected override Task OnStop(IMessageSession session) => Task.CompletedTask;
+            }
+        }
+
+        public interface IInjectBuilder
+        {
+            IBuilder Builder { get; set; }
+        }
         //[Test]
         //public async Task Should_not_send_messages_if_session_is_not_committed()
         //{
@@ -74,7 +106,7 @@
         //    Assert.True(result.MessageReceived);
         //}
 
-        class Context : ScenarioContext
+        class Context : ScenarioContext, IInjectBuilder
         {
             public bool MessageReceived { get; set; }
             public bool CompleteMessageReceived { get; set; }

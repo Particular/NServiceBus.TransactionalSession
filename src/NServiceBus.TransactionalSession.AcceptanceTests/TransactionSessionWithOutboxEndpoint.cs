@@ -17,7 +17,7 @@
                 configuration.EnableTransactionalSession();
                 configuration.EnableOutbox();
 
-                //configuration.RegisterStartupTask(provider => new CaptureServiceProviderStartupTask(provider, runDescriptor.ScenarioContext));
+                configuration.EnableFeature<When_using_outbox.CaptureBuilderFeature>();
             });
     }
 }

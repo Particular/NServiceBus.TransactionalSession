@@ -3,10 +3,7 @@
     using System;
     using System.Threading.Tasks;
     using System.Transactions;
-    using Extensibility;
-    using Outbox;
     using Persistence;
-    using Transport;
 
     class CustomTestingSynchronizedStorageSession : CompletableSynchronizedStorageSession
     {
@@ -14,29 +11,23 @@
 
         public void Dispose() => Transaction = null;
 
-        public Task<bool> TryOpen(OutboxTransaction transaction)
+        public CustomTestingSynchronizedStorageSession()
         {
-            if (transaction is CustomTestingOutboxTransaction inMemOutboxTransaction)
-            {
-                Transaction = inMemOutboxTransaction.Transaction;
-                ownsTransaction = false;
-                return Task.FromResult(true);
-            }
-
-            return Task.FromResult(false);
+            Transaction = new AcceptanceTestingTransaction();
+            ownsTransaction = true;
         }
 
-        public Task<bool> TryOpen(TransportTransaction transportTransaction)
+        public CustomTestingSynchronizedStorageSession(CustomTestingOutboxTransaction outboxTransaction)
         {
-            if (!transportTransaction.TryGet(out Transaction ambientTransaction))
-            {
-                return Task.FromResult(false);
-            }
+            Transaction = outboxTransaction.Transaction;
+            ownsTransaction = false;
+        }
 
+        public CustomTestingSynchronizedStorageSession(Transaction ambientTransaction)
+        {
             Transaction = new AcceptanceTestingTransaction();
             ambientTransaction.EnlistVolatile(new EnlistmentNotification(Transaction), EnlistmentOptions.None);
             ownsTransaction = true;
-            return Task.FromResult(true);
         }
 
         public Task Open()
