@@ -16,6 +16,7 @@
   </ItemGroup>
 
 	<ItemGroup>
+		<InternalsVisibleTo Include="NServiceBus.TransactionalSession.Tests" Key="$(NServiceBusTestsKey)" />
 		<InternalsVisibleTo Include="NServiceBus.TransactionalSession.AcceptanceTests" Key="$(NServiceBusTestsKey)" />
 	</ItemGroup>
 </Project>

@@ -18,7 +18,6 @@ namespace NServiceBus.TransactionalSession
             this.messageSession = messageSession;
             this.dispatcher = dispatcher;
             pendingOperations = new PendingTransportOperations();
-            transportTransaction = new TransportTransaction();
         }
 
         public ISynchronizedStorageSession SynchronizedStorageSession
@@ -45,6 +44,11 @@ namespace NServiceBus.TransactionalSession
 
         public virtual Task Open(OpenSessionOptions options = null, CancellationToken cancellationToken = default)
         {
+            if (IsOpen)
+            {
+                throw new InvalidOperationException($"This session is already open. {nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)} should only be called once.");
+            }
+
             this.options = options ?? new OpenSessionOptions();
             SessionId = Guid.NewGuid().ToString();
             return Task.CompletedTask;
@@ -120,7 +124,6 @@ namespace NServiceBus.TransactionalSession
         protected readonly ICompletableSynchronizedStorageSession synchronizedStorageSession;
         protected readonly IMessageDispatcher dispatcher;
         protected readonly PendingTransportOperations pendingOperations;
-        protected readonly TransportTransaction transportTransaction;
         protected OpenSessionOptions options;
         readonly IMessageSession messageSession;
         bool disposed;
