@@ -1,8 +1,10 @@
 ﻿namespace NServiceBus.TransactionalSession;
 
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Transport;
 
 /// <summary>
 /// TODO
@@ -14,7 +16,11 @@ public static class OpenSessionExtensions
     /// TODO
     /// </summary>
     /// <returns></returns>
-    public static Task OpenCosmosDBSession(this ITransactionalSession session, string partitionKey, (string containerName, string partitionKeyPath) container = default, OpenSessionOptions options = null, CancellationToken cancellationToken = default)
+    public static Task OpenCosmosDBSession(this ITransactionalSession session,
+        string partitionKey,
+        (string containerName, string partitionKeyPath) container = default,
+        OpenSessionOptions options = null,
+        CancellationToken cancellationToken = default)
     {
         Guard.AgainstNullAndEmpty(nameof(partitionKey), partitionKey);
 
@@ -36,6 +42,31 @@ public static class OpenSessionExtensions
             options.Metadata.Add(CosmosDBSupport.CosmosControlMessageBehavior.ContainerPartitionKeyPathHeaderKey, container.partitionKeyPath);
         }
 
+        return session.Open(options, cancellationToken);
+    }
+
+    /// <summary>
+    /// TODO
+    /// </summary>
+    /// <param name="session"></param>
+    /// <param name="multiTenantConnectionContext"></param>
+    /// <param name="options"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    public static Task OpenRavenDBSession(this ITransactionalSession session,
+        IDictionary<string, string> multiTenantConnectionContext = null,
+        OpenSessionOptions options = null,
+        CancellationToken cancellationToken = default)
+    {
+        options ??= new OpenSessionOptions();
+        var headers = multiTenantConnectionContext != null ? new Dictionary<string, string>(multiTenantConnectionContext) : new Dictionary<string, string>(0);
+        // order matters because IncomingMessage is modifying the headers
+        foreach (var header in headers)
+        {
+            options.Metadata.Add(header.Key, header.Value);
+        }
+
+        options.Extensions.Set(new IncomingMessage("do not use", headers, ReadOnlyMemory<byte>.Empty));
         return session.Open(options, cancellationToken);
     }
 }
