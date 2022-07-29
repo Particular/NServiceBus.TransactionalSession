@@ -22,7 +22,7 @@
 
             if (context.Settings.TryGet("NServiceBus.Persistence.CosmosDB.OutboxStorage", out FeatureState state) && state == FeatureState.Active)
             {
-                context.Pipeline.Register(new CosmosControlMessageBehavior(), "TODO");
+                context.Pipeline.Register(new CosmosDBSupport.CosmosControlMessageBehavior(), "TODO");
             }
 
             var isOutboxEnabled = context.Settings.IsFeatureActive(typeof(Outbox));

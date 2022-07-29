@@ -10,18 +10,31 @@ using System.Threading.Tasks;
 public static class OpenSessionExtensions
 {
     //TODO also do for the double key overload?
-    //TODO also support custom container configuration
     /// <summary>
     /// TODO
     /// </summary>
     /// <returns></returns>
-    public static Task OpenCosmosDBSession(this ITransactionalSession session, string partitionKey, OpenSessionOptions options = null, CancellationToken cancellationToken = default)
+    public static Task OpenCosmosDBSession(this ITransactionalSession session, string partitionKey, (string containerName, string partitionKeyPath) container = default, OpenSessionOptions options = null, CancellationToken cancellationToken = default)
     {
+        Guard.AgainstNullAndEmpty(nameof(partitionKey), partitionKey);
+
         options ??= new OpenSessionOptions();
-        var partitionKeyType = Type.GetType("Microsoft.Azure.Cosmos.PartitionKey, Microsoft.Azure.Cosmos.Client, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
-        var partitionKeyInstance = Activator.CreateInstance(partitionKeyType, partitionKey);
-        options.Extensions.Set("Microsoft.Azure.Cosmos.PartitionKey", partitionKeyInstance);
-        options.Metadata.Add("NServiceBus.TxSession.CosmosDB.PartitionKey", partitionKey);
+        var partitionKeyInstance = CosmosDBSupport.CreatePartitionKeyInstance(partitionKey);
+        options.Extensions.Set(CosmosDBSupport.PartitionKeyTypeFullName, partitionKeyInstance);
+        options.Metadata.Add(CosmosDBSupport.CosmosControlMessageBehavior.PartitionKeyHeaderKey, partitionKey);
+
+        if (container != default)
+        {
+            if (string.IsNullOrWhiteSpace(container.containerName) && string.IsNullOrWhiteSpace(container.partitionKeyPath))
+            {
+                throw new ArgumentException("Invalid CosmosDB container definition", nameof(container));
+            }
+
+            var containerInformation = CosmosDBSupport.CreateContainerInformationInstance(container.containerName, container.partitionKeyPath);
+            options.Extensions.Set(CosmosDBSupport.ContainerInformationTypeFullName, containerInformation);
+            options.Metadata.Add(CosmosDBSupport.CosmosControlMessageBehavior.ContainerNameHeaderKey, container.containerName);
+            options.Metadata.Add(CosmosDBSupport.CosmosControlMessageBehavior.ContainerPartitionKeyPathHeaderKey, container.partitionKeyPath);
+        }
 
         return session.Open(options, cancellationToken);
     }
