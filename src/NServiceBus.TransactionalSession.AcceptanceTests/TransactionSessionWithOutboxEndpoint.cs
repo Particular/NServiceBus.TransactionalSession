@@ -3,21 +3,16 @@
     using System;
     using System.Threading.Tasks;
     using AcceptanceTesting.Support;
-    using NServiceBus.AcceptanceTests.EndpointTemplates;
-    using NServiceBus.TransactionalSession;
 
-    public class TransactionSessionWithOutboxEndpoint : DefaultServer
+    public class TransactionSessionWithOutboxEndpoint : TransactionSessionWithoutOutboxEndpoint
     {
         public override Task<EndpointConfiguration> GetConfiguration(RunDescriptor runDescriptor, EndpointCustomizationConfiguration endpointCustomizationConfiguration,
             Action<EndpointConfiguration> configurationBuilderCustomization) =>
             base.GetConfiguration(runDescriptor, endpointCustomizationConfiguration, configuration =>
             {
-                configurationBuilderCustomization(configuration);
-
-                configuration.EnableTransactionalSession();
                 configuration.EnableOutbox();
 
-                configuration.EnableFeature<When_using_outbox.CaptureBuilderFeature>();
+                configurationBuilderCustomization(configuration);
             });
     }
 }

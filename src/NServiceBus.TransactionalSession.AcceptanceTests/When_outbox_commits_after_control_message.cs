@@ -12,13 +12,6 @@
 
     public class When_outbox_commits_after_control_message : NServiceBusAcceptanceTest
     {
-        [SetUp]
-        public void LoadAssemblies()
-        {
-            _ = typeof(ITransactionalSession).GetType();
-            _ = typeof(CustomTestingPersistence).GetType();
-        }
-
         [Test]
         public async Task Should_throw_exception_to_session_user()
         {
@@ -66,13 +59,8 @@
         class SenderEndpoint : EndpointConfigurationBuilder
         {
             public SenderEndpoint() =>
-                EndpointSetup<DefaultServer>((c, r) =>
+                EndpointSetup<TransactionSessionWithOutboxEndpoint>((c, r) =>
                 {
-                    c.EnableTransactionalSession();
-                    c.EnableOutbox();
-
-                    c.EnableFeature<CaptureBuilderFeature>();
-
                     c.Pipeline.Register(new UnblockCommitBehavior((Context)r.ScenarioContext), "unblocks the transactional session commit operation");
 
                     var receiverEndpointName = AcceptanceTesting.Customization.Conventions.EndpointNamingConvention(typeof(ReceiverEndpoint));
@@ -125,35 +113,6 @@
 
         class SomeMessage : IMessage
         {
-        }
-
-        public class CaptureBuilderFeature : Feature
-        {
-            protected override void Setup(FeatureConfigurationContext context)
-            {
-                var scenarioContext = context.Settings.Get<ScenarioContext>();
-                context.RegisterStartupTask(builder => new CaptureServiceProviderStartupTask(builder, scenarioContext));
-            }
-
-            class CaptureServiceProviderStartupTask : FeatureStartupTask
-            {
-                public CaptureServiceProviderStartupTask(IBuilder builder, ScenarioContext context)
-                {
-                    if (context is IInjectBuilder c)
-                    {
-                        c.Builder = builder;
-                    }
-                }
-
-                protected override Task OnStart(IMessageSession session) => Task.CompletedTask;
-
-                protected override Task OnStop(IMessageSession session) => Task.CompletedTask;
-            }
-        }
-
-        public interface IInjectBuilder
-        {
-            IBuilder Builder { get; set; }
         }
     }
 }
