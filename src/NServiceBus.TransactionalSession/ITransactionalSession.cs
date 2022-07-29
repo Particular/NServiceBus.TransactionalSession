@@ -15,7 +15,7 @@
         /// </summary>
         /// <param name="options">The options.</param>
         /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe.</param>
-        Task Open(OpenSessionOptions options = null, CancellationToken cancellationToken = default);
+        internal Task Open(OpenSessionOptions options = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Sends the provided message.
