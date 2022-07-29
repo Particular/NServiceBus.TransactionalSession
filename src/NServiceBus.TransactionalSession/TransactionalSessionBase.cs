@@ -50,7 +50,8 @@ namespace NServiceBus.TransactionalSession
             }
 
             this.options = options ?? new OpenSessionOptions();
-            SessionId = options.CustomSessionId ?? Guid.NewGuid().ToString();
+            //TODO: take session from the OpenSessionOptions.CustomSessionId property (write tests)
+            SessionId = Guid.NewGuid().ToString();
             return Task.CompletedTask;
         }
 
