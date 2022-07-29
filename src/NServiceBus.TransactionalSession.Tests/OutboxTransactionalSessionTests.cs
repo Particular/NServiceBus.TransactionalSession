@@ -23,6 +23,18 @@ public class OutboxTransactionalSessionTests
     }
 
     [Test]
+    public async Task Open_should_use_custom_session_id_from_options()
+    {
+        string customId = Guid.NewGuid().ToString();
+        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), "queue address");
+
+        var openOptions = new OpenSessionOptions { CustomSessionId = customId };
+        await session.Open(openOptions);
+
+        Assert.AreEqual(customId, session.SessionId);
+    }
+
+    [Test]
     public async Task Open_should_throw_if_session_already_open()
     {
         using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), "queue address");
