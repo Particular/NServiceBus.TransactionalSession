@@ -5,7 +5,6 @@
     using System.Threading;
     using System.Threading.Tasks;
     using AcceptanceTesting;
-    using Extensibility;
     using Microsoft.Extensions.DependencyInjection;
     using NServiceBus.AcceptanceTests;
     using NServiceBus.AcceptanceTests.EndpointTemplates;

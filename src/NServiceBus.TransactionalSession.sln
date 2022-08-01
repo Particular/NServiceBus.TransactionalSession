@@ -7,9 +7,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NServiceBus.TransactionalSe
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NServiceBus.TransactionalSession.AcceptanceTests", "NServiceBus.TransactionalSession.AcceptanceTests\NServiceBus.TransactionalSession.AcceptanceTests.csproj", "{4994C04C-42CA-467E-922E-AA1E63E8EAE3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NServiceBus.TransactionalSession.Tests", "NServiceBus.TransactionalSession.Tests\NServiceBus.TransactionalSession.Tests.csproj", "{7073F510-9FD4-4D2A-9312-C379827F39F4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NServiceBus.TransactionalSession.Tests", "NServiceBus.TransactionalSession.Tests\NServiceBus.TransactionalSession.Tests.csproj", "{7073F510-9FD4-4D2A-9312-C379827F39F4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NServiceBus.TransactionalSession.CustomTestingPersistence", "NServiceBus.TransactionalSession.CustomTestingPersistence\NServiceBus.TransactionalSession.CustomTestingPersistence.csproj", "{7A3795DA-3A35-42DA-9B45-E2800D2E2B0E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NServiceBus.TransactionalSession.CustomTestingPersistence", "NServiceBus.TransactionalSession.CustomTestingPersistence\NServiceBus.TransactionalSession.CustomTestingPersistence.csproj", "{7A3795DA-3A35-42DA-9B45-E2800D2E2B0E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "PersistenceTests", "PersistenceTests", "{5A15D426-1134-4965-8DC0-F86A773922A9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NServiceBus.TransactionalSession.AcceptanceTests.SqlP", "NServiceBus.TransactionalSession.AcceptanceTests.SqlP\NServiceBus.TransactionalSession.AcceptanceTests.SqlP.csproj", "{5DB1761C-04DC-4D2B-9D51-28823B9BF111}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,9 +37,16 @@ Global
 		{7A3795DA-3A35-42DA-9B45-E2800D2E2B0E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7A3795DA-3A35-42DA-9B45-E2800D2E2B0E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7A3795DA-3A35-42DA-9B45-E2800D2E2B0E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5DB1761C-04DC-4D2B-9D51-28823B9BF111}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5DB1761C-04DC-4D2B-9D51-28823B9BF111}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5DB1761C-04DC-4D2B-9D51-28823B9BF111}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5DB1761C-04DC-4D2B-9D51-28823B9BF111}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{5DB1761C-04DC-4D2B-9D51-28823B9BF111} = {5A15D426-1134-4965-8DC0-F86A773922A9}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D4D1D003-1CA9-4B9E-AFE4-D1D8FAD1E229}

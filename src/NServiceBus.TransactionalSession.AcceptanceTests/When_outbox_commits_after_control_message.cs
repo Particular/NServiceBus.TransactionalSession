@@ -73,7 +73,7 @@
                 {
                     if (context.Message.Headers.ContainsKey(OutboxTransactionalSession.RemainingCommitDurationHeaderName))
                     {
-                        context.Extensions.Set<Action>("TestOutboxStorage.StoreCallback", () =>
+                        context.Extensions.Set("TestOutboxStorage.StoreCallback", () =>
                         {
                             // unblock the outbox transaction from the TransactionalSession.Commit
                             // we need to wait till the TransactionalSessionDelayControlMessageBehavior gave up on retrying and therefore
