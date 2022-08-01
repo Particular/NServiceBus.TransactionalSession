@@ -49,8 +49,8 @@ namespace NServiceBus.TransactionalSession
                 throw new InvalidOperationException($"This session is already open. {nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)} should only be called once.");
             }
 
-            this.options = options ?? new OpenSessionOptions();
-            SessionId = Guid.NewGuid().ToString();
+            this.options = options ??= new OpenSessionOptions();
+            SessionId = options.CustomSessionId ?? Guid.NewGuid().ToString();
             return Task.CompletedTask;
         }
 
