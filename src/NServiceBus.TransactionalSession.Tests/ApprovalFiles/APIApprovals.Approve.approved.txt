@@ -7,11 +7,17 @@ namespace NServiceBus.TransactionalSession
         string SessionId { get; }
         NServiceBus.Persistence.ISynchronizedStorageSession SynchronizedStorageSession { get; }
         System.Threading.Tasks.Task Commit(System.Threading.CancellationToken cancellationToken = default);
-        System.Threading.Tasks.Task Open(NServiceBus.TransactionalSession.OpenSessionOptions options = null, System.Threading.CancellationToken cancellationToken = default);
         System.Threading.Tasks.Task Publish(object message, NServiceBus.PublishOptions publishOptions, System.Threading.CancellationToken cancellationToken = default);
         System.Threading.Tasks.Task Publish<T>(System.Action<T> messageConstructor, NServiceBus.PublishOptions publishOptions, System.Threading.CancellationToken cancellationToken = default);
         System.Threading.Tasks.Task Send(object message, NServiceBus.SendOptions sendOptions, System.Threading.CancellationToken cancellationToken = default);
         System.Threading.Tasks.Task Send<T>(System.Action<T> messageConstructor, NServiceBus.SendOptions sendOptions, System.Threading.CancellationToken cancellationToken = default);
+    }
+    public static class OpenSessionExtensions
+    {
+        public static System.Threading.Tasks.Task OpenCosmosDBSession(this NServiceBus.TransactionalSession.ITransactionalSession session, string partitionKey, [System.Runtime.CompilerServices.TupleElementNames(new string[] {
+                "containerName",
+                "partitionKeyPath"})] System.ValueTuple<string, string> container = default, NServiceBus.TransactionalSession.OpenSessionOptions options = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public static System.Threading.Tasks.Task OpenRavenDBSession(this NServiceBus.TransactionalSession.ITransactionalSession session, System.Collections.Generic.IDictionary<string, string> multiTenantConnectionContext = null, NServiceBus.TransactionalSession.OpenSessionOptions options = null, System.Threading.CancellationToken cancellationToken = default) { }
     }
     public class OpenSessionOptions : NServiceBus.Extensibility.IExtendable
     {
