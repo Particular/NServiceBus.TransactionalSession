@@ -2,30 +2,20 @@
 {
     using System.Threading;
     using System.Threading.Tasks;
-    using Persistence;
     using Transport;
 
-    class TransactionalSession : TransactionalSessionBase
+    class TransactionalSession : TransactionalSessionBase, IBatchSession
     {
         public TransactionalSession(
-            ICompletableSynchronizedStorageSession synchronizedStorageSession,
             IMessageSession messageSession,
-            IMessageDispatcher dispatcher) : base(synchronizedStorageSession, messageSession, dispatcher)
+            IMessageDispatcher dispatcher) : base(messageSession, dispatcher)
         {
         }
 
-        public override async Task Commit(CancellationToken cancellationToken = default)
-        {
-            await synchronizedStorageSession.CompleteAsync(cancellationToken).ConfigureAwait(false);
+        async Task IBatchSession.Open(OpenSessionOptions options, CancellationToken cancellationToken) =>
+            await base.OpenSession(options, cancellationToken).ConfigureAwait(false);
 
+        public override async Task Commit(CancellationToken cancellationToken = default) =>
             await dispatcher.Dispatch(new TransportOperations(pendingOperations.Operations), new TransportTransaction(), cancellationToken).ConfigureAwait(false);
-        }
-
-        public override async Task Open(OpenSessionOptions options = null, CancellationToken cancellationToken = default)
-        {
-            await base.Open(options, cancellationToken).ConfigureAwait(false);
-
-            await synchronizedStorageSession.Open(null, new TransportTransaction(), Context, cancellationToken).ConfigureAwait(false);
-        }
     }
 }

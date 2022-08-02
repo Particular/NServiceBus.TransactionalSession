@@ -4,34 +4,17 @@ namespace NServiceBus.TransactionalSession
     using System.Threading;
     using System.Threading.Tasks;
     using Extensibility;
-    using Persistence;
     using Transport;
 
-    abstract class TransactionalSessionBase : ITransactionalSession
+    abstract class TransactionalSessionBase
     {
         protected TransactionalSessionBase(
-            ICompletableSynchronizedStorageSession synchronizedStorageSession,
             IMessageSession messageSession,
             IMessageDispatcher dispatcher)
         {
-            this.synchronizedStorageSession = synchronizedStorageSession;
             this.messageSession = messageSession;
             this.dispatcher = dispatcher;
             pendingOperations = new PendingTransportOperations();
-        }
-
-        public ISynchronizedStorageSession SynchronizedStorageSession
-        {
-            get
-            {
-                if (!IsOpen)
-                {
-                    throw new InvalidOperationException(
-                        "Before accessing the SynchronizedStorageSession, make sure to open the session by calling the `Open`-method.");
-                }
-
-                return synchronizedStorageSession;
-            }
         }
 
         public string SessionId => options?.SessionId;
@@ -42,11 +25,11 @@ namespace NServiceBus.TransactionalSession
 
         public abstract Task Commit(CancellationToken cancellationToken = default);
 
-        public virtual Task Open(OpenSessionOptions options = null, CancellationToken cancellationToken = default)
+        protected virtual Task OpenSession(OpenSessionOptions options = null, CancellationToken cancellationToken = default)
         {
             if (IsOpen)
             {
-                throw new InvalidOperationException($"This session is already open. {nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)} should only be called once.");
+                throw new InvalidOperationException($"This session is already open. Open should only be called once.");
             }
 
             this.options = options ?? new OpenSessionOptions();
@@ -114,15 +97,9 @@ namespace NServiceBus.TransactionalSession
                 return;
             }
 
-            if (disposing)
-            {
-                synchronizedStorageSession?.Dispose();
-            }
-
             disposed = true;
         }
 
-        protected readonly ICompletableSynchronizedStorageSession synchronizedStorageSession;
         protected readonly IMessageDispatcher dispatcher;
         protected readonly PendingTransportOperations pendingOperations;
         protected OpenSessionOptions options;

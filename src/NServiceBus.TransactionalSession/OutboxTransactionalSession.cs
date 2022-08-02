@@ -11,17 +11,32 @@
     using TransportTransportOperation = Transport.TransportOperation;
     using OutboxTransportOperation = Outbox.TransportOperation;
 
-    class OutboxTransactionalSession : TransactionalSessionBase
+    class OutboxTransactionalSession : TransactionalSessionBase, ITransactionalSession
     {
         public OutboxTransactionalSession(
             IOutboxStorage outboxStorage,
             ICompletableSynchronizedStorageSession synchronizedStorageSession,
             IMessageSession messageSession,
             IMessageDispatcher dispatcher,
-            string physicalQueueAddress) : base(synchronizedStorageSession, messageSession, dispatcher)
+            string physicalQueueAddress) : base(messageSession, dispatcher)
         {
             this.outboxStorage = outboxStorage;
+            this.synchronizedStorageSession = synchronizedStorageSession;
             this.physicalQueueAddress = physicalQueueAddress;
+        }
+
+        public ISynchronizedStorageSession SynchronizedStorageSession
+        {
+            get
+            {
+                if (!IsOpen)
+                {
+                    throw new InvalidOperationException(
+                        "Before accessing the SynchronizedStorageSession, make sure to open the session by calling the `Open`-method.");
+                }
+
+                return synchronizedStorageSession;
+            }
         }
 
         public override async Task Commit(CancellationToken cancellationToken = default)
@@ -64,6 +79,7 @@
 
             if (disposing)
             {
+                synchronizedStorageSession?.Dispose();
                 outboxTransaction?.Dispose();
             }
 
@@ -102,9 +118,9 @@
             throw new Exception($"Unknown routing strategy {addressTag.GetType().FullName}");
         }
 
-        public override async Task Open(OpenSessionOptions options = null, CancellationToken cancellationToken = default)
+        async Task IBatchSession.Open(OpenSessionOptions options, CancellationToken cancellationToken)
         {
-            await base.Open(options, cancellationToken).ConfigureAwait(false);
+            await base.OpenSession(options, cancellationToken).ConfigureAwait(false);
 
             outboxTransaction = await outboxStorage.BeginTransaction(Context, cancellationToken).ConfigureAwait(false);
 
@@ -116,6 +132,7 @@
 
         readonly string physicalQueueAddress;
         readonly IOutboxStorage outboxStorage;
+        readonly ICompletableSynchronizedStorageSession synchronizedStorageSession;
         IOutboxTransaction outboxTransaction;
         public const string RemainingCommitDurationHeaderName = "NServiceBus.TransactionalSession.RemainingCommitDuration";
         public const string CommitDelayIncrementHeaderName = "NServiceBus.TransactionalSession.CommitDelayIncrement";

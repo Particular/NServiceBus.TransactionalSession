@@ -29,29 +29,29 @@
             var isOutboxEnabled = context.Settings.IsFeatureActive(typeof(Outbox));
             var sessionCaptureTask = new SessionCaptureTask();
             context.RegisterStartupTask(sessionCaptureTask);
-            context.Services.AddScoped(sp =>
+
+
+            context.Services.AddScoped<IBatchSession>(sp => new TransactionalSession(
+                sessionCaptureTask.CapturedSession,
+                sp.GetRequiredService<IMessageDispatcher>()));
+
+            if (isOutboxEnabled)
             {
-                var physicalLocalQueueAddress = sp.GetRequiredService<ITransportAddressResolver>()
-                    .ToTransportAddress(localQueueAddress);
+                context.Services.AddScoped<ITransactionalSession>(sp =>
+                {
+                    var physicalLocalQueueAddress = sp.GetRequiredService<ITransportAddressResolver>()
+                        .ToTransportAddress(localQueueAddress);
 
                 ITransactionalSession transactionalSession;
 
-                if (isOutboxEnabled)
-                {
                     transactionalSession = new OutboxTransactionalSession(
                         sp.GetRequiredService<IOutboxStorage>(),
                         sp.GetRequiredService<ICompletableSynchronizedStorageSession>(),
                         sessionCaptureTask.CapturedSession,
                         sp.GetRequiredService<IMessageDispatcher>(),
                         physicalLocalQueueAddress
-                        );
-                }
-                else
-                {
+                    );
                     transactionalSession = new TransactionalSession(
-                        sp.GetRequiredService<ICompletableSynchronizedStorageSession>(),
-                        sessionCaptureTask.CapturedSession,
-                        sp.GetRequiredService<IMessageDispatcher>());
                 }
 
                 if (context.Settings.TryGet("NServiceBus.Features.NHibernateOutbox", out FeatureState nhState) && nhState == FeatureState.Active)
@@ -66,10 +66,8 @@
 
 
                 return transactionalSession;
-            });
+                });
 
-            if (isOutboxEnabled)
-            {
                 context.Pipeline.Register(sp => new TransactionalSessionDelayControlMessageBehavior(sp.GetRequiredService<IMessageDispatcher>(),
                     sp.GetRequiredService<ITransportAddressResolver>().ToTransportAddress(localQueueAddress)
                 ), "Transaction commit control message delay behavior");

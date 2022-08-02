@@ -15,7 +15,7 @@
                 .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
                 {
                     using var scope = ctx.ServiceProvider.CreateScope();
-                    using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+                    using var transactionalSession = scope.ServiceProvider.GetRequiredService<IBatchSession>();
 
                     await transactionalSession.Open();
 
@@ -35,7 +35,7 @@
                 .WithEndpoint<AnEndpoint>(s => s.When(async (messageSession, ctx) =>
                 {
                     using (var scope = ctx.ServiceProvider.CreateScope())
-                    using (var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>())
+                    using (var transactionalSession = scope.ServiceProvider.GetRequiredService<IBatchSession>())
                     {
                         await transactionalSession.Open();
 
