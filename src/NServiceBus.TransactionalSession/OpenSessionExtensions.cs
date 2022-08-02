@@ -1,4 +1,4 @@
-﻿namespace NServiceBus.TransactionalSession;
+namespace NServiceBus.TransactionalSession;
 
 using System;
 using System.Collections.Generic;
@@ -94,6 +94,31 @@ public static class OpenSessionExtensions
         }
 
         options.Extensions.Set(new IncomingMessage(options.CustomSessionId, headers, Array.Empty<byte>()));
+
+        return session.Open(options, cancellationToken);
+    }
+
+    /// <summary>
+    /// TODO
+    /// </summary>
+    /// <param name="session"></param>
+    /// <param name="options"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    public static Task OpenNHibernateSession(this ITransactionalSession session, OpenSessionOptions options = null,
+        CancellationToken cancellationToken = default)
+    {
+        var endpointQualifiedMessageIdKeyName = "NServiceBus.Persistence.NHibernate.EndpointQualifiedMessageId";
+
+        var endpointName = session.PersisterSpecificOptions.Get<string>();
+
+        options ??= new OpenSessionOptions();
+        options.CustomSessionId = Guid.NewGuid().ToString();
+
+        var endpointQualifiedMessageId = $"{endpointName}/{options.CustomSessionId}";
+
+        options.Extensions.Set(endpointQualifiedMessageIdKeyName, endpointQualifiedMessageId);
+        options.Metadata.Add(endpointQualifiedMessageIdKeyName, endpointQualifiedMessageId);
 
         return session.Open(options, cancellationToken);
     }

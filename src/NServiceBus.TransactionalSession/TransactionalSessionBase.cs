@@ -54,6 +54,8 @@ namespace NServiceBus.TransactionalSession
             return Task.CompletedTask;
         }
 
+        ContextBag ITransactionalSession.PersisterSpecificOptions { get; } = new ContextBag();
+
         public async Task Send(object message, SendOptions sendOptions, CancellationToken cancellationToken = default)
         {
             if (!IsOpen)
