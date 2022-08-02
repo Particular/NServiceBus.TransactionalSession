@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using AcceptanceTesting;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.DependencyInjection;
-using NServiceBus.AcceptanceTests;
 using NUnit.Framework;
 using Persistence.Sql;
 
