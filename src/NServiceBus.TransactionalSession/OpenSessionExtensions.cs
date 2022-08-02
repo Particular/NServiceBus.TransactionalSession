@@ -69,4 +69,32 @@ public static class OpenSessionExtensions
         options.Extensions.Set(new IncomingMessage("do not use", headers, ReadOnlyMemory<byte>.Empty));
         return session.Open(options, cancellationToken);
     }
+
+    /// <summary>
+    /// TODO
+    /// </summary>
+    /// <param name="session"></param>
+    /// <param name="tenantIdHeaderName"></param>
+    /// <param name="tenantId"></param>
+    /// <param name="options"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    public static Task OpenSqlSession(this ITransactionalSession session, string tenantIdHeaderName = null, string tenantId = null, OpenSessionOptions options = null,
+        CancellationToken cancellationToken = default)
+    {
+        options ??= new OpenSessionOptions();
+        options.CustomSessionId = Guid.NewGuid().ToString();
+
+        var headers = new Dictionary<string, string>();
+
+        if (tenantIdHeaderName != null)
+        {
+            headers.Add(tenantIdHeaderName, tenantId);
+            options.Metadata.Add(tenantIdHeaderName, tenantId);
+        }
+
+        options.Extensions.Set(new IncomingMessage(options.CustomSessionId, headers, Array.Empty<byte>()));
+
+        return session.Open(options, cancellationToken);
+    }
 }
