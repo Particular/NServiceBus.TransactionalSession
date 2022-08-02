@@ -97,4 +97,10 @@ public static class OpenSessionExtensions
 
         return session.Open(options, cancellationToken);
     }
+    public static Task OpenMongoDBSession(this ITransactionalSession session, OpenSessionOptions options = null, CancellationToken cancellationToken = default)
+    {
+        Guard.AgainstNull(nameof(session), session);
+
+        return session.Open(options, cancellationToken);
+    }
 }
