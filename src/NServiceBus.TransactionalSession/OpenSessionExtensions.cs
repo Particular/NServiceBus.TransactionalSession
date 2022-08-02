@@ -87,7 +87,7 @@ public static class OpenSessionExtensions
 
         var headers = new Dictionary<string, string>();
 
-        if (tenantIdHeaderName != null)
+        if (tenantIdHeaderName != null && tenantId != null)
         {
             headers.Add(tenantIdHeaderName, tenantId);
             options.Metadata.Add(tenantIdHeaderName, tenantId);
