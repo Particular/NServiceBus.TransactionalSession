@@ -9,6 +9,9 @@ using Raven.Client.ServerWide.Operations;
 [SetUpFixture]
 public class RavenSetup
 {
+
+    public const string DefaultDatabaseName = "TransactionalSessionTests";
+
     [OneTimeSetUp]
     public void Setup()
     {
@@ -17,14 +20,14 @@ public class RavenSetup
             var persistence = configuration.UsePersistence<RavenDBPersistence>();
             var documentStore = new DocumentStore
             {
-                Database = "TransactionalSessionTests",
+                Database = DefaultDatabaseName,
                 Urls = new[] { "http://localhost:8080" }
             };
             documentStore.Initialize();
             var result = documentStore.Maintenance.Server.Send(new GetDatabaseNamesOperation(0, int.MaxValue));
-            if (!result.Contains("TransactionalSessionTests"))
+            if (!result.Contains(DefaultDatabaseName))
             {
-                documentStore.Maintenance.Server.Send(new CreateDatabaseOperation(new DatabaseRecord("TransactionalSessionTests")));
+                documentStore.Maintenance.Server.Send(new CreateDatabaseOperation(new DatabaseRecord(DefaultDatabaseName)));
             }
 
             persistence.SetDefaultDocumentStore(documentStore);

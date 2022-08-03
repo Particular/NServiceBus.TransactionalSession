@@ -12,9 +12,9 @@
             TransportTransactionMode = TransportTransactionMode.ReceiveOnly;
             return base.GetConfiguration(runDescriptor, endpointConfiguration, async configuration =>
             {
-                await configurationBuilderCustomization(configuration);
-
                 configuration.EnableOutbox();
+
+                await configurationBuilderCustomization(configuration);
             });
         }
     }
