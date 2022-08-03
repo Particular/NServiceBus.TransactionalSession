@@ -128,6 +128,6 @@ namespace NServiceBus.TransactionalSession
         protected readonly PendingTransportOperations pendingOperations;
         protected OpenSessionOptions options;
         readonly IMessageSession messageSession;
-        bool disposed;
+        protected bool disposed;
     }
 }
