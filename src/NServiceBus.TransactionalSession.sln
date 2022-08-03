@@ -15,7 +15,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "PersistenceTests", "Persist
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NServiceBus.TransactionalSession.AcceptanceTests.SqlP", "NServiceBus.TransactionalSession.AcceptanceTests.SqlP\NServiceBus.TransactionalSession.AcceptanceTests.SqlP.csproj", "{5DB1761C-04DC-4D2B-9D51-28823B9BF111}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NServiceBus.TransactionalSession.AcceptanceTests.NHibernate", "NServiceBus.TransactionalSession.AcceptanceTests.NHibernate\NServiceBus.TransactionalSession.AcceptanceTests.NHibernate.csproj", "{BF941627-534C-4E9D-BBE7-B0F9ED5525EF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NServiceBus.TransactionalSession.AcceptanceTests.NHibernate", "NServiceBus.TransactionalSession.AcceptanceTests.NHibernate\NServiceBus.TransactionalSession.AcceptanceTests.NHibernate.csproj", "{BF941627-534C-4E9D-BBE7-B0F9ED5525EF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NServiceBus.TransactionalSession.AcceptanceTests.MongoDB", "NServiceBus.TransactionalSession.AcceptanceTests.MongoDB\NServiceBus.TransactionalSession.AcceptanceTests.MongoDB.csproj", "{EBAFC9AD-25ED-41C4-A63A-890D0EFB631E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -47,6 +49,10 @@ Global
 		{BF941627-534C-4E9D-BBE7-B0F9ED5525EF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BF941627-534C-4E9D-BBE7-B0F9ED5525EF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BF941627-534C-4E9D-BBE7-B0F9ED5525EF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EBAFC9AD-25ED-41C4-A63A-890D0EFB631E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EBAFC9AD-25ED-41C4-A63A-890D0EFB631E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EBAFC9AD-25ED-41C4-A63A-890D0EFB631E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EBAFC9AD-25ED-41C4-A63A-890D0EFB631E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -54,6 +60,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{5DB1761C-04DC-4D2B-9D51-28823B9BF111} = {5A15D426-1134-4965-8DC0-F86A773922A9}
 		{BF941627-534C-4E9D-BBE7-B0F9ED5525EF} = {5A15D426-1134-4965-8DC0-F86A773922A9}
+		{EBAFC9AD-25ED-41C4-A63A-890D0EFB631E} = {5A15D426-1134-4965-8DC0-F86A773922A9}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D4D1D003-1CA9-4B9E-AFE4-D1D8FAD1E229}
