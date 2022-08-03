@@ -49,8 +49,12 @@
                         await transactionalSession.SendLocal(new SampleMessage());
                     }
 
+                    var sendOptions = new SendOptions();
+                    sendOptions.SetHeader(PartitionKeyHeaderName, PartitionKeyValue);
+                    sendOptions.RouteToThisEndpoint();
+
                     //Send immediately dispatched message to finish the test
-                    await statelessSession.SendLocal(new CompleteTestMessage());
+                    await statelessSession.Send(new CompleteTestMessage(), sendOptions);
                 }))
                 .Done(c => c.CompleteMessageReceived)
                 .Run();
@@ -71,6 +75,7 @@
                     await transactionalSession.OpenCosmosDBSession(PartitionKeyValue);
 
                     var sendOptions = new SendOptions();
+                    sendOptions.SetHeader(PartitionKeyHeaderName, PartitionKeyValue);
                     sendOptions.RequireImmediateDispatch();
                     sendOptions.RouteToThisEndpoint();
                     await transactionalSession.Send(new SampleMessage(), sendOptions, CancellationToken.None);

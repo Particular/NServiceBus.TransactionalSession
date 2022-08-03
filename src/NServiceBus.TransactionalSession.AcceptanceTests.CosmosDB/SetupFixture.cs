@@ -62,7 +62,7 @@
         }
 
         public const string DatabaseName = "CosmosDBPersistence";
-        public const string PartitionPathKey = "/id";
+        public const string PartitionPathKey = "/somekey";
         public static string ContainerName;
         public static CosmosClient CosmosDbClient;
         public static Container Container;
