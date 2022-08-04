@@ -1,5 +1,6 @@
 ﻿namespace NServiceBus.TransactionalSession
 {
+    using System;
     using System.Threading;
     using System.Threading.Tasks;
     using Features;
@@ -57,6 +58,12 @@
                 {
                     transactionalSession.PersisterSpecificOptions.Set(context.Settings.EndpointName());
                 }
+
+                if (context.Settings.TryGet("NServiceBus.Persistence.AzureTable.OutboxStorage", out FeatureState atState) && atState == FeatureState.Active)
+                {
+                    transactionalSession.PersisterSpecificOptions.Set(sp.GetRequiredService(Type.GetType(AzureTableSupport.TableHolderResolverAssemblyQualifiedTypeName)));
+                }
+
 
                 return transactionalSession;
             });
