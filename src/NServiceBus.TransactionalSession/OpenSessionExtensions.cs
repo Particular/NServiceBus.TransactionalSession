@@ -143,4 +143,38 @@ public static class OpenSessionExtensions
 
         return session.Open(options, cancellationToken);
     }
+
+    /// <summary>
+    /// Opens a <see cref="ITransactionalSession"/> connected to a AzureTable storage.
+    /// </summary>
+    /// <param name="session">The session to open</param>
+    /// <param name="partitionKeyHeaderName">The header key name used to determine the partition id.</param>
+    /// <param name="partitionKey">The specific partition used for this session.</param>
+    /// <param name="tableName"></param>
+    /// <param name="options">The specific options used to open this session.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> to use.</param>
+    /// <returns></returns>
+    public static Task OpenAzureTableSession(this ITransactionalSession session, string partitionKeyHeaderName, string partitionKey, string tableName = null, OpenSessionOptions options = null,
+        CancellationToken cancellationToken = default)
+    {
+        Guard.AgainstNullAndEmpty(nameof(partitionKeyHeaderName), "Partition key header name cannot be null.");
+        Guard.AgainstNullAndEmpty(nameof(partitionKey), value: "Partition key value cannot be null.");
+
+        options ??= new OpenSessionOptions();
+
+        options.Metadata.Add(partitionKeyHeaderName, partitionKey);
+
+        var partitionKeyInstance = AzureTableSupport.CreatePartitionKeyInstance(partitionKey);
+        options.Extensions.Set(AzureTableSupport.TableEntityPartitionKeyTypeName, partitionKeyInstance);
+
+        if (tableName != null)
+        {
+            //options.Extensions.Set(AzureTableSupport.TableInformationTypeName, AzureTableSupport.CreateTableInformation(tableName));
+        }
+
+        var tableHolderResolver = session.PersisterSpecificOptions.Get<object>();
+        options.Extensions.Set(AzureTableSupport.SetAsDispatchedHolderTypeName, AzureTableSupport.CreateSetAsDispatchedInstance(tableHolderResolver, partitionKeyInstance, options.Extensions));
+
+        return session.Open(options, cancellationToken);
+    }
 }
