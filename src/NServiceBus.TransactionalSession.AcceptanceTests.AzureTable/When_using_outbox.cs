@@ -21,7 +21,7 @@
                 {
                     using var scope = ctx.ServiceProvider.CreateScope();
                     using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
-                    await transactionalSession.OpenAzureTableSession(PartitionKeyHeaderName, PartitionKeyValue);
+                    await transactionalSession.OpenAzureTableSession(PartitionKeyHeaderName, PartitionKeyValue, AzureTableFixture.TableName);
 
                     var sendOptions = new SendOptions();
                     sendOptions.SetHeader(PartitionKeyHeaderName, PartitionKeyValue);
@@ -44,7 +44,7 @@
                     using (var scope = ctx.ServiceProvider.CreateScope())
                     using (var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>())
                     {
-                        await transactionalSession.OpenAzureTableSession(PartitionKeyHeaderName, PartitionKeyValue);
+                        await transactionalSession.OpenAzureTableSession(PartitionKeyHeaderName, PartitionKeyValue, AzureTableFixture.TableName);
 
                         var sendOptions = new SendOptions();
                         sendOptions.SetHeader(PartitionKeyHeaderName, PartitionKeyValue);

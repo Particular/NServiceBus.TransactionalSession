@@ -169,7 +169,7 @@ public static class OpenSessionExtensions
 
         if (tableName != null)
         {
-            //options.Extensions.Set(AzureTableSupport.TableInformationTypeName, AzureTableSupport.CreateTableInformation(tableName));
+            options.Extensions.Set(AzureTableSupport.TableInformationTypeName, AzureTableSupport.CreateTableInformationInstance(tableName));
         }
 
         var tableHolderResolver = session.PersisterSpecificOptions.Get<object>();

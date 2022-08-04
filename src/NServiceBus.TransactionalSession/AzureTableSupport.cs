@@ -5,9 +5,20 @@ using Extensibility;
 
 static class AzureTableSupport
 {
+    public static string TableInformationTypeName = "NServiceBus.TableInformation";
     public static string TableEntityPartitionKeyTypeName = "NServiceBus.TableEntityPartitionKey";
     public static string SetAsDispatchedHolderTypeName = "NServiceBus.Persistence.AzureTable.SetAsDispatchedHolder";
+
     public static string TableHolderResolverAssemblyQualifiedTypeName = "NServiceBus.Persistence.AzureTable.TableHolderResolver, NServiceBus.Persistence.AzureTable";
+
+    public static object CreateTableInformationInstance(string tableName)
+    {
+        var tableInformationType = Type.GetType("NServiceBus.TableInformation, NServiceBus.Persistence.AzureTable, Version = 4.0.0.0, Culture = neutral, PublicKeyToken = 9fc386479f8a226c");
+
+        var tableInformationInstance = Activator.CreateInstance(tableInformationType, new object[] { tableName });
+
+        return tableInformationInstance;
+    }
 
     //TODO support other partitionkey values
     public static object CreatePartitionKeyInstance(string partitionKeyString)
