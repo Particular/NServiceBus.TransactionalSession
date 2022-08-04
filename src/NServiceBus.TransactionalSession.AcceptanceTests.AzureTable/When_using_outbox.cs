@@ -5,8 +5,11 @@
     using System.Threading.Tasks;
     using Microsoft.Extensions.DependencyInjection;
     using AcceptanceTesting;
+    using Microsoft.Azure.Cosmos.Table;
     using NUnit.Framework;
+    using Persistence.AzureTable;
     using Pipeline;
+    using System.Linq;
 
     public class When_using_outbox : NServiceBusAcceptanceTest
     {
@@ -14,8 +17,10 @@
         static string PartitionKeyValue = "SomePartition";
 
         [Test]
-        public async Task Should_send_messages_on_transactional_session_commit()
+        public async Task Should_send_messages_and_store_entity_on_transactional_session_commit()
         {
+            var entityRowId = Guid.NewGuid().ToString();
+
             await Scenario.Define<Context>()
                 .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
                 {
@@ -29,10 +34,30 @@
 
                     await transactionalSession.Send(new SampleMessage(), sendOptions, CancellationToken.None);
 
+                    var storageSession = transactionalSession.SynchronizedStorageSession.AzureTablePersistenceSession();
+
+                    var entity = new MyTableEntity
+                    {
+                        RowKey = entityRowId,
+                        PartitionKey = PartitionKeyValue,
+                        Data = "MyCustomData"
+                    };
+
+                    storageSession.Batch.Add(TableOperation.Insert(entity));
+
                     await transactionalSession.Commit(CancellationToken.None).ConfigureAwait(false);
                 }))
                 .Done(c => c.MessageReceived)
                 .Run();
+
+            var query = new TableQuery<DynamicTableEntity>()
+                .Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, PartitionKeyValue))
+                .Where(TableQuery.GenerateFilterCondition("RowKey", QueryComparisons.Equal, entityRowId));
+
+            var tableEntity = AzureTableFixture.Table.ExecuteQuery(query).FirstOrDefault();
+
+            Assert.IsNotNull(tableEntity);
+            Assert.AreEqual(tableEntity.Properties["Data"].StringValue, "MyCustomData");
         }
 
         [Test]
@@ -142,6 +167,11 @@
 
         class CompleteTestMessage : ICommand
         {
+        }
+
+        public class MyTableEntity : TableEntity
+        {
+            public string Data { get; set; }
         }
 
         class PartitionKeyProviderBehavior : Behavior<ITransportReceiveContext>
