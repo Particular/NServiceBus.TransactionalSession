@@ -5,8 +5,9 @@
     using System.Threading.Tasks;
     using AcceptanceTesting;
     using Features;
+    using NServiceBus;
 
-    class CaptureServiceProviderStartupTask : FeatureStartupTask
+    public class CaptureServiceProviderStartupTask : FeatureStartupTask
     {
         public CaptureServiceProviderStartupTask(IServiceProvider serviceProvider, ScenarioContext context)
         {
@@ -21,7 +22,7 @@
         protected override Task OnStop(IMessageSession session, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 
-    interface IInjectServiceProvider
+    public interface IInjectServiceProvider
     {
         IServiceProvider ServiceProvider { get; set; }
     }

@@ -6,8 +6,6 @@
     using System.Threading.Tasks;
     using AcceptanceTesting;
     using Microsoft.Extensions.DependencyInjection;
-    using NServiceBus.AcceptanceTests;
-    using NServiceBus.AcceptanceTests.EndpointTemplates;
     using NUnit.Framework;
     using Pipeline;
 

@@ -13,7 +13,7 @@
     using Persistence.CosmosDB;
 
     [SetUpFixture]
-    public class SetupFixture
+    public class CosmosSetup
     {
         [OneTimeSetUp]
         public async Task OneTimeSetUp()
@@ -44,6 +44,17 @@
 
             var database = CosmosDbClient.GetDatabase(DatabaseName);
             Container = database.GetContainer(ContainerName);
+
+            TransactionSessionDefaultServer.ConfigurePersistence = configuration =>
+            {
+                var persistence = configuration.UsePersistence<CosmosPersistence>();
+
+                persistence.DisableContainerCreation();
+                persistence.CosmosClient(CosmosDbClient);
+                persistence.DatabaseName(DatabaseName);
+
+                persistence.DefaultContainer(ContainerName, PartitionPathKey);
+            };
         }
 
         [OneTimeTearDown]

@@ -38,5 +38,32 @@ jobs:
           name: NuGet packages
           path: nugets/
           retention-days: 7
+# setup MongoDB
+      - name: Stop built-in MongoDB server (Windows)
+        if: matrix.name == 'Windows'
+        shell: pwsh
+        run:  |
+          # Need to stop default MongoDB server as it does not support replication
+          Stop-Service -Name "MongoDB"
+          Start-Sleep -s 5
+      - name: Setup MongoDB server (Windows)
+        if: matrix.name == 'Windows'
+        shell: pwsh
+        run: |
+          mkdir /temp/mongodb
+          # We need a MongoDB server started with a replica set configuration:
+          Start-Process mongod -ArgumentList "--dbpath /temp/mongodb --replSet tr0 --bind_ip 127.0.0.1" -WindowStyle Hidden
+          Start-Sleep -s 5
+          mongo --eval 'rs.initiate()'
+      - name: Setup MongoDB server (Linux)
+        if: matrix.name == 'Linux'
+        uses: supercharge/mongodb-github-action@1.7.0
+        with:
+          mongodb-replica-set: tr0
+# setup RavenDB
+      - name: Setup RavenDB server (Linux)          
+        if: matrix.name == 'Linux'
+        run: docker run --rm -d -p 8080:8080 -p 38888:38888 --name RavenDb -e RAVEN_Setup_Mode=None -e RAVEN_License_Eula_Accepted=true -e RAVEN_Security_UnsecuredAccessAllowed=PrivateNetwork ravendb/ravendb
+# run tests
       - name: Run tests
         uses: Particular/run-tests-action@v1.3.0

@@ -57,12 +57,17 @@
 
         protected override void Dispose(bool disposing)
         {
-            base.Dispose(disposing);
+            if (disposed)
+            {
+                return;
+            }
 
             if (disposing)
             {
                 outboxTransaction?.Dispose();
             }
+
+            base.Dispose(disposing);
         }
 
         static OutboxTransportOperation[] ConvertToOutboxOperations(TransportTransportOperation[] operations)

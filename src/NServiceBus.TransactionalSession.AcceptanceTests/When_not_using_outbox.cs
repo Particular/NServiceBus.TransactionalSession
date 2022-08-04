@@ -4,8 +4,6 @@
     using System.Threading.Tasks;
     using Microsoft.Extensions.DependencyInjection;
     using AcceptanceTesting;
-    using NServiceBus.AcceptanceTests;
-    using NServiceBus.AcceptanceTests.EndpointTemplates;
     using NUnit.Framework;
 
     public class When_not_using_outbox : NServiceBusAcceptanceTest
@@ -64,14 +62,7 @@
 
         class AnEndpoint : EndpointConfigurationBuilder
         {
-            public AnEndpoint()
-            {
-                EndpointSetup<DefaultServer>((c, r) =>
-                {
-                    c.EnableTransactionalSession();
-                    c.RegisterStartupTask(sp => new CaptureServiceProviderStartupTask(sp, r.ScenarioContext as Context));
-                });
-            }
+            public AnEndpoint() => EndpointSetup<TransactionSessionDefaultServer>();
 
             class SampleHandler : IHandleMessages<SampleMessage>
             {
