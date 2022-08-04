@@ -5,7 +5,6 @@
     using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
-    using Installation;
     using Logging;
     using Microsoft.Azure.Cosmos;
     using Microsoft.Azure.Cosmos.Fluent;
@@ -40,7 +39,7 @@
                 PartitionKeyPath = PartitionPathKey
             });
 
-            await installer.Install("");
+            await installer.Install();
 
             var database = CosmosDbClient.GetDatabase(DatabaseName);
             Container = database.GetContainer(ContainerName);
@@ -73,7 +72,8 @@
         }
 
         public const string DatabaseName = "CosmosDBPersistence";
-        public const string PartitionPathKey = "/somekey";
+        public const string PartitionPathKey = $"/{PartitionPropertyName}";
+        public const string PartitionPropertyName = "somekey";
         public static string ContainerName;
         public static CosmosClient CosmosDbClient;
         public static Container Container;
@@ -101,7 +101,7 @@
         }
     }
 
-    class Installer : INeedToInstallSomething
+    class Installer
     {
         public Installer(IProvideCosmosClient clientProvider, InstallerSettings settings)
         {
@@ -109,7 +109,7 @@
             this.clientProvider = clientProvider;
         }
 
-        public async Task Install(string identity, CancellationToken cancellationToken = default)
+        public async Task Install(CancellationToken cancellationToken = default)
         {
             if (installerSettings == null || installerSettings.Disabled)
             {

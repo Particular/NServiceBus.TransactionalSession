@@ -5,6 +5,8 @@
     using System.Threading.Tasks;
     using Microsoft.Extensions.DependencyInjection;
     using AcceptanceTesting;
+    using Microsoft.Azure.Cosmos;
+    using Newtonsoft.Json;
     using NUnit.Framework;
 
     public class When_using_outbox : NServiceBusAcceptanceTest
@@ -13,8 +15,10 @@
         static string PartitionKeyValue = "SomePartition";
 
         [Test]
-        public async Task Should_send_messages_on_transactional_session_commit()
+        public async Task Should_send_messages_and_store_document_on_transactional_session_commit()
         {
+            var documentId = Guid.NewGuid().ToString();
+
             await Scenario.Define<Context>()
                 .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
                 {
@@ -28,10 +32,24 @@
 
                     await transactionalSession.Send(new SampleMessage(), sendOptions, CancellationToken.None);
 
+                    var storageSession = transactionalSession.SynchronizedStorageSession.CosmosPersistenceSession();
+
+                    storageSession.Batch.CreateItem(new MyDocument
+                    {
+                        Id = documentId,
+                        Data = "SomeData",
+                        PartitionKey = PartitionKeyValue
+                    });
+
                     await transactionalSession.Commit(CancellationToken.None).ConfigureAwait(false);
                 }))
                 .Done(c => c.MessageReceived)
                 .Run();
+
+            var response = await CosmosSetup.Container.ReadItemAsync<MyDocument>(documentId, new PartitionKey(PartitionKeyValue));
+
+            Assert.IsNotNull(response);
+            Assert.AreEqual("SomeData", response.Resource.Data);
         }
 
         [Test]
@@ -138,6 +156,16 @@
 
         class CompleteTestMessage : ICommand
         {
+        }
+
+        class MyDocument
+        {
+            [JsonProperty("id")]
+            public string Id { get; set; }
+            public string Data { get; set; }
+
+            [JsonProperty(CosmosSetup.PartitionPropertyName)]
+            public string PartitionKey { get; set; }
         }
     }
 }
