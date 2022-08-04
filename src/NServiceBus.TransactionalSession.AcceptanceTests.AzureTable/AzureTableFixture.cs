@@ -7,7 +7,7 @@ using Microsoft.Azure.Cosmos.Table;
 using NUnit.Framework;
 
 [SetUpFixture]
-public class SetupFixture
+public class AzureTableFixture
 {
     [OneTimeSetUp]
     public async Task OneTimeSetUp()
@@ -21,13 +21,18 @@ public class SetupFixture
         TableClient = account.CreateCloudTableClient();
         Table = TableClient.GetTableReference(TableName);
         await Table.CreateIfNotExistsAsync();
+
+        TransactionSessionDefaultServer.ConfigurePersistence = configuration =>
+        {
+            var persistence = configuration.UsePersistence<AzureTablePersistence>();
+
+            persistence.ConnectionString(GetConnectionString());
+            persistence.DefaultTable(TableName);
+        };
     }
 
     [OneTimeTearDown]
-    public Task OneTimeTearDown()
-    {
-        return Table.DeleteIfExistsAsync();
-    }
+    public Task OneTimeTearDown() => Table.DeleteIfExistsAsync();
 
     public static string GetConnectionString() =>
         Environment.GetEnvironmentVariable("AzureTableServerConnectionString") ?? "UseDevelopmentStorage=true";
