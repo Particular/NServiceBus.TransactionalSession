@@ -1,4 +1,4 @@
-﻿namespace NServiceBus.TransactionalSession.AcceptanceTests.NHibernate;
+﻿namespace NServiceBus.TransactionalSession.AcceptanceTests;
 
 using System;
 using NUnit.Framework;
@@ -14,15 +14,22 @@ public class NHibernateSetup
         {
             var persistence = configuration.UsePersistence<NHibernatePersistence>();
 
-            var environmentVariableName = "SQLServerConnectionString";
-            var connectionString = Environment.GetEnvironmentVariable(environmentVariableName);
-
-            if (connectionString == null)
-            {
-                throw new Exception($"No connection string found in environment variable {environmentVariableName}");
-            }
+            string connectionString = GetConnectionString();
 
             persistence.ConnectionString(connectionString);
         };
+    }
+
+    public static string GetConnectionString()
+    {
+        var environmentVariableName = "SQLServerConnectionString";
+        var connectionString = Environment.GetEnvironmentVariable(environmentVariableName);
+
+        if (connectionString == null)
+        {
+            throw new Exception($"No connection string found in environment variable {environmentVariableName}");
+        }
+
+        return connectionString;
     }
 }

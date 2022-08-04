@@ -1,17 +1,22 @@
 ﻿namespace NServiceBus.TransactionalSession.AcceptanceTests
 {
     using System;
+    using System.Data.SqlClient;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Extensions.DependencyInjection;
     using AcceptanceTesting;
+    using global::NHibernate;
+    using NHibernate;
     using NUnit.Framework;
 
     public class When_using_outbox : NServiceBusAcceptanceTest
     {
         [Test]
-        public async Task Should_send_messages_on_transactional_session_commit()
+        public async Task Should_send_messages_and_insert_row_on_transactional_session_commit()
         {
+            var rowId = Guid.NewGuid().ToString();
+
             await Scenario.Define<Context>()
                 .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
                 {
@@ -21,10 +26,28 @@
 
                     await transactionalSession.SendLocal(new SampleMessage(), CancellationToken.None);
 
+                    var storageSession = transactionalSession.SynchronizedStorageSession.Session();
+
+                    var insertText = $@"IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='SomeTable' and xtype='U')
+                                        BEGIN
+	                                        CREATE TABLE [dbo].[SomeTable]([Id] [nvarchar](50) NOT NULL)
+                                        END;
+                                        INSERT INTO [dbo].[SomeTable] VALUES ('{rowId}')";
+
+                    await storageSession.CreateSQLQuery(insertText).ListAsync();
+
                     await transactionalSession.Commit(CancellationToken.None).ConfigureAwait(false);
                 }))
                 .Done(c => c.MessageReceived)
                 .Run();
+
+            using var connection = new SqlConnection(NHibernateSetup.GetConnectionString());
+            await connection.OpenAsync();
+
+            using var queryCommand = new SqlCommand($"SELECT TOP 1 [Id] FROM [dbo].[SomeTable] WHERE [Id]='{rowId}'", connection);
+            var result = await queryCommand.ExecuteScalarAsync();
+
+            Assert.AreEqual(rowId, result);
         }
 
         [Test]
