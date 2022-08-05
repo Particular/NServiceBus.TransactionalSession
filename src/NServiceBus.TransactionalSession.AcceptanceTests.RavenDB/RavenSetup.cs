@@ -1,4 +1,6 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
+using System.Runtime.InteropServices;
 using NServiceBus;
 using NServiceBus.TransactionalSession.AcceptanceTests;
 using NUnit.Framework;
@@ -15,6 +17,11 @@ public class RavenSetup
     [OneTimeSetUp]
     public void Setup()
     {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            Assert.Ignore("Skip RavenDB tests on Windows");
+        }
+
         TransactionSessionDefaultServer.ConfigurePersistence = configuration =>
         {
             var persistence = configuration.UsePersistence<RavenDBPersistence>();
