@@ -30,6 +30,9 @@ public class SqlSetup
             throw new Exception($"No connection string found in environment variable {environmentVariableName}");
         }
 
+        //HINT: this disables server certificate validation
+        connectionString += ";Encrypt=False";
+
         return new SqlConnection(connectionString);
     }
 }
