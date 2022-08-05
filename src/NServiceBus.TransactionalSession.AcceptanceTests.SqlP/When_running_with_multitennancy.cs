@@ -16,7 +16,19 @@ public class When_running_with_multitennancy : NServiceBusAcceptanceTest
     static string tenantIdHeaderName = "TenantName";
 
     [SetUp]
-    public Task Setup() => MultiTenant.Setup(tenantId);
+    public async Task Setup()
+    {
+        await MultiTenant.Setup(tenantId);
+        TransactionSessionDefaultServer.ConfigurePersistence = configuration =>
+        {
+            configuration.EnableOutbox().DisableCleanup();
+
+            var persistence = configuration.UsePersistence<SqlPersistence>();
+            persistence.SqlDialect<SqlDialect.MsSqlServer>();
+
+            persistence.MultiTenantConnectionBuilder(tenantIdHeaderName, tenantId => MultiTenant.Build(tenantId));
+        };
+    }
 
     [TearDown]
     public Task Teardown() => MultiTenant.TearDown(tenantId);
@@ -58,14 +70,7 @@ public class When_running_with_multitennancy : NServiceBusAcceptanceTest
         public AnEndpoint() =>
             EndpointSetup<TransactionSessionWithOutboxEndpoint>(c =>
             {
-                c.EnableOutbox().DisableCleanup();
 
-                var persistence = c.UsePersistence<SqlPersistence>();
-                persistence.SqlDialect<SqlDialect.MsSqlServer>();
-
-                persistence.MultiTenantConnectionBuilder(tenantIdHeaderName, tenantId => MultiTenant.Build(tenantId));
-
-                c.EnableInstallers();
             });
 
         class SampleHandler : IHandleMessages<SampleMessage>
