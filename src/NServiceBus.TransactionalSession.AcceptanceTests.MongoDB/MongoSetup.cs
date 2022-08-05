@@ -1,43 +1,45 @@
-﻿using System;
-using System.Threading.Tasks;
-using MongoDB.Driver;
-using NServiceBus;
-using NServiceBus.TransactionalSession.AcceptanceTests;
-using NUnit.Framework;
-
-[SetUpFixture]
-public class MongoSetup
+﻿namespace NServiceBus.TransactionalSession.AcceptanceTests
 {
-    const string DatabaseName = "TransactionalSessionAcceptanceTests";
+    using System;
+    using System.Threading.Tasks;
+    using MongoDB.Driver;
+    using NServiceBus;
+    using NUnit.Framework;
 
-    MongoClient client;
-
-    [OneTimeSetUp]
-    public void Setup()
+    [SetUpFixture]
+    public class MongoSetup
     {
-        TransactionSessionDefaultServer.ConfigurePersistence = configuration =>
+        const string DatabaseName = "TransactionalSessionAcceptanceTests";
+
+        MongoClient client;
+
+        [OneTimeSetUp]
+        public void Setup()
         {
-            var containerConnectionString = Environment.GetEnvironmentVariable("NServiceBusStorageMongoDB_ConnectionString");
+            TransactionSessionDefaultServer.ConfigurePersistence = configuration =>
+            {
+                var containerConnectionString = Environment.GetEnvironmentVariable("NServiceBusStorageMongoDB_ConnectionString");
 
-            client = string.IsNullOrWhiteSpace(containerConnectionString) ? new MongoClient() : new MongoClient(containerConnectionString);
+                client = string.IsNullOrWhiteSpace(containerConnectionString) ? new MongoClient() : new MongoClient(containerConnectionString);
 
-            var persistence = configuration.UsePersistence<MongoPersistence>();
-            persistence.MongoClient(client);
-            persistence.DatabaseName(DatabaseName);
-            persistence.UseTransactions(true);
-        };
-    }
-
-    [OneTimeTearDown]
-    public async Task Cleanup()
-    {
-        try
-        {
-            await client.DropDatabaseAsync(DatabaseName);
+                var persistence = configuration.UsePersistence<MongoPersistence>();
+                persistence.MongoClient(client);
+                persistence.DatabaseName(DatabaseName);
+                persistence.UseTransactions(true);
+            };
         }
-        catch (Exception e)
+
+        [OneTimeTearDown]
+        public async Task Cleanup()
         {
-            TestContext.WriteLine($"Error during MongoDB test cleanup: {e}");
+            try
+            {
+                await client.DropDatabaseAsync(DatabaseName);
+            }
+            catch (Exception e)
+            {
+                TestContext.WriteLine($"Error during MongoDB test cleanup: {e}");
+            }
         }
     }
 }

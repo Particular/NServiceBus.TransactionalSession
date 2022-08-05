@@ -26,7 +26,7 @@
                 {
                     using var scope = ctx.ServiceProvider.CreateScope();
                     using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
-                    await transactionalSession.OpenAzureTableSession(PartitionKeyHeaderName, PartitionKeyValue, AzureTableFixture.TableName);
+                    await transactionalSession.OpenAzureTableSession(PartitionKeyHeaderName, PartitionKeyValue, AzureTableSetup.TableName);
 
                     var sendOptions = new SendOptions();
                     sendOptions.SetHeader(PartitionKeyHeaderName, PartitionKeyValue);
@@ -54,7 +54,7 @@
                 .Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, PartitionKeyValue))
                 .Where(TableQuery.GenerateFilterCondition("RowKey", QueryComparisons.Equal, entityRowId));
 
-            var tableEntity = AzureTableFixture.Table.ExecuteQuery(query).FirstOrDefault();
+            var tableEntity = AzureTableSetup.Table.ExecuteQuery(query).FirstOrDefault();
 
             Assert.IsNotNull(tableEntity);
             Assert.AreEqual(tableEntity.Properties["Data"].StringValue, "MyCustomData");
@@ -69,7 +69,7 @@
                     using (var scope = ctx.ServiceProvider.CreateScope())
                     using (var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>())
                     {
-                        await transactionalSession.OpenAzureTableSession(PartitionKeyHeaderName, PartitionKeyValue, AzureTableFixture.TableName);
+                        await transactionalSession.OpenAzureTableSession(PartitionKeyHeaderName, PartitionKeyValue, AzureTableSetup.TableName);
 
                         var sendOptions = new SendOptions();
                         sendOptions.SetHeader(PartitionKeyHeaderName, PartitionKeyValue);

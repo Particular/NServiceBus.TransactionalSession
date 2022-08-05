@@ -1,34 +1,37 @@
-﻿using System;
-using Microsoft.Data.SqlClient;
-using NServiceBus;
-using NServiceBus.TransactionalSession.AcceptanceTests;
-
-public class SqlSetup
+﻿namespace NServiceBus.TransactionalSession.AcceptanceTests
 {
-    public static void Setup()
+
+    using System;
+    using Microsoft.Data.SqlClient;
+    using NServiceBus;
+
+    public class SqlSetup
     {
-        TransactionSessionDefaultServer.ConfigurePersistence = configuration =>
+        public static void Setup()
         {
-            var persistence = configuration.UsePersistence<SqlPersistence>();
-            persistence.ConnectionBuilder(CreateSqlConnection);
+            TransactionSessionDefaultServer.ConfigurePersistence = configuration =>
+            {
+                var persistence = configuration.UsePersistence<SqlPersistence>();
+                persistence.ConnectionBuilder(CreateSqlConnection);
 
-            persistence.SqlDialect<SqlDialect.MsSqlServer>();
-        };
-    }
-
-    public static SqlConnection CreateSqlConnection()
-    {
-        var environmentVariableName = "SQLServerConnectionString";
-        var connectionString = Environment.GetEnvironmentVariable(environmentVariableName);
-
-        if (connectionString == null)
-        {
-            throw new Exception($"No connection string found in environment variable {environmentVariableName}");
+                persistence.SqlDialect<SqlDialect.MsSqlServer>();
+            };
         }
 
-        //HINT: this disables server certificate validation
-        connectionString += ";Encrypt=False";
+        public static SqlConnection CreateSqlConnection()
+        {
+            var environmentVariableName = "SQLServerConnectionString";
+            var connectionString = Environment.GetEnvironmentVariable(environmentVariableName);
 
-        return new SqlConnection(connectionString);
+            if (connectionString == null)
+            {
+                throw new Exception($"No connection string found in environment variable {environmentVariableName}");
+            }
+
+            //HINT: this disables server certificate validation
+            connectionString += ";Encrypt=False";
+
+            return new SqlConnection(connectionString);
+        }
     }
 }

@@ -7,7 +7,7 @@ using Microsoft.Azure.Cosmos.Table;
 using NUnit.Framework;
 
 [SetUpFixture]
-public class AzureTableFixture
+public class AzureTableSetup
 {
     [OneTimeSetUp]
     public async Task OneTimeSetUp()

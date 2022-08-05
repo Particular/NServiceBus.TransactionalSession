@@ -79,7 +79,6 @@
 
             class CompleteTestMessageHandler : IHandleMessages<CompleteTestMessage>
             {
-
                 public CompleteTestMessageHandler(Context testContext) => this.testContext = testContext;
 
                 public Task Handle(CompleteTestMessage message, IMessageHandlerContext context)

@@ -6,8 +6,6 @@
     using System.Threading.Tasks;
     using Microsoft.Extensions.DependencyInjection;
     using AcceptanceTesting;
-    using global::NHibernate;
-    using NHibernate;
     using NUnit.Framework;
 
     public class When_using_outbox : NServiceBusAcceptanceTest

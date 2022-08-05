@@ -1,10 +1,11 @@
-﻿namespace NServiceBus.TransactionalSession.AcceptanceTests.SqlP;
+﻿namespace NServiceBus.TransactionalSession.AcceptanceTests;
 
 using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using AcceptanceTesting;
+using AcceptanceTesting.Customization;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -12,8 +13,8 @@ using Persistence.Sql;
 
 public class When_running_with_multitennancy : NServiceBusAcceptanceTest
 {
-    static string tenantId = "aTenant";
-    static string tenantIdHeaderName = "TenantName";
+    static readonly string tenantId = "aTenant";
+    static readonly string tenantIdHeaderName = "TenantName";
 
     [OneTimeSetUp]
     public async Task Setup()
@@ -23,7 +24,7 @@ public class When_running_with_multitennancy : NServiceBusAcceptanceTest
         {
             configuration.EnableOutbox().DisableCleanup();
 
-            var persistence = configuration.UsePersistence<SqlPersistence>();
+            PersistenceExtensions<SqlPersistence> persistence = configuration.UsePersistence<SqlPersistence>();
             persistence.SqlDialect<SqlDialect.MsSqlServer>();
 
             persistence.MultiTenantConnectionBuilder(tenantIdHeaderName, tenantId => MultiTenant.Build(tenantId));
@@ -36,13 +37,14 @@ public class When_running_with_multitennancy : NServiceBusAcceptanceTest
     [Test]
     public async Task Should_send_messages_on_transactional_session_commit()
     {
-        await MultiTenant.CreateOutboxTable(tenantId, AcceptanceTesting.Customization.Conventions.EndpointNamingConvention(typeof(AnEndpoint)));
+        await MultiTenant.CreateOutboxTable(tenantId, Conventions.EndpointNamingConvention(typeof(AnEndpoint)));
 
         await Scenario.Define<Context>()
             .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
             {
-                using var scope = ctx.ServiceProvider.CreateScope();
-                using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+                using IServiceScope scope = ctx.ServiceProvider.CreateScope();
+                using ITransactionalSession transactionalSession =
+                    scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
                 await transactionalSession.OpenSqlSession(tenantIdHeaderName, tenantId);
 
@@ -68,13 +70,12 @@ public class When_running_with_multitennancy : NServiceBusAcceptanceTest
     class AnEndpoint : EndpointConfigurationBuilder
     {
         public AnEndpoint() =>
-            EndpointSetup<TransactionSessionWithOutboxEndpoint>(c =>
-            {
-
-            });
+            EndpointSetup<TransactionSessionWithOutboxEndpoint>();
 
         class SampleHandler : IHandleMessages<SampleMessage>
         {
+            readonly Context testContext;
+
             public SampleHandler(Context testContext) => this.testContext = testContext;
 
             public Task Handle(SampleMessage message, IMessageHandlerContext context)
@@ -83,12 +84,12 @@ public class When_running_with_multitennancy : NServiceBusAcceptanceTest
 
                 return Task.CompletedTask;
             }
-
-            readonly Context testContext;
         }
 
         class CompleteTestMessageHandler : IHandleMessages<CompleteTestMessage>
         {
+            readonly Context testContext;
+
             public CompleteTestMessageHandler(Context context) => testContext = context;
 
             public Task Handle(CompleteTestMessage message, IMessageHandlerContext context)
@@ -97,8 +98,6 @@ public class When_running_with_multitennancy : NServiceBusAcceptanceTest
 
                 return Task.CompletedTask;
             }
-
-            readonly Context testContext;
         }
     }
 
@@ -114,15 +113,16 @@ public class When_running_with_multitennancy : NServiceBusAcceptanceTest
     {
         public static async Task Setup(string tenantId)
         {
-            var dbName = "nservicebus_" + tenantId.ToLower();
+            string dbName = "nservicebus_" + tenantId.ToLower();
 
             using (var connection = new SqlConnection(GetBaseConnectionString()))
             {
                 await connection.OpenAsync().ConfigureAwait(false);
 
-                using (var dropCommand = connection.CreateCommand())
+                using (SqlCommand dropCommand = connection.CreateCommand())
                 {
-                    dropCommand.CommandText = $"if not exists (select * from sysdatabases where name = '{dbName}') create database {dbName};";
+                    dropCommand.CommandText =
+                        $"if not exists (select * from sysdatabases where name = '{dbName}') create database {dbName};";
                     await dropCommand.ExecuteNonQueryAsync().ConfigureAwait(false);
                 }
             }
@@ -130,10 +130,10 @@ public class When_running_with_multitennancy : NServiceBusAcceptanceTest
 
         public static async Task CreateOutboxTable(string tenantId, string endpointName)
         {
-            var tablePrefix = $"{endpointName.Replace('.', '_')}_";
+            string tablePrefix = $"{endpointName.Replace('.', '_')}_";
             var dialect = new SqlDialect.MsSqlServer();
 
-            var scriptDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "NServiceBus.Persistence.Sql",
+            string scriptDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "NServiceBus.Persistence.Sql",
                 dialect.GetType().Name);
 
             await ScriptRunner.Install(dialect, tablePrefix, () => Build(tenantId), scriptDirectory, true, false, false,
@@ -142,13 +142,13 @@ public class When_running_with_multitennancy : NServiceBusAcceptanceTest
 
         public static Task TearDown(string tenantId)
         {
-            var dbName = "nservicebus_" + tenantId.ToLower();
+            string dbName = "nservicebus_" + tenantId.ToLower();
             return DropDatabase(dbName);
         }
 
         public static SqlConnection Build(string tenantId)
         {
-            var connection = GetBaseConnectionString()
+            string connection = GetBaseConnectionString()
                 .Replace(";Database=nservicebus;", $";Database=nservicebus_{tenantId.ToLower()};")
                 .Replace(";Initial Catalog=nservicebus;", $";Initial Catalog=nservicebus_{tenantId.ToLower()};");
             return new SqlConnection(connection);
@@ -156,7 +156,7 @@ public class When_running_with_multitennancy : NServiceBusAcceptanceTest
 
         static string GetBaseConnectionString()
         {
-            var connection = Environment.GetEnvironmentVariable("SQLServerConnectionString");
+            string connection = Environment.GetEnvironmentVariable("SQLServerConnectionString");
             if (string.IsNullOrWhiteSpace(connection))
             {
                 throw new Exception("SQLServerConnectionString environment variable is empty");
@@ -164,7 +164,8 @@ public class When_running_with_multitennancy : NServiceBusAcceptanceTest
 
             if (!connection.Contains(";Database=nservicebus;") && !connection.Contains(";Initial Catalog=nservicebus"))
             {
-                throw new Exception("Environment variable `SQLServerConnectionString` must include a connection string that specifies a database name of `nservicebus` to test multi-tenant operations.");
+                throw new Exception(
+                    "Environment variable `SQLServerConnectionString` must include a connection string that specifies a database name of `nservicebus` to test multi-tenant operations.");
             }
 
             //HINT: this disables server certificate validation
@@ -183,9 +184,10 @@ public class When_running_with_multitennancy : NServiceBusAcceptanceTest
             {
                 await connection.OpenAsync().ConfigureAwait(false);
 
-                using (var dropCommand = connection.CreateCommand())
+                using (SqlCommand dropCommand = connection.CreateCommand())
                 {
-                    dropCommand.CommandText = $"use master; if exists(select * from sysdatabases where name = '{databaseName}') begin alter database {databaseName} set SINGLE_USER with rollback immediate; drop database {databaseName}; end; ";
+                    dropCommand.CommandText =
+                        $"use master; if exists(select * from sysdatabases where name = '{databaseName}') begin alter database {databaseName} set SINGLE_USER with rollback immediate; drop database {databaseName}; end; ";
                     await dropCommand.ExecuteNonQueryAsync().ConfigureAwait(false);
                 }
             }
