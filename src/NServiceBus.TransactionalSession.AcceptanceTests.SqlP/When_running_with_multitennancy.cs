@@ -167,6 +167,8 @@ public class When_running_with_multitennancy : NServiceBusAcceptanceTest
                 throw new Exception("Environment variable `SQLServerConnectionString` must include a connection string that specifies a database name of `nservicebus` to test multi-tenant operations.");
             }
 
+            //HINT: this disables server certificate validation
+            connection += ";Encrypt=False";
             return connection;
         }
 
