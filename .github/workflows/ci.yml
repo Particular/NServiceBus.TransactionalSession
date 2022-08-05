@@ -70,6 +70,19 @@ jobs:
         with:
           connection-string-env-var: SQLServerConnectionString
           catalog: servicecontrol
+# setup CosmosDB
+      - name: Setup Cosmos DB
+        uses: Particular/setup-cosmosdb-action@v1.0.0
+        with:
+          connection-string-name: CosmosDBPersistence_ConnectionString
+          azure-credentials: ${{ secrets.AZURE_ACI_CREDENTIALS }}
+          tag: TransactionalSession
+# setup CosmosDB
+      - name: Setup Azure Storage
+        uses: Particular/setup-cosmosdb-action@v1.0.0
+        with:
+          connection-string-name: AzureTableServerConnectionString
+          tag: TransactionalSession
 # run tests
       - name: Run tests
         uses: Particular/run-tests-action@v1.3.0
