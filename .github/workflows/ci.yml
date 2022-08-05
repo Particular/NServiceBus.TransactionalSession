@@ -87,7 +87,7 @@ jobs:
       - name: Setup Azure Storage Cosmos API
         uses: Particular/setup-cosmosdb-action@v1.0.0
         with:
-          connection-string-name: AzureTable_CosmosDB_ConnectionString
+          connection-string-name: AzureTableServerConnectionString
           azure-credentials: ${{ secrets.AZURE_ACI_CREDENTIALS }}
           tag: AzureStoragePersistence
           api: Table
