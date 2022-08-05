@@ -40,9 +40,9 @@ jobs:
           retention-days: 7
 # azure login
       - name: Azure login
-            uses: azure/login@v1.4.5
-            with:
-                creds: ${{ secrets.AZURE_ACI_CREDENTIALS }}
+        uses: azure/login@v1.4.5
+        with:
+          creds: ${{ secrets.AZURE_ACI_CREDENTIALS }}
 # setup MongoDB
       - name: Stop built-in MongoDB server (Windows)
         if: matrix.name == 'Windows'
