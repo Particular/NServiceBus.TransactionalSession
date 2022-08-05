@@ -77,7 +77,6 @@ jobs:
           catalog: servicecontrol
 # setup CosmosDB
       - name: Setup Cosmos DB
-        if: ${{ false }}
         uses: Particular/setup-cosmosdb-action@v1.0.0
         with:
           connection-string-name: CosmosDBPersistence_ConnectionString
