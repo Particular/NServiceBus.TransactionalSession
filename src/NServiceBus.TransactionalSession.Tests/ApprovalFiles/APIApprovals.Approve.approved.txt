@@ -14,6 +14,7 @@ namespace NServiceBus.TransactionalSession
     }
     public static class OpenSessionExtensions
     {
+        public static System.Threading.Tasks.Task OpenAzureTableSession(this NServiceBus.TransactionalSession.ITransactionalSession session, string partitionKeyHeaderName, string partitionKey, string tableName = null, NServiceBus.TransactionalSession.OpenSessionOptions options = null, System.Threading.CancellationToken cancellationToken = default) { }
         public static System.Threading.Tasks.Task OpenCosmosDBSession(this NServiceBus.TransactionalSession.ITransactionalSession session, string partitionKey, [System.Runtime.CompilerServices.TupleElementNames(new string[] {
                 "containerName",
                 "partitionKeyPath"})] System.ValueTuple<string, string> container = default, NServiceBus.TransactionalSession.OpenSessionOptions options = null, System.Threading.CancellationToken cancellationToken = default) { }
