@@ -38,6 +38,11 @@ jobs:
           name: NuGet packages
           path: nugets/
           retention-days: 7
+# azure login
+      - name: Azure login
+            uses: azure/login@v1.4.5
+            with:
+                creds: ${{ secrets.AZURE_ACI_CREDENTIALS }}
 # setup MongoDB
       - name: Stop built-in MongoDB server (Windows)
         if: matrix.name == 'Windows'
@@ -61,11 +66,11 @@ jobs:
         with:
           mongodb-replica-set: tr0
 # setup RavenDB
-      - name: Setup RavenDB server (Linux)          
+      - name: Setup RavenDB server (Linux)
         if: matrix.name == 'Linux'
         run: docker run --rm -d -p 8080:8080 -p 38888:38888 --name RavenDb -e RAVEN_Setup_Mode=None -e RAVEN_License_Eula_Accepted=true -e RAVEN_Security_UnsecuredAccessAllowed=PrivateNetwork ravendb/ravendb
 # setup SQL Server
-      - name: Setup SQL Server          
+      - name: Setup SQL Server
         uses: Particular/install-sql-server-action@v1.0.0
         with:
           connection-string-env-var: SQLServerConnectionString
@@ -78,7 +83,7 @@ jobs:
           connection-string-name: CosmosDBPersistence_ConnectionString
           azure-credentials: ${{ secrets.AZURE_ACI_CREDENTIALS }}
           tag: TransactionalSession
-# setup CosmosDB
+# setup Azure Storage
       - name: Setup Azure Storage
         uses: Particular/setup-cosmosdb-action@v1.0.0
         with:
