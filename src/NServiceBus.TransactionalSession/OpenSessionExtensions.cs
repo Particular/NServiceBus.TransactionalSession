@@ -91,7 +91,6 @@ public static class OpenSessionExtensions
         Guard.AgainstNull(nameof(session), session);
 
         options ??= new OpenSessionOptions();
-        options.CustomSessionId = Guid.NewGuid().ToString();
 
         var headers = new Dictionary<string, string>();
 
@@ -101,7 +100,7 @@ public static class OpenSessionExtensions
             options.Metadata.Add(tenantIdHeaderName, tenantId);
         }
 
-        options.Extensions.Set(new IncomingMessage(options.CustomSessionId, headers, Array.Empty<byte>()));
+        options.Extensions.Set(new IncomingMessage(options.SessionId, headers, Array.Empty<byte>()));
 
         return session.Open(options, cancellationToken);
     }

@@ -50,7 +50,7 @@ namespace NServiceBus.TransactionalSession
             }
 
             this.options = options ??= new OpenSessionOptions();
-            SessionId = options.CustomSessionId ?? Guid.NewGuid().ToString();
+            SessionId = options.SessionId ?? Guid.NewGuid().ToString();
             return Task.CompletedTask;
         }
 

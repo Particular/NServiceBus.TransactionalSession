@@ -25,13 +25,12 @@ public class TransactionalSessionTests
     [Test]
     public async Task Open_should_use_custom_session_id_from_options()
     {
-        string customId = Guid.NewGuid().ToString();
         using var session = new TransactionalSession(new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher());
 
-        var openOptions = new OpenSessionOptions { CustomSessionId = customId };
+        var openOptions = new OpenSessionOptions();
         await session.Open(openOptions);
 
-        Assert.AreEqual(customId, session.SessionId);
+        Assert.AreEqual(openOptions.SessionId, session.SessionId);
     }
 
     [Test]
