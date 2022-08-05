@@ -17,8 +17,8 @@ jobs:
         include:
           - os: windows-2019
             name: Windows
-          - os: ubuntu-20.04
-            name: Linux
+#          - os: ubuntu-20.04
+#            name: Linux
       fail-fast: false
     steps:
       - name: Checkout
@@ -71,7 +71,8 @@ jobs:
         run: docker run --rm -d -p 8080:8080 -p 38888:38888 --name RavenDb -e RAVEN_Setup_Mode=None -e RAVEN_License_Eula_Accepted=true -e RAVEN_Security_UnsecuredAccessAllowed=PrivateNetwork ravendb/ravendb
       - name: Setup RavenDB server (Windows)
         if: matrix.name == 'Windows'
-        run: docker run -d -p 8080:8080 -p 38888:38888 --name RavenDb -e RAVEN_Setup_Mode=None -e RAVEN_License_Eula_Accepted=true -e RAVEN_Security_UnsecuredAccessAllowed=PrivateNetwork ravendb/ravendb:windows-latest
+        #run: docker run -d -p 8080:8080 -p 38888:38888 --name RavenDb -e RAVEN_Setup_Mode=None -e RAVEN_License_Eula_Accepted=true -e RAVEN_Security_UnsecuredAccessAllowed=PrivateNetwork ravendb/ravendb:windows-latest
+        run: docker run --rm -d -p 8080:8080 -p 38888:38888 --name RavenDb -e RAVEN_Setup_Mode=None -e RAVEN_License_Eula_Accepted=true -e RAVEN_Security_UnsecuredAccessAllowed=PrivateNetwork ravendb/ravendb          
 # setup SQL Server
       - name: Setup SQL Server
         uses: Particular/install-sql-server-action@v1.0.0
