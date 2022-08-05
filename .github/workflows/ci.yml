@@ -43,6 +43,13 @@ jobs:
         uses: azure/login@v1.4.5
         with:
           creds: ${{ secrets.AZURE_ACI_CREDENTIALS }}
+# setup RavenDB
+      - name: Setup RavenDB server (Linux)
+        if: matrix.name == 'Linux'
+        run: docker run --rm -d -p 8080:8080 -p 38888:38888 --name RavenDb -e RAVEN_Setup_Mode=None -e RAVEN_License_Eula_Accepted=true -e RAVEN_Security_UnsecuredAccessAllowed=PrivateNetwork ravendb/ravendb
+      - name: Setup RavenDB server (Windows)
+        if: matrix.name == 'Windows'
+        run: docker run -d -p 8080:8080 -p 38888:38888 --name RavenDb -e RAVEN_Setup_Mode=None -e RAVEN_License_Eula_Accepted=true -e RAVEN_Security_UnsecuredAccessAllowed=PrivateNetwork ravendb/ravendb:windows-latest
 # setup MongoDB
       - name: Stop built-in MongoDB server (Windows)
         if: matrix.name == 'Windows'
@@ -65,14 +72,6 @@ jobs:
         uses: supercharge/mongodb-github-action@1.7.0
         with:
           mongodb-replica-set: tr0
-# setup RavenDB
-      - name: Setup RavenDB server (Linux)
-        if: matrix.name == 'Linux'
-        run: docker run --rm -d -p 8080:8080 -p 38888:38888 --name RavenDb -e RAVEN_Setup_Mode=None -e RAVEN_License_Eula_Accepted=true -e RAVEN_Security_UnsecuredAccessAllowed=PrivateNetwork ravendb/ravendb
-      - name: Setup RavenDB server (Windows)
-        if: matrix.name == 'Windows'
-        #run: docker run -d -p 8080:8080 -p 38888:38888 --name RavenDb -e RAVEN_Setup_Mode=None -e RAVEN_License_Eula_Accepted=true -e RAVEN_Security_UnsecuredAccessAllowed=PrivateNetwork ravendb/ravendb:windows-latest
-        run: docker run --rm -d -p 8080:8080 -p 38888:38888 --name RavenDb -e RAVEN_Setup_Mode=None -e RAVEN_License_Eula_Accepted=true -e RAVEN_Security_UnsecuredAccessAllowed=PrivateNetwork ravendb/ravendb          
 # setup SQL Server
       - name: Setup SQL Server
         uses: Particular/install-sql-server-action@v1.0.0
