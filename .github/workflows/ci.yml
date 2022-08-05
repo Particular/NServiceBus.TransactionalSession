@@ -64,6 +64,12 @@ jobs:
       - name: Setup RavenDB server (Linux)          
         if: matrix.name == 'Linux'
         run: docker run --rm -d -p 8080:8080 -p 38888:38888 --name RavenDb -e RAVEN_Setup_Mode=None -e RAVEN_License_Eula_Accepted=true -e RAVEN_Security_UnsecuredAccessAllowed=PrivateNetwork ravendb/ravendb
+# setup SQL Server
+      - name: Setup SQL Server          
+        uses: Particular/install-sql-server-action@v1.0.0
+        with:
+          connection-string-env-var: SQLServerConnectionString
+          catalog: servicecontrol
 # run tests
       - name: Run tests
         uses: Particular/run-tests-action@v1.3.0
