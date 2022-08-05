@@ -1,6 +1,7 @@
 ﻿namespace NServiceBus.TransactionalSession.AcceptanceTests
 {
     using System;
+    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Extensions.DependencyInjection;
@@ -33,7 +34,6 @@
                     await transactionalSession.Send(new SampleMessage(), sendOptions, CancellationToken.None);
 
                     var storageSession = transactionalSession.SynchronizedStorageSession.CosmosPersistenceSession();
-
                     storageSession.Batch.CreateItem(new MyDocument
                     {
                         Id = documentId,
@@ -55,6 +55,8 @@
         [Test]
         public async Task Should_not_send_messages_if_session_is_not_committed()
         {
+            var documentId = Guid.NewGuid().ToString();
+
             var result = await Scenario.Define<Context>()
                 .WithEndpoint<AnEndpoint>(s => s.When(async (statelessSession, ctx) =>
                 {
@@ -64,6 +66,14 @@
                         await transactionalSession.OpenCosmosDBSession(PartitionKeyValue);
 
                         await transactionalSession.SendLocal(new SampleMessage());
+
+                        var storageSession = transactionalSession.SynchronizedStorageSession.CosmosPersistenceSession();
+                        storageSession.Batch.CreateItem(new MyDocument
+                        {
+                            Id = documentId,
+                            Data = "SomeData",
+                            PartitionKey = PartitionKeyValue
+                        });
                     }
 
                     var sendOptions = new SendOptions();
@@ -76,8 +86,13 @@
                 .Done(c => c.CompleteMessageReceived)
                 .Run();
 
+
             Assert.True(result.CompleteMessageReceived);
             Assert.False(result.MessageReceived);
+
+            var exception = Assert.ThrowsAsync<CosmosException>(async () =>
+                await CosmosSetup.Container.ReadItemAsync<MyDocument>(documentId, new PartitionKey(PartitionKeyValue)));
+            Assert.AreEqual(HttpStatusCode.NotFound, exception.StatusCode);
         }
 
         [Test]

@@ -63,6 +63,8 @@
         [Test]
         public async Task Should_not_send_messages_if_session_is_not_committed()
         {
+            var entityRowId = Guid.NewGuid().ToString();
+
             var result = await Scenario.Define<Context>()
                 .WithEndpoint<AnEndpoint>(s => s.When(async (statelessSession, ctx) =>
                 {
@@ -76,6 +78,17 @@
                         sendOptions.RouteToThisEndpoint();
 
                         await transactionalSession.Send(new SampleMessage(), sendOptions);
+
+                        var storageSession = transactionalSession.SynchronizedStorageSession.AzureTablePersistenceSession();
+
+                        var entity = new MyTableEntity
+                        {
+                            RowKey = entityRowId,
+                            PartitionKey = PartitionKeyValue,
+                            Data = "MyCustomData"
+                        };
+
+                        storageSession.Batch.Add(TableOperation.Insert(entity));
                     }
 
                     var competeMessageSendOptions = new SendOptions();
@@ -90,6 +103,11 @@
 
             Assert.True(result.CompleteMessageReceived);
             Assert.False(result.MessageReceived);
+
+            var query = new TableQuery<DynamicTableEntity>()
+                .Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, PartitionKeyValue))
+                .Where(TableQuery.GenerateFilterCondition("RowKey", QueryComparisons.Equal, entityRowId));
+            Assert.IsEmpty(AzureTableSetup.Table.ExecuteQuery(query));
         }
 
         [Test]

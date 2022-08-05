@@ -19,7 +19,7 @@ public class When_using_outbox_with_multitenancy : NServiceBusAcceptanceTest
                 using var scope = ctx.ServiceProvider.CreateScope();
                 using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
-                await transactionalSession.OpenRavenDBSession(new Dictionary<string, string>() { { "tenant-id", RavenSetup.TenantId } });
+                await transactionalSession.OpenRavenDBSession(new Dictionary<string, string>( { { "tenant-id", RavenSetup.TenantId } });
                 ctx.SessionId = transactionalSession.SessionId;
                 var ravenSession = transactionalSession.SynchronizedStorageSession.RavenSession();
                 var document = new TestDocument() { SessionId = transactionalSession.SessionId };

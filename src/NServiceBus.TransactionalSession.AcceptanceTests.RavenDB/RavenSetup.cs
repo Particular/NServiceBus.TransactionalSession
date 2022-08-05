@@ -12,44 +12,46 @@
     [SetUpFixture]
     public class RavenSetup
     {
-
         public const string DefaultDatabaseName = "TransactionalSessionTests";
 
         public static string TenantId { get; private set; }
+        public static DocumentStore DocumentStore { get; private set; }
 
         [OneTimeSetUp]
         public void Setup()
         {
+#if RELEASE
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 Assert.Ignore("Skip RavenDB tests on Windows");
             }
+#endif
 
             var random = new Random();
             TenantId = "tenant-" + random.Next(1, 100);
 
+            DocumentStore = new DocumentStore
+            {
+                Database = DefaultDatabaseName,
+                Urls = new[] { "http://localhost:8080" }
+            };
+            DocumentStore.Initialize();
+            var result = DocumentStore.Maintenance.Server.Send(new GetDatabaseNamesOperation(0, int.MaxValue));
+
+            if (!result.Contains(DefaultDatabaseName))
+            {
+                DocumentStore.Maintenance.Server.Send(new CreateDatabaseOperation(new DatabaseRecord(DefaultDatabaseName)));
+            }
+
+            if (!result.Contains(TenantId))
+            {
+                DocumentStore.Maintenance.Server.Send(new CreateDatabaseOperation(new DatabaseRecord(TenantId)));
+            }
+
             TransactionSessionDefaultServer.ConfigurePersistence = configuration =>
             {
                 var persistence = configuration.UsePersistence<RavenDBPersistence>();
-                var documentStore = new DocumentStore
-                {
-                    Database = DefaultDatabaseName,
-                    Urls = new[] { "http://localhost:8080" }
-                };
-                documentStore.Initialize();
-                var result = documentStore.Maintenance.Server.Send(new GetDatabaseNamesOperation(0, int.MaxValue));
-
-                if (!result.Contains(DefaultDatabaseName))
-                {
-                    documentStore.Maintenance.Server.Send(new CreateDatabaseOperation(new DatabaseRecord(DefaultDatabaseName)));
-                }
-
-                if (!result.Contains(TenantId))
-                {
-                    documentStore.Maintenance.Server.Send(new CreateDatabaseOperation(new DatabaseRecord(TenantId)));
-                }
-
-                persistence.SetDefaultDocumentStore(documentStore);
+                persistence.SetDefaultDocumentStore(DocumentStore);
                 persistence.SetMessageToDatabaseMappingConvention(headers =>
                 {
                     if (headers.TryGetValue("tenant-id", out var tenantValue))
