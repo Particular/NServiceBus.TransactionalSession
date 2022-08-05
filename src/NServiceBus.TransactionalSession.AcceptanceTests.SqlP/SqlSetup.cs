@@ -2,13 +2,10 @@
 using Microsoft.Data.SqlClient;
 using NServiceBus;
 using NServiceBus.TransactionalSession.AcceptanceTests;
-using NUnit.Framework;
 
-[SetUpFixture]
 public class SqlSetup
 {
-    [SetUp]
-    public void Setup()
+    public static void Setup()
     {
         TransactionSessionDefaultServer.ConfigurePersistence = configuration =>
         {

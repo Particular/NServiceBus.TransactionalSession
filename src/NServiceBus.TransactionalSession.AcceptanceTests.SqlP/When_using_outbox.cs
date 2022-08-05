@@ -10,6 +10,9 @@
 
     public class When_using_outbox : NServiceBusAcceptanceTest
     {
+        [OneTimeSetUp]
+        public void Setup() => SqlSetup.Setup();
+
         [Test]
         public async Task Should_send_messages_and_insert_rows_on_transactional_session_commit()
         {

@@ -15,7 +15,7 @@ public class When_running_with_multitennancy : NServiceBusAcceptanceTest
     static string tenantId = "aTenant";
     static string tenantIdHeaderName = "TenantName";
 
-    [SetUp]
+    [OneTimeSetUp]
     public async Task Setup()
     {
         await MultiTenant.Setup(tenantId);
@@ -30,7 +30,7 @@ public class When_running_with_multitennancy : NServiceBusAcceptanceTest
         };
     }
 
-    [TearDown]
+    [OneTimeTearDown]
     public Task Teardown() => MultiTenant.TearDown(tenantId);
 
     [Test]
