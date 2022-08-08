@@ -133,9 +133,8 @@ public static class OpenSessionExtensions
         var endpointName = session.PersisterSpecificOptions.Get<string>();
 
         options ??= new OpenSessionOptions();
-        options.CustomSessionId = Guid.NewGuid().ToString();
 
-        var endpointQualifiedMessageId = $"{endpointName}/{options.CustomSessionId}";
+        var endpointQualifiedMessageId = $"{endpointName}/{options.SessionId}";
 
         options.Extensions.Set(endpointQualifiedMessageIdKeyName, endpointQualifiedMessageId);
         options.Metadata.Add(endpointQualifiedMessageIdKeyName, endpointQualifiedMessageId);
