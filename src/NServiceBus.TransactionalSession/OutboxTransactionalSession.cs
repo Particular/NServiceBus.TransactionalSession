@@ -35,7 +35,7 @@
                 if (!IsOpen)
                 {
                     throw new InvalidOperationException(
-                        "Before accessing the SynchronizedStorageSession, make sure to open the session by calling the `Open`-method.");
+                        $"Before accessing the {nameof(SynchronizedStorageSession)}, make sure to open the session by calling the `Open`-method.");
                 }
 
                 return synchronizedStorageSession;
