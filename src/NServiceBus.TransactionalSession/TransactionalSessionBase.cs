@@ -34,7 +34,7 @@ namespace NServiceBus.TransactionalSession
             }
         }
 
-        public string SessionId { get; private set; }
+        public string SessionId => options?.SessionId;
 
         protected ContextBag Context => options.Extensions;
 
@@ -49,8 +49,7 @@ namespace NServiceBus.TransactionalSession
                 throw new InvalidOperationException($"This session is already open. {nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)} should only be called once.");
             }
 
-            this.options = options ??= new OpenSessionOptions();
-            SessionId = options.SessionId ?? Guid.NewGuid().ToString();
+            this.options = options ?? new OpenSessionOptions();
             return Task.CompletedTask;
         }
 
