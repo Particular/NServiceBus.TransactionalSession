@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 public interface IBatchedMessageSession : IDisposable
 {
     /// <summary>
-    /// Sends the provided message.
+    /// Batches the send operation to be executed when the session is committed.
     /// </summary>
     /// <param name="message">The message to send.</param>
     /// <param name="sendOptions">The options for the send.</param>
@@ -18,7 +18,7 @@ public interface IBatchedMessageSession : IDisposable
     Task Send(object message, SendOptions sendOptions, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Instantiates a message of type T and sends it.
+    /// Instantiates a message of type T and batches the operation to be executed when the session is committed.
     /// </summary>
     /// <typeparam name="T">The type of message, usually an interface.</typeparam>
     /// <param name="messageConstructor">An action which initializes properties of the message.</param>
@@ -27,7 +27,7 @@ public interface IBatchedMessageSession : IDisposable
     Task Send<T>(Action<T> messageConstructor, SendOptions sendOptions, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Publish the message to subscribers.
+    /// Batches the publish operation to be executed when the session is committed.
     /// </summary>
     /// <param name="message">The message to publish.</param>
     /// <param name="publishOptions">The options for the publish.</param>
@@ -35,7 +35,7 @@ public interface IBatchedMessageSession : IDisposable
     Task Publish(object message, PublishOptions publishOptions, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Instantiates a message of type T and publishes it.
+    /// Instantiates a message of type T and batches the operation to be executed when the session is committed.
     /// </summary>
     /// <typeparam name="T">The type of message, usually an interface.</typeparam>
     /// <param name="messageConstructor">An action which initializes properties of the message.</param>
@@ -44,9 +44,7 @@ public interface IBatchedMessageSession : IDisposable
     Task Publish<T>(Action<T> messageConstructor, PublishOptions publishOptions, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Commit the session by applying all message and synchronized storage operation in an atomic manner.
+    /// Commit the session by executing all batched operations.
     /// </summary>
-    /// <param name="cancellationToken"></param>
-    /// <returns></returns>
     Task Commit(CancellationToken cancellationToken = default);
 }
