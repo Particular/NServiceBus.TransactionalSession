@@ -4,6 +4,7 @@
     using System;
     using System.Threading;
     using System.Threading.Tasks;
+    using Extensibility;
 
     /// <summary>
     /// A transactional session that provides basic message operations. 
@@ -16,6 +17,12 @@
         /// <param name="options">The options.</param>
         /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe.</param>
         internal Task Open(OpenSessionOptions options = null, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Enables passing persister-specific data between <see cref="TransactionalSessionFeature"/> and
+        /// persister-specific open methods <see cref="OpenSessionExtensions"/>.
+        /// </summary>
+        internal ContextBag PersisterSpecificOptions { get; }
 
         /// <summary>
         /// Sends the provided message.

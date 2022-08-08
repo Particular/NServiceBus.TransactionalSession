@@ -5,19 +5,28 @@
     using System.Threading.Tasks;
     using Microsoft.Extensions.DependencyInjection;
     using AcceptanceTesting;
+    using MongoDB.Driver;
     using NUnit.Framework;
 
     public class When_using_outbox : NServiceBusAcceptanceTest
     {
+        const string CollectionName = "SampleDocumentCollection";
+
         [Test]
         public async Task Should_send_messages_on_transactional_session_commit()
         {
-            await Scenario.Define<Context>()
+            var context = await Scenario.Define<Context>()
                 .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
                 {
                     using var scope = ctx.ServiceProvider.CreateScope();
                     using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
-                    await transactionalSession.Open();
+                    await transactionalSession.OpenMongoDBSession();
+                    ctx.SessionId = transactionalSession.SessionId;
+
+                    var mongoSession = transactionalSession.SynchronizedStorageSession.GetClientSession();
+                    await mongoSession.Client.GetDatabase(MongoSetup.DatabaseName)
+                        .GetCollection<SampleDocument>(CollectionName)
+                        .InsertOneAsync(mongoSession, new SampleDocument { Id = transactionalSession.SessionId });
 
                     await transactionalSession.SendLocal(new SampleMessage(), CancellationToken.None);
 
@@ -25,20 +34,31 @@
                 }))
                 .Done(c => c.MessageReceived)
                 .Run();
+
+            var documents = await MongoSetup.MongoClient.GetDatabase(MongoSetup.DatabaseName)
+                .GetCollection<SampleDocument>(CollectionName)
+                .FindAsync<SampleDocument>(Builders<SampleDocument>.Filter.Where(d => d.Id == context.SessionId));
+            Assert.AreEqual(1, documents.ToList().Count);
         }
 
         [Test]
         public async Task Should_not_send_messages_if_session_is_not_committed()
         {
-            var result = await Scenario.Define<Context>()
+            var context = await Scenario.Define<Context>()
                 .WithEndpoint<AnEndpoint>(s => s.When(async (statelessSession, ctx) =>
                 {
                     using (var scope = ctx.ServiceProvider.CreateScope())
                     using (var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>())
                     {
-                        await transactionalSession.Open();
+                        await transactionalSession.OpenMongoDBSession();
+                        ctx.SessionId = transactionalSession.SessionId;
 
                         await transactionalSession.SendLocal(new SampleMessage());
+
+                        var mongoSession = transactionalSession.SynchronizedStorageSession.GetClientSession();
+                        await mongoSession.Client.GetDatabase(MongoSetup.DatabaseName)
+                            .GetCollection<SampleDocument>(CollectionName)
+                            .InsertOneAsync(mongoSession, new SampleDocument { Id = transactionalSession.SessionId });
                     }
 
                     //Send immediately dispatched message to finish the test
@@ -47,8 +67,13 @@
                 .Done(c => c.CompleteMessageReceived)
                 .Run();
 
-            Assert.True(result.CompleteMessageReceived);
-            Assert.False(result.MessageReceived);
+            Assert.True(context.CompleteMessageReceived);
+            Assert.False(context.MessageReceived);
+
+            var documents = await MongoSetup.MongoClient.GetDatabase(MongoSetup.DatabaseName)
+                .GetCollection<SampleDocument>(CollectionName)
+                .FindAsync<SampleDocument>(Builders<SampleDocument>.Filter.Where(d => d.Id == context.SessionId));
+            Assert.IsFalse(documents.Any());
         }
 
         [Test]
@@ -60,7 +85,7 @@
                     using var scope = ctx.ServiceProvider.CreateScope();
                     using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
-                    await transactionalSession.Open();
+                    await transactionalSession.OpenMongoDBSession();
 
                     var sendOptions = new SendOptions();
                     sendOptions.RequireImmediateDispatch();
@@ -78,6 +103,7 @@
         {
             public bool MessageReceived { get; set; }
             public bool CompleteMessageReceived { get; set; }
+            public string SessionId { get; set; }
             public IServiceProvider ServiceProvider { get; set; }
         }
 
@@ -121,6 +147,11 @@
 
         class CompleteTestMessage : ICommand
         {
+        }
+
+        class SampleDocument
+        {
+            public string Id { get; set; }
         }
     }
 }

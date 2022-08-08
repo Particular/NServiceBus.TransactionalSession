@@ -14,10 +14,12 @@ namespace NServiceBus.TransactionalSession
     }
     public static class OpenSessionExtensions
     {
+        public static System.Threading.Tasks.Task OpenAzureTableSession(this NServiceBus.TransactionalSession.ITransactionalSession session, string partitionKeyHeaderName, string partitionKey, string tableName = null, NServiceBus.TransactionalSession.OpenSessionOptions options = null, System.Threading.CancellationToken cancellationToken = default) { }
         public static System.Threading.Tasks.Task OpenCosmosDBSession(this NServiceBus.TransactionalSession.ITransactionalSession session, string partitionKey, [System.Runtime.CompilerServices.TupleElementNames(new string[] {
                 "containerName",
                 "partitionKeyPath"})] System.ValueTuple<string, string> container = default, NServiceBus.TransactionalSession.OpenSessionOptions options = null, System.Threading.CancellationToken cancellationToken = default) { }
         public static System.Threading.Tasks.Task OpenMongoDBSession(this NServiceBus.TransactionalSession.ITransactionalSession session, NServiceBus.TransactionalSession.OpenSessionOptions options = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public static System.Threading.Tasks.Task OpenNHibernateSession(this NServiceBus.TransactionalSession.ITransactionalSession session, NServiceBus.TransactionalSession.OpenSessionOptions options = null, System.Threading.CancellationToken cancellationToken = default) { }
         public static System.Threading.Tasks.Task OpenRavenDBSession(this NServiceBus.TransactionalSession.ITransactionalSession session, System.Collections.Generic.IDictionary<string, string> multiTenantConnectionContext = null, NServiceBus.TransactionalSession.OpenSessionOptions options = null, System.Threading.CancellationToken cancellationToken = default) { }
         public static System.Threading.Tasks.Task OpenSqlSession(this NServiceBus.TransactionalSession.ITransactionalSession session, string tenantIdHeaderName = null, string tenantId = null, NServiceBus.TransactionalSession.OpenSessionOptions options = null, System.Threading.CancellationToken cancellationToken = default) { }
     }

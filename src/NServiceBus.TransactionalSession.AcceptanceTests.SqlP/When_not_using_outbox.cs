@@ -8,6 +8,9 @@
 
     public class When_not_using_outbox : NServiceBusAcceptanceTest
     {
+        [OneTimeSetUp]
+        public void Setup() => SqlSetup.Setup();
+
         [Test]
         public async Task Should_send_messages_on_transactional_session_commit()
         {
@@ -17,15 +20,14 @@
                     using var scope = ctx.ServiceProvider.CreateScope();
                     using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
-                    await transactionalSession.Open();
+                    await transactionalSession.OpenSqlSession();
 
                     await transactionalSession.SendLocal(new SampleMessage());
 
                     await transactionalSession.Commit();
                 }))
                 .Done(c => c.MessageReceived)
-                .Run()
-                ;
+                .Run();
         }
 
         [Test]
@@ -37,7 +39,7 @@
                     using (var scope = ctx.ServiceProvider.CreateScope())
                     using (var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>())
                     {
-                        await transactionalSession.Open();
+                        await transactionalSession.OpenSqlSession();
 
                         await transactionalSession.SendLocal(new SampleMessage());
                     }

@@ -1,54 +1,98 @@
 ﻿namespace NServiceBus.TransactionalSession.AcceptanceTests
 {
     using System;
+    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Extensions.DependencyInjection;
     using AcceptanceTesting;
+    using Microsoft.Azure.Cosmos;
+    using Newtonsoft.Json;
     using NUnit.Framework;
 
     public class When_using_outbox : NServiceBusAcceptanceTest
     {
+        static string PartitionKeyHeaderName = "Tests.PartitionKey";
+        static string PartitionKeyValue = "SomePartition";
+
         [Test]
-        public async Task Should_send_messages_on_transactional_session_commit()
+        public async Task Should_send_messages_and_store_document_on_transactional_session_commit()
         {
+            var documentId = Guid.NewGuid().ToString();
+
             await Scenario.Define<Context>()
                 .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
                 {
                     using var scope = ctx.ServiceProvider.CreateScope();
                     using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
-                    await transactionalSession.Open();
+                    await transactionalSession.OpenCosmosDBSession(PartitionKeyValue);
 
-                    await transactionalSession.SendLocal(new SampleMessage(), CancellationToken.None);
+                    var sendOptions = new SendOptions();
+                    sendOptions.SetHeader(PartitionKeyHeaderName, PartitionKeyValue);
+                    sendOptions.RouteToThisEndpoint();
+
+                    await transactionalSession.Send(new SampleMessage(), sendOptions, CancellationToken.None);
+
+                    var storageSession = transactionalSession.SynchronizedStorageSession.CosmosPersistenceSession();
+                    storageSession.Batch.CreateItem(new MyDocument
+                    {
+                        Id = documentId,
+                        Data = "SomeData",
+                        PartitionKey = PartitionKeyValue
+                    });
 
                     await transactionalSession.Commit(CancellationToken.None).ConfigureAwait(false);
                 }))
                 .Done(c => c.MessageReceived)
                 .Run();
+
+            var response = await CosmosSetup.Container.ReadItemAsync<MyDocument>(documentId, new PartitionKey(PartitionKeyValue));
+
+            Assert.IsNotNull(response);
+            Assert.AreEqual("SomeData", response.Resource.Data);
         }
 
         [Test]
         public async Task Should_not_send_messages_if_session_is_not_committed()
         {
+            var documentId = Guid.NewGuid().ToString();
+
             var result = await Scenario.Define<Context>()
                 .WithEndpoint<AnEndpoint>(s => s.When(async (statelessSession, ctx) =>
                 {
                     using (var scope = ctx.ServiceProvider.CreateScope())
                     using (var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>())
                     {
-                        await transactionalSession.Open();
+                        await transactionalSession.OpenCosmosDBSession(PartitionKeyValue);
 
                         await transactionalSession.SendLocal(new SampleMessage());
+
+                        var storageSession = transactionalSession.SynchronizedStorageSession.CosmosPersistenceSession();
+                        storageSession.Batch.CreateItem(new MyDocument
+                        {
+                            Id = documentId,
+                            Data = "SomeData",
+                            PartitionKey = PartitionKeyValue
+                        });
                     }
 
+                    var sendOptions = new SendOptions();
+                    sendOptions.SetHeader(PartitionKeyHeaderName, PartitionKeyValue);
+                    sendOptions.RouteToThisEndpoint();
+
                     //Send immediately dispatched message to finish the test
-                    await statelessSession.SendLocal(new CompleteTestMessage());
+                    await statelessSession.Send(new CompleteTestMessage(), sendOptions);
                 }))
                 .Done(c => c.CompleteMessageReceived)
                 .Run();
 
+
             Assert.True(result.CompleteMessageReceived);
             Assert.False(result.MessageReceived);
+
+            var exception = Assert.ThrowsAsync<CosmosException>(async () =>
+                await CosmosSetup.Container.ReadItemAsync<MyDocument>(documentId, new PartitionKey(PartitionKeyValue)));
+            Assert.AreEqual(HttpStatusCode.NotFound, exception.StatusCode);
         }
 
         [Test]
@@ -60,9 +104,10 @@
                     using var scope = ctx.ServiceProvider.CreateScope();
                     using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
-                    await transactionalSession.Open();
+                    await transactionalSession.OpenCosmosDBSession(PartitionKeyValue);
 
                     var sendOptions = new SendOptions();
+                    sendOptions.SetHeader(PartitionKeyHeaderName, PartitionKeyValue);
                     sendOptions.RequireImmediateDispatch();
                     sendOptions.RouteToThisEndpoint();
                     await transactionalSession.Send(new SampleMessage(), sendOptions, CancellationToken.None);
@@ -84,7 +129,12 @@
         class AnEndpoint : EndpointConfigurationBuilder
         {
             public AnEndpoint() =>
-                EndpointSetup<TransactionSessionWithOutboxEndpoint>();
+                EndpointSetup<TransactionSessionWithOutboxEndpoint>(c =>
+                {
+                    var persistence = c.UsePersistence<CosmosPersistence>();
+
+                    persistence.TransactionInformation().ExtractPartitionKeyFromHeader(PartitionKeyHeaderName);
+                });
 
             class SampleHandler : IHandleMessages<SampleMessage>
             {
@@ -121,6 +171,16 @@
 
         class CompleteTestMessage : ICommand
         {
+        }
+
+        class MyDocument
+        {
+            [JsonProperty("id")]
+            public string Id { get; set; }
+            public string Data { get; set; }
+
+            [JsonProperty(CosmosSetup.PartitionPropertyName)]
+            public string PartitionKey { get; set; }
         }
     }
 }

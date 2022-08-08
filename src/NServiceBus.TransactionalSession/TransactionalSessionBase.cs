@@ -54,6 +54,8 @@ namespace NServiceBus.TransactionalSession
             return Task.CompletedTask;
         }
 
+        ContextBag ITransactionalSession.PersisterSpecificOptions { get; } = new ContextBag();
+
         public async Task Send(object message, SendOptions sendOptions, CancellationToken cancellationToken = default)
         {
             if (!IsOpen)
@@ -126,6 +128,6 @@ namespace NServiceBus.TransactionalSession
         protected readonly PendingTransportOperations pendingOperations;
         protected OpenSessionOptions options;
         readonly IMessageSession messageSession;
-        bool disposed;
+        protected bool disposed;
     }
 }

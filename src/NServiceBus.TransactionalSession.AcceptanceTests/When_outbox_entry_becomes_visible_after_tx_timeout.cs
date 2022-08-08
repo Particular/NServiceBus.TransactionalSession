@@ -2,14 +2,10 @@
 {
     using System;
     using System.Linq;
-    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Extensions.DependencyInjection;
     using NServiceBus.AcceptanceTesting;
     using NServiceBus.AcceptanceTesting.Customization;
-    using NServiceBus.AcceptanceTests;
-    using NServiceBus.AcceptanceTests.EndpointTemplates;
-    using NServiceBus.Features;
     using NServiceBus.Outbox;
     using NUnit.Framework;
     using Pipeline;

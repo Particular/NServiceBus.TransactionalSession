@@ -1,5 +1,6 @@
 ﻿namespace NServiceBus.TransactionalSession
 {
+    using System;
     using System.Threading;
     using System.Threading.Tasks;
     using Features;
@@ -20,7 +21,7 @@
         {
             QueueAddress localQueueAddress = context.LocalQueueAddress();
 
-            if (context.Settings.TryGet("NServiceBus.Persistence.CosmosDB.OutboxStorage", out FeatureState state) && state == FeatureState.Active)
+            if (context.Settings.TryGet("NServiceBus.Persistence.CosmosDB.OutboxStorage", out FeatureState cosmosSate) && cosmosSate == FeatureState.Active)
             {
                 context.Pipeline.Register(new CosmosDBSupport.CosmosControlMessageBehavior(), "TODO");
             }
@@ -28,14 +29,16 @@
             var isOutboxEnabled = context.Settings.IsFeatureActive(typeof(Outbox));
             var sessionCaptureTask = new SessionCaptureTask();
             context.RegisterStartupTask(sessionCaptureTask);
-            context.Services.AddScoped<ITransactionalSession>(sp =>
+            context.Services.AddScoped(sp =>
             {
                 var physicalLocalQueueAddress = sp.GetRequiredService<ITransportAddressResolver>()
                     .ToTransportAddress(localQueueAddress);
 
+                ITransactionalSession transactionalSession;
+
                 if (isOutboxEnabled)
                 {
-                    return new OutboxTransactionalSession(
+                    transactionalSession = new OutboxTransactionalSession(
                         sp.GetRequiredService<IOutboxStorage>(),
                         sp.GetRequiredService<ICompletableSynchronizedStorageSession>(),
                         sessionCaptureTask.CapturedSession,
@@ -43,11 +46,26 @@
                         physicalLocalQueueAddress
                         );
                 }
+                else
+                {
+                    transactionalSession = new TransactionalSession(
+                        sp.GetRequiredService<ICompletableSynchronizedStorageSession>(),
+                        sessionCaptureTask.CapturedSession,
+                        sp.GetRequiredService<IMessageDispatcher>());
+                }
 
-                return new TransactionalSession(
-                    sp.GetRequiredService<ICompletableSynchronizedStorageSession>(),
-                    sessionCaptureTask.CapturedSession,
-                    sp.GetRequiredService<IMessageDispatcher>());
+                if (context.Settings.TryGet("NServiceBus.Features.NHibernateOutbox", out FeatureState nhState) && nhState == FeatureState.Active)
+                {
+                    transactionalSession.PersisterSpecificOptions.Set(context.Settings.EndpointName());
+                }
+
+                if (context.Settings.TryGet("NServiceBus.Persistence.AzureTable.OutboxStorage", out FeatureState atState) && atState == FeatureState.Active)
+                {
+                    transactionalSession.PersisterSpecificOptions.Set(sp.GetRequiredService(Type.GetType(AzureTableSupport.TableHolderResolverAssemblyQualifiedTypeName)));
+                }
+
+
+                return transactionalSession;
             });
 
             if (isOutboxEnabled)
