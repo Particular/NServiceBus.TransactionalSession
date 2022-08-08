@@ -97,7 +97,6 @@
 
                 public MessageHandler(Context testContext) => this.testContext = testContext;
 
-
                 public Task Handle(SomeMessage message, IMessageHandlerContext context)
                 {
                     testContext.MessageReceived = true;

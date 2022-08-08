@@ -1,6 +1,7 @@
 ﻿namespace NServiceBus.TransactionalSession.AcceptanceTests;
 
 using System;
+using System.IO;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using NServiceBus.AcceptanceTesting.Customization;
@@ -23,7 +24,12 @@ public class DefaultServer : IEndpointSetupTemplate
             .Immediate(immediate => immediate.NumberOfRetries(0));
         builder.SendFailedMessagesTo("error");
 
-        builder.UseTransport(new AcceptanceTestingTransport { TransportTransactionMode = TransportTransactionMode });
+        var storageDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".transporttests");
+        builder.UseTransport(new AcceptanceTestingTransport
+        {
+            TransportTransactionMode = TransportTransactionMode,
+            StorageLocation = storageDir
+        });
 
         // TODO: won't be necessary with NSB.AcceptanceTesting > beta5!
         builder.RegisterComponents(r => { RegisterInheritanceHierarchyOfContextOnContainer(runDescriptor, r); });
