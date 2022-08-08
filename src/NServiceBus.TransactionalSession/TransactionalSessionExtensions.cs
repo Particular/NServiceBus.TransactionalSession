@@ -5,7 +5,7 @@
     using System.Threading.Tasks;
 
     /// <summary>
-    /// Extensions for the <see cref="BatchedSession"/>
+    /// Extensions for the <see cref="BatchedMessageSession"/>
     /// </summary>
     public static class TransactionalSessionExtensions
     {

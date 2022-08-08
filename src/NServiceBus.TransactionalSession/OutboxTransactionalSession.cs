@@ -12,17 +12,19 @@
     using TransportTransportOperation = Transport.TransportOperation;
     using OutboxTransportOperation = Outbox.TransportOperation;
 
-    class OutboxTransactionalSession : TransactionalSessionBase, ITransactionalSession
+    class OutboxTransactionalSession : ITransactionalSession
     {
         public OutboxTransactionalSession(
             IOutboxStorage outboxStorage,
             ICompletableSynchronizedStorageSession synchronizedStorageSession,
             IMessageSession messageSession,
             IMessageDispatcher dispatcher,
-            string physicalQueueAddress) : base(messageSession, dispatcher)
+            string physicalQueueAddress)
         {
             this.outboxStorage = outboxStorage;
             this.synchronizedStorageSession = synchronizedStorageSession;
+            this.messageSession = messageSession;
+            this.dispatcher = dispatcher;
             this.physicalQueueAddress = physicalQueueAddress;
         }
 
@@ -40,7 +42,7 @@
             }
         }
 
-        public string SessionId { get; set; }
+        public string SessionId => options?.SessionId;
 
         ContextBag ITransactionalSession.PersisterSpecificOptions { get; } = new ContextBag();
 
@@ -48,7 +50,7 @@
 
         protected bool IsOpen => options != null;
 
-        public override async Task Commit(CancellationToken cancellationToken = default)
+        public async Task Commit(CancellationToken cancellationToken = default)
         {
             var headers = new Dictionary<string, string>
             {
@@ -79,37 +81,40 @@
             await outboxTransaction.Commit(cancellationToken).ConfigureAwait(false);
         }
 
-        public override Task Send(object message, SendOptions sendOptions, CancellationToken cancellationToken = default)
+        public async Task Send(object message, SendOptions sendOptions, CancellationToken cancellationToken = default)
         {
             if (!IsOpen)
             {
                 throw new InvalidOperationException("Before sending any messages, make sure to open the session by calling the `Open`-method.");
             }
 
-            return base.Send(message, sendOptions, cancellationToken);
+            sendOptions.GetExtensions().Set(pendingOperations);
+            await messageSession.Send(message, sendOptions, cancellationToken).ConfigureAwait(false);
         }
 
-        public override Task Send<T>(Action<T> messageConstructor, SendOptions sendOptions, CancellationToken cancellationToken = default)
+        public async Task Send<T>(Action<T> messageConstructor, SendOptions sendOptions, CancellationToken cancellationToken = default)
         {
             if (!IsOpen)
             {
                 throw new InvalidOperationException("Before sending any messages, make sure to open the session by calling the `Open`-method.");
             }
 
-            return base.Send(messageConstructor, sendOptions, cancellationToken);
+            sendOptions.GetExtensions().Set(pendingOperations);
+            await messageSession.Send(messageConstructor, sendOptions, cancellationToken).ConfigureAwait(false);
         }
 
-        public override Task Publish(object message, PublishOptions publishOptions, CancellationToken cancellationToken = default)
+        public async Task Publish(object message, PublishOptions publishOptions, CancellationToken cancellationToken = default)
         {
             if (!IsOpen)
             {
                 throw new InvalidOperationException("Before publishing any messages, make sure to open the session by calling the `Open`-method.");
             }
 
-            return base.Publish(message, publishOptions, cancellationToken);
+            publishOptions.GetExtensions().Set(pendingOperations);
+            await messageSession.Publish(message, publishOptions, cancellationToken).ConfigureAwait(false);
         }
 
-        public override Task Publish<T>(Action<T> messageConstructor, PublishOptions publishOptions,
+        public async Task Publish<T>(Action<T> messageConstructor, PublishOptions publishOptions,
             CancellationToken cancellationToken = default)
         {
             if (!IsOpen)
@@ -117,23 +122,21 @@
                 throw new InvalidOperationException("Before publishing any messages, make sure to open the session by calling the `Open`-method.");
             }
 
-            return base.Publish(messageConstructor, publishOptions, cancellationToken);
+            publishOptions.GetExtensions().Set(pendingOperations);
+            await messageSession.Publish(messageConstructor, publishOptions, cancellationToken).ConfigureAwait(false);
         }
 
-        protected override void Dispose(bool disposing)
+        public void Dispose()
         {
             if (disposed)
             {
                 return;
             }
 
-            if (disposing)
-            {
-                synchronizedStorageSession?.Dispose();
-                outboxTransaction?.Dispose();
-            }
+            disposed = true;
 
-            base.Dispose(disposing);
+            outboxTransaction?.Dispose();
+            synchronizedStorageSession?.Dispose();
         }
 
         static OutboxTransportOperation[] ConvertToOutboxOperations(TransportTransportOperation[] operations)
@@ -170,14 +173,12 @@
 
         async Task ITransactionalSession.Open(OpenSessionOptions options, CancellationToken cancellationToken)
         {
-            this.options = options ??= new OpenSessionOptions();
-
             if (IsOpen)
             {
                 throw new InvalidOperationException($"This session is already open. Open should only be called once.");
             }
 
-            SessionId = options.SessionId;
+            this.options = options ?? new OpenSessionOptions();
 
             outboxTransaction = await outboxStorage.BeginTransaction(Context, cancellationToken).ConfigureAwait(false);
 
@@ -188,12 +189,25 @@
         }
 
         IOutboxTransaction outboxTransaction;
+
         OpenSessionOptions options;
 
+        bool disposed;
+
         readonly string physicalQueueAddress;
+
         readonly IOutboxStorage outboxStorage;
+
         readonly ICompletableSynchronizedStorageSession synchronizedStorageSession;
+
+        readonly PendingTransportOperations pendingOperations = new PendingTransportOperations();
+
+        readonly IMessageSession messageSession;
+
+        readonly IMessageDispatcher dispatcher;
+
         public const string RemainingCommitDurationHeaderName = "NServiceBus.TransactionalSession.RemainingCommitDuration";
+
         public const string CommitDelayIncrementHeaderName = "NServiceBus.TransactionalSession.CommitDelayIncrement";
     }
 }

@@ -7,13 +7,13 @@ using Fakes;
 using NUnit.Framework;
 
 [TestFixture]
-public class TransactionalSessionTests
+public class BatchedMessageSessionTests
 {
     [Test]
     public async Task Send_should_set_PendingOperations_collection_on_context()
     {
         var messageSession = new FakeMessageSession();
-        using IBatchedMessageSession session = new BatchedSession(messageSession, new FakeDispatcher());
+        using IBatchedMessageSession session = new BatchedMessageSession(messageSession, new FakeDispatcher());
 
         await session.Send(new object());
 
@@ -24,7 +24,7 @@ public class TransactionalSessionTests
     public async Task Publish_should_set_PendingOperations_collection_on_context()
     {
         var messageSession = new FakeMessageSession();
-        using IBatchedMessageSession session = new BatchedSession(messageSession, new FakeDispatcher());
+        using IBatchedMessageSession session = new BatchedMessageSession(messageSession, new FakeDispatcher());
 
         await session.Publish(new object());
 

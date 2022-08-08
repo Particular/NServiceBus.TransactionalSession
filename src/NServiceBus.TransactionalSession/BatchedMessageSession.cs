@@ -1,4 +1,4 @@
-namespace NServiceBus.TransactionalSession
+﻿namespace NServiceBus.TransactionalSession
 {
     using System;
     using System.Threading;
@@ -6,19 +6,18 @@ namespace NServiceBus.TransactionalSession
     using Extensibility;
     using Transport;
 
-    abstract class TransactionalSessionBase
+    class BatchedMessageSession : IBatchedMessageSession
     {
-        protected TransactionalSessionBase(
+        public BatchedMessageSession(
             IMessageSession messageSession,
             IMessageDispatcher dispatcher)
         {
             this.messageSession = messageSession;
             this.dispatcher = dispatcher;
-            pendingOperations = new PendingTransportOperations();
         }
 
-
-        public abstract Task Commit(CancellationToken cancellationToken = default);
+        public virtual async Task Commit(CancellationToken cancellationToken = default) =>
+            await dispatcher.Dispatch(new TransportOperations(pendingOperations.Operations), new TransportTransaction(), cancellationToken).ConfigureAwait(false);
 
         public virtual async Task Send(object message, SendOptions sendOptions, CancellationToken cancellationToken = default)
         {
@@ -46,25 +45,10 @@ namespace NServiceBus.TransactionalSession
 
         public void Dispose()
         {
-            // Dispose of unmanaged resources.
-            Dispose(true);
-            // Suppress finalization.
-            GC.SuppressFinalize(this);
         }
 
-        protected virtual void Dispose(bool disposing)
-        {
-            if (disposed)
-            {
-                return;
-            }
-
-            disposed = true;
-        }
-
-        protected readonly IMessageDispatcher dispatcher;
-        protected readonly PendingTransportOperations pendingOperations;
+        readonly IMessageDispatcher dispatcher;
+        readonly PendingTransportOperations pendingOperations = new PendingTransportOperations();
         readonly IMessageSession messageSession;
-        protected bool disposed;
     }
 }

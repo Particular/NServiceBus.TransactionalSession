@@ -31,7 +31,7 @@
             context.RegisterStartupTask(sessionCaptureTask);
 
 
-            context.Services.AddScoped<IBatchedMessageSession>(sp => new BatchedSession(
+            context.Services.AddScoped<IBatchedMessageSession>(sp => new BatchedMessageSession(
                 sessionCaptureTask.CapturedSession,
                 sp.GetRequiredService<IMessageDispatcher>()));
 
