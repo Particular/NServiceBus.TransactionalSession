@@ -11,8 +11,8 @@
     public interface ITransactionalSession : IBatchedMessageSession
     {
         /// <summary>
-        /// Gets the synchronized storage session for processing the current message. NServiceBus makes sure the changes made
-        /// via this session will be persisted before the message receive is acknowledged.
+        /// Gets the synchronized storage session for processing the current message.
+        /// Operations performed on the storage session and message operations (send and publish) for a single unit of work and will be atomically committed.  
         /// </summary>
         ISynchronizedStorageSession SynchronizedStorageSession { get; }
 
