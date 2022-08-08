@@ -10,7 +10,7 @@
     using Transport;
 
     /// <summary>
-    /// Provides <see cref="ITransactionalSession" />.
+    /// Provides support for  <see cref="IBatchedMessageSession"/> and <see cref="ITransactionalSession" />.
     /// </summary>
     public class TransactionalSessionFeature : Feature
     {
@@ -29,53 +29,51 @@
             var isOutboxEnabled = context.Settings.IsFeatureActive(typeof(Outbox));
             var sessionCaptureTask = new SessionCaptureTask();
             context.RegisterStartupTask(sessionCaptureTask);
-            context.Services.AddScoped(sp =>
+
+
+            if (isOutboxEnabled)
             {
-                var physicalLocalQueueAddress = sp.GetRequiredService<ITransportAddressResolver>()
-                    .ToTransportAddress(localQueueAddress);
-
-                ITransactionalSession transactionalSession;
-
-                if (isOutboxEnabled)
+                context.Services.AddScoped(sp =>
                 {
-                    transactionalSession = new OutboxTransactionalSession(
+                    var physicalLocalQueueAddress = sp.GetRequiredService<ITransportAddressResolver>()
+                        .ToTransportAddress(localQueueAddress);
+
+                    ITransactionalSession transactionalSession = new OutboxTransactionalSession(
                         sp.GetRequiredService<IOutboxStorage>(),
                         sp.GetRequiredService<ICompletableSynchronizedStorageSession>(),
                         sessionCaptureTask.CapturedSession,
                         sp.GetRequiredService<IMessageDispatcher>(),
                         physicalLocalQueueAddress
-                        );
-                }
-                else
-                {
-                    transactionalSession = new TransactionalSession(
-                        sp.GetRequiredService<ICompletableSynchronizedStorageSession>(),
-                        sessionCaptureTask.CapturedSession,
-                        sp.GetRequiredService<IMessageDispatcher>());
-                }
+                    );
 
-                if (context.Settings.TryGet("NServiceBus.Features.NHibernateOutbox", out FeatureState nhState) && nhState == FeatureState.Active)
-                {
-                    transactionalSession.PersisterSpecificOptions.Set(context.Settings.EndpointName());
-                }
+                    if (context.Settings.TryGet("NServiceBus.Features.NHibernateOutbox", out FeatureState nhState) &&
+                        nhState == FeatureState.Active)
+                    {
+                        transactionalSession.PersisterSpecificOptions.Set(context.Settings.EndpointName());
+                    }
 
-                if (context.Settings.TryGet("NServiceBus.Persistence.AzureTable.OutboxStorage", out FeatureState atState) && atState == FeatureState.Active)
-                {
-                    transactionalSession.PersisterSpecificOptions.Set(sp.GetRequiredService(Type.GetType(AzureTableSupport.TableHolderResolverAssemblyQualifiedTypeName)));
-                }
+                    if (context.Settings.TryGet("NServiceBus.Persistence.AzureTable.OutboxStorage",
+                            out FeatureState atState) && atState == FeatureState.Active)
+                    {
+                        transactionalSession.PersisterSpecificOptions.Set(
+                            sp.GetRequiredService(Type.GetType(AzureTableSupport.TableHolderResolverAssemblyQualifiedTypeName)));
+                    }
 
+                    return transactionalSession;
+                });
 
-                return transactionalSession;
-            });
-
-            if (isOutboxEnabled)
-            {
                 context.Pipeline.Register(sp => new TransactionalSessionDelayControlMessageBehavior(sp.GetRequiredService<IMessageDispatcher>(),
                     sp.GetRequiredService<ITransportAddressResolver>().ToTransportAddress(localQueueAddress)
                 ), "Transaction commit control message delay behavior");
 
                 context.Pipeline.Register(new TransactionalSessionControlMessageExceptionBehavior(),
                     "Transaction commit control message delay acknowledgement behavior");
+            }
+            else
+            {
+                context.Services.AddScoped<IBatchedMessageSession>(sp => new BatchedMessageSession(
+                    sessionCaptureTask.CapturedSession,
+                    sp.GetRequiredService<IMessageDispatcher>()));
             }
         }
 
@@ -88,9 +86,7 @@
                 CapturedSession = session;
                 return Task.CompletedTask;
             }
-
             protected override Task OnStop(IMessageSession session, CancellationToken cancellationToken = new CancellationToken()) => Task.CompletedTask;
-
         }
     }
 }
