@@ -10,7 +10,7 @@
     using Transport;
 
     /// <summary>
-    /// Provides <see cref="ITransactionalSession" />.
+    /// Provides support for  <see cref="IBatchedMessageSession"/> and <see cref="ITransactionalSession" />.
     /// </summary>
     public class TransactionalSessionFeature : Feature
     {
@@ -30,10 +30,6 @@
             var sessionCaptureTask = new SessionCaptureTask();
             context.RegisterStartupTask(sessionCaptureTask);
 
-
-            context.Services.AddScoped<IBatchedMessageSession>(sp => new BatchedMessageSession(
-                sessionCaptureTask.CapturedSession,
-                sp.GetRequiredService<IMessageDispatcher>()));
 
             if (isOutboxEnabled)
             {
@@ -73,6 +69,12 @@
                 context.Pipeline.Register(new TransactionalSessionControlMessageExceptionBehavior(),
                     "Transaction commit control message delay acknowledgement behavior");
             }
+            else
+            {
+                context.Services.AddScoped<IBatchedMessageSession>(sp => new BatchedMessageSession(
+                    sessionCaptureTask.CapturedSession,
+                    sp.GetRequiredService<IMessageDispatcher>()));
+            }
         }
 
         class SessionCaptureTask : FeatureStartupTask
@@ -84,9 +86,7 @@
                 CapturedSession = session;
                 return Task.CompletedTask;
             }
-
             protected override Task OnStop(IMessageSession session, CancellationToken cancellationToken = new CancellationToken()) => Task.CompletedTask;
-
         }
     }
 }
