@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using NServiceBus.AcceptanceTesting.Customization;
 using NServiceBus.AcceptanceTesting.Support;
+using NUnit.Framework;
 
 public class DefaultServer : IEndpointSetupTemplate
 {
@@ -24,7 +25,8 @@ public class DefaultServer : IEndpointSetupTemplate
             .Immediate(immediate => immediate.NumberOfRetries(0));
         builder.SendFailedMessagesTo("error");
 
-        var storageDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".transporttests");
+        var storageDir = Path.Combine(Path.GetTempPath(), "learn", TestContext.CurrentContext.Test.ID);
+
         builder.UseTransport(new AcceptanceTestingTransport
         {
             TransportTransactionMode = TransportTransactionMode,
