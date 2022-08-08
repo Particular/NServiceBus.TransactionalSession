@@ -34,7 +34,7 @@ namespace NServiceBus.TransactionalSession
 
         internal TimeSpan CommitDelayIncrement { get; set; } = TimeSpan.FromSeconds(2);
 
-        internal string CustomSessionId { get; set; }
+        internal string SessionId { get; } = Guid.NewGuid().ToString();
 
         Dictionary<string, string> metadata;
         ContextBag extensions;

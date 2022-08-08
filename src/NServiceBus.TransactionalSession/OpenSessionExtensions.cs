@@ -91,7 +91,6 @@ public static class OpenSessionExtensions
         Guard.AgainstNull(nameof(session), session);
 
         options ??= new OpenSessionOptions();
-        options.CustomSessionId = Guid.NewGuid().ToString();
 
         var headers = new Dictionary<string, string>();
 
@@ -101,7 +100,7 @@ public static class OpenSessionExtensions
             options.Metadata.Add(tenantIdHeaderName, tenantId);
         }
 
-        options.Extensions.Set(new IncomingMessage(options.CustomSessionId, headers, Array.Empty<byte>()));
+        options.Extensions.Set(new IncomingMessage(options.SessionId, headers, Array.Empty<byte>()));
 
         return session.Open(options, cancellationToken);
     }
@@ -134,9 +133,8 @@ public static class OpenSessionExtensions
         var endpointName = session.PersisterSpecificOptions.Get<string>();
 
         options ??= new OpenSessionOptions();
-        options.CustomSessionId = Guid.NewGuid().ToString();
 
-        var endpointQualifiedMessageId = $"{endpointName}/{options.CustomSessionId}";
+        var endpointQualifiedMessageId = $"{endpointName}/{options.SessionId}";
 
         options.Extensions.Set(endpointQualifiedMessageIdKeyName, endpointQualifiedMessageId);
         options.Metadata.Add(endpointQualifiedMessageIdKeyName, endpointQualifiedMessageId);
