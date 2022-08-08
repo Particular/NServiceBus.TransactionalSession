@@ -5,17 +5,17 @@
     using System.Threading.Tasks;
 
     /// <summary>
-    /// Extensions for the <see cref="TransactionalSession"/>
+    /// Extensions for the <see cref="BatchedSession"/>
     /// </summary>
     public static class TransactionalSessionExtensions
     {
         /// <summary>
         /// Sends the provided message.
         /// </summary>
-        /// <param name="session">The instance of <see cref="IBatchSession" /> to use for the action.</param>
+        /// <param name="session">The instance of <see cref="IBatchedMessageSession" /> to use for the action.</param>
         /// <param name="message">The message to send.</param>
         /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe.</param>
-        public static Task Send(this IBatchSession session, object message, CancellationToken cancellationToken = default)
+        public static Task Send(this IBatchedMessageSession session, object message, CancellationToken cancellationToken = default)
         {
             Guard.AgainstNull(nameof(session), session);
             Guard.AgainstNull(nameof(message), message);
@@ -27,13 +27,13 @@
         /// Instantiates a message of <typeparamref name="T" /> and sends it.
         /// </summary>
         /// <typeparam name="T">The type of message, usually an interface.</typeparam>
-        /// <param name="session">The instance of <see cref="IBatchSession" /> to use for the action.</param>
+        /// <param name="session">The instance of <see cref="IBatchedMessageSession" /> to use for the action.</param>
         /// <param name="messageConstructor">An action which initializes properties of the message.</param>
         /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe.</param>
         /// <remarks>
         /// The message will be sent to the destination configured for <typeparamref name="T" />.
         /// </remarks>
-        public static Task Send<T>(this IBatchSession session, Action<T> messageConstructor, CancellationToken cancellationToken = default)
+        public static Task Send<T>(this IBatchedMessageSession session, Action<T> messageConstructor, CancellationToken cancellationToken = default)
         {
             Guard.AgainstNull(nameof(session), session);
             Guard.AgainstNull(nameof(messageConstructor), messageConstructor);
@@ -44,11 +44,11 @@
         /// <summary>
         /// Sends the message.
         /// </summary>
-        /// <param name="session">The instance of <see cref="IBatchSession" /> to use for the action.</param>
+        /// <param name="session">The instance of <see cref="IBatchedMessageSession" /> to use for the action.</param>
         /// <param name="destination">The address of the destination to which the message will be sent.</param>
         /// <param name="message">The message to send.</param>
         /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe.</param>
-        public static Task Send(this IBatchSession session, string destination, object message, CancellationToken cancellationToken = default)
+        public static Task Send(this IBatchedMessageSession session, string destination, object message, CancellationToken cancellationToken = default)
         {
             Guard.AgainstNull(nameof(session), session);
             Guard.AgainstNullAndEmpty(nameof(destination), destination);
@@ -65,11 +65,11 @@
         /// Instantiates a message of type T and sends it to the given destination.
         /// </summary>
         /// <typeparam name="T">The type of message, usually an interface.</typeparam>
-        /// <param name="session">The instance of <see cref="IBatchSession" /> to use for the action.</param>
+        /// <param name="session">The instance of <see cref="IBatchedMessageSession" /> to use for the action.</param>
         /// <param name="destination">The destination to which the message will be sent.</param>
         /// <param name="messageConstructor">An action which initializes properties of the message.</param>
         /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe.</param>
-        public static Task Send<T>(this IBatchSession session, string destination, Action<T> messageConstructor, CancellationToken cancellationToken = default)
+        public static Task Send<T>(this IBatchedMessageSession session, string destination, Action<T> messageConstructor, CancellationToken cancellationToken = default)
         {
             Guard.AgainstNull(nameof(session), session);
             Guard.AgainstNullAndEmpty(nameof(destination), destination);
@@ -88,7 +88,7 @@
         /// <param name="session">Object being extended.</param>
         /// <param name="message">The message to send.</param>
         /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe.</param>
-        public static Task SendLocal(this IBatchSession session, object message, CancellationToken cancellationToken = default)
+        public static Task SendLocal(this IBatchedMessageSession session, object message, CancellationToken cancellationToken = default)
         {
             Guard.AgainstNull(nameof(session), session);
             Guard.AgainstNull(nameof(message), message);
@@ -107,7 +107,7 @@
         /// <param name="session">Object being extended.</param>
         /// <param name="messageConstructor">An action which initializes properties of the message.</param>
         /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe.</param>
-        public static Task SendLocal<T>(this IBatchSession session, Action<T> messageConstructor, CancellationToken cancellationToken = default)
+        public static Task SendLocal<T>(this IBatchedMessageSession session, Action<T> messageConstructor, CancellationToken cancellationToken = default)
         {
             Guard.AgainstNull(nameof(session), session);
             Guard.AgainstNull(nameof(messageConstructor), messageConstructor);
@@ -122,10 +122,10 @@
         /// <summary>
         /// Publish the message to subscribers.
         /// </summary>
-        /// <param name="session">The instance of <see cref="IBatchSession" /> to use for the action.</param>
+        /// <param name="session">The instance of <see cref="IBatchedMessageSession" /> to use for the action.</param>
         /// <param name="message">The message to publish.</param>
         /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe.</param>
-        public static Task Publish(this IBatchSession session, object message, CancellationToken cancellationToken = default)
+        public static Task Publish(this IBatchedMessageSession session, object message, CancellationToken cancellationToken = default)
         {
             Guard.AgainstNull(nameof(session), session);
             Guard.AgainstNull(nameof(message), message);
@@ -136,10 +136,10 @@
         /// <summary>
         /// Publish the message to subscribers.
         /// </summary>
-        /// <param name="session">The instance of <see cref="IBatchSession" /> to use for the action.</param>
+        /// <param name="session">The instance of <see cref="IBatchedMessageSession" /> to use for the action.</param>
         /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe.</param>
         /// <typeparam name="T">The message type.</typeparam>
-        public static Task Publish<T>(this IBatchSession session, CancellationToken cancellationToken = default)
+        public static Task Publish<T>(this IBatchedMessageSession session, CancellationToken cancellationToken = default)
         {
             Guard.AgainstNull(nameof(session), session);
 
@@ -150,10 +150,10 @@
         /// Instantiates a message of type T and publishes it.
         /// </summary>
         /// <typeparam name="T">The type of message, usually an interface.</typeparam>
-        /// <param name="session">The instance of <see cref="IBatchSession" /> to use for the action.</param>
+        /// <param name="session">The instance of <see cref="IBatchedMessageSession" /> to use for the action.</param>
         /// <param name="messageConstructor">An action which initializes properties of the message.</param>
         /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe.</param>
-        public static Task Publish<T>(this IBatchSession session, Action<T> messageConstructor, CancellationToken cancellationToken = default)
+        public static Task Publish<T>(this IBatchedMessageSession session, Action<T> messageConstructor, CancellationToken cancellationToken = default)
         {
             Guard.AgainstNull(nameof(session), session);
             Guard.AgainstNull(nameof(messageConstructor), messageConstructor);

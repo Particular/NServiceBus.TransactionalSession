@@ -7,15 +7,8 @@ using System.Threading.Tasks;
 /// <summary>
 /// A session that provides basic message operations that will be batched together.
 /// </summary>
-public interface IBatchSession : IDisposable
+public interface IBatchedMessageSession : IDisposable
 {
-    /// <summary>
-    /// Opens the transaction session.
-    /// </summary>
-    /// <param name="options">The options.</param>
-    /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe.</param>
-    internal Task Open(OpenSessionOptions options = null, CancellationToken cancellationToken = default);
-
     /// <summary>
     /// Sends the provided message.
     /// </summary>
@@ -49,11 +42,6 @@ public interface IBatchSession : IDisposable
     /// <param name="publishOptions">Specific options for this event.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe.</param>
     Task Publish<T>(Action<T> messageConstructor, PublishOptions publishOptions, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Transactional session globally unique identifier
-    /// </summary>
-    string SessionId { get; }
 
     /// <summary>
     /// Commit the session by applying all message and synchronized storage operation in an atomic manner.

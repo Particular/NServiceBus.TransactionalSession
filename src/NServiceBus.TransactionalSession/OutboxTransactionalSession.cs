@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
+    using Extensibility;
     using Outbox;
     using Persistence;
     using Routing;
@@ -39,6 +40,14 @@
             }
         }
 
+        public string SessionId { get; set; }
+
+        ContextBag ITransactionalSession.PersisterSpecificOptions { get; } = new ContextBag();
+
+        protected ContextBag Context => options.Extensions;
+
+        protected bool IsOpen => options != null;
+
         public override async Task Commit(CancellationToken cancellationToken = default)
         {
             var headers = new Dictionary<string, string>
@@ -68,6 +77,47 @@
             await synchronizedStorageSession.CompleteAsync(cancellationToken).ConfigureAwait(false);
 
             await outboxTransaction.Commit(cancellationToken).ConfigureAwait(false);
+        }
+
+        public override Task Send(object message, SendOptions sendOptions, CancellationToken cancellationToken = default)
+        {
+            if (!IsOpen)
+            {
+                throw new InvalidOperationException("Before sending any messages, make sure to open the session by calling the `Open`-method.");
+            }
+
+            return base.Send(message, sendOptions, cancellationToken);
+        }
+
+        public override Task Send<T>(Action<T> messageConstructor, SendOptions sendOptions, CancellationToken cancellationToken = default)
+        {
+            if (!IsOpen)
+            {
+                throw new InvalidOperationException("Before sending any messages, make sure to open the session by calling the `Open`-method.");
+            }
+
+            return base.Send(messageConstructor, sendOptions, cancellationToken);
+        }
+
+        public override Task Publish(object message, PublishOptions publishOptions, CancellationToken cancellationToken = default)
+        {
+            if (!IsOpen)
+            {
+                throw new InvalidOperationException("Before publishing any messages, make sure to open the session by calling the `Open`-method.");
+            }
+
+            return base.Publish(message, publishOptions, cancellationToken);
+        }
+
+        public override Task Publish<T>(Action<T> messageConstructor, PublishOptions publishOptions,
+            CancellationToken cancellationToken = default)
+        {
+            if (!IsOpen)
+            {
+                throw new InvalidOperationException("Before publishing any messages, make sure to open the session by calling the `Open`-method.");
+            }
+
+            return base.Publish(messageConstructor, publishOptions, cancellationToken);
         }
 
         protected override void Dispose(bool disposing)
@@ -118,9 +168,16 @@
             throw new Exception($"Unknown routing strategy {addressTag.GetType().FullName}");
         }
 
-        async Task IBatchSession.Open(OpenSessionOptions options, CancellationToken cancellationToken)
+        async Task ITransactionalSession.Open(OpenSessionOptions options, CancellationToken cancellationToken)
         {
-            await base.OpenSession(options, cancellationToken).ConfigureAwait(false);
+            this.options = options ??= new OpenSessionOptions();
+
+            if (IsOpen)
+            {
+                throw new InvalidOperationException($"This session is already open. Open should only be called once.");
+            }
+
+            SessionId = options.SessionId;
 
             outboxTransaction = await outboxStorage.BeginTransaction(Context, cancellationToken).ConfigureAwait(false);
 
@@ -130,10 +187,12 @@
             }
         }
 
+        IOutboxTransaction outboxTransaction;
+        OpenSessionOptions options;
+
         readonly string physicalQueueAddress;
         readonly IOutboxStorage outboxStorage;
         readonly ICompletableSynchronizedStorageSession synchronizedStorageSession;
-        IOutboxTransaction outboxTransaction;
         public const string RemainingCommitDurationHeaderName = "NServiceBus.TransactionalSession.RemainingCommitDuration";
         public const string CommitDelayIncrementHeaderName = "NServiceBus.TransactionalSession.CommitDelayIncrement";
     }

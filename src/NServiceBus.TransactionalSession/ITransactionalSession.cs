@@ -1,23 +1,33 @@
 ﻿namespace NServiceBus.TransactionalSession
 {
-    using Persistence;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Extensibility;
+    using Persistence;
 
     /// <summary>
     /// A transactional session that provides basic message operations. 
     /// </summary>
-    public interface ITransactionalSession : IBatchSession
+    public interface ITransactionalSession : IBatchedMessageSession
     {
         /// <summary>
-
-        /// <summary>
-        /// Enables passing persister-specific data between <see cref="TransactionalSessionFeature"/> and
-        /// persister-specific open methods <see cref="OpenSessionExtensions"/>.
-        /// </summary>
-        internal ContextBag PersisterSpecificOptions { get; }
         /// Gets the synchronized storage session for processing the current message. NServiceBus makes sure the changes made
         /// via this session will be persisted before the message receive is acknowledged.
         /// </summary>
         ISynchronizedStorageSession SynchronizedStorageSession { get; }
+
+        /// <summary>
+        /// Transactional session globally unique identifier
+        /// </summary>
+        string SessionId { get; }
+
+        /// <summary>
+        /// Opens the transaction session.
+        /// </summary>
+        /// <param name="options">The options.</param>
+        /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe.</param>
+        internal Task Open(OpenSessionOptions options = null, CancellationToken cancellationToken = default);
+
+        internal ContextBag PersisterSpecificOptions { get; }
     }
 }

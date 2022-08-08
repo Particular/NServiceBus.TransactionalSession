@@ -31,41 +31,39 @@
             context.RegisterStartupTask(sessionCaptureTask);
 
 
-            context.Services.AddScoped<IBatchSession>(sp => new TransactionalSession(
+            context.Services.AddScoped<IBatchedMessageSession>(sp => new BatchedSession(
                 sessionCaptureTask.CapturedSession,
                 sp.GetRequiredService<IMessageDispatcher>()));
 
             if (isOutboxEnabled)
             {
-                context.Services.AddScoped<ITransactionalSession>(sp =>
+                context.Services.AddScoped(sp =>
                 {
                     var physicalLocalQueueAddress = sp.GetRequiredService<ITransportAddressResolver>()
                         .ToTransportAddress(localQueueAddress);
 
-                ITransactionalSession transactionalSession;
-
-                    transactionalSession = new OutboxTransactionalSession(
+                    ITransactionalSession transactionalSession = new OutboxTransactionalSession(
                         sp.GetRequiredService<IOutboxStorage>(),
                         sp.GetRequiredService<ICompletableSynchronizedStorageSession>(),
                         sessionCaptureTask.CapturedSession,
                         sp.GetRequiredService<IMessageDispatcher>(),
                         physicalLocalQueueAddress
                     );
-                    transactionalSession = new TransactionalSession(
-                }
 
-                if (context.Settings.TryGet("NServiceBus.Features.NHibernateOutbox", out FeatureState nhState) && nhState == FeatureState.Active)
-                {
-                    transactionalSession.PersisterSpecificOptions.Set(context.Settings.EndpointName());
-                }
+                    if (context.Settings.TryGet("NServiceBus.Features.NHibernateOutbox", out FeatureState nhState) &&
+                        nhState == FeatureState.Active)
+                    {
+                        transactionalSession.PersisterSpecificOptions.Set(context.Settings.EndpointName());
+                    }
 
-                if (context.Settings.TryGet("NServiceBus.Persistence.AzureTable.OutboxStorage", out FeatureState atState) && atState == FeatureState.Active)
-                {
-                    transactionalSession.PersisterSpecificOptions.Set(sp.GetRequiredService(Type.GetType(AzureTableSupport.TableHolderResolverAssemblyQualifiedTypeName)));
-                }
+                    if (context.Settings.TryGet("NServiceBus.Persistence.AzureTable.OutboxStorage",
+                            out FeatureState atState) && atState == FeatureState.Active)
+                    {
+                        transactionalSession.PersisterSpecificOptions.Set(
+                            sp.GetRequiredService(Type.GetType(AzureTableSupport.TableHolderResolverAssemblyQualifiedTypeName)));
+                    }
 
-
-                return transactionalSession;
+                    return transactionalSession;
                 });
 
                 context.Pipeline.Register(sp => new TransactionalSessionDelayControlMessageBehavior(sp.GetRequiredService<IMessageDispatcher>(),
