@@ -22,7 +22,7 @@
         string SessionId { get; }
 
         /// <summary>
-        /// Opens the transaction session.
+        /// Opens the transactional session.
         /// </summary>
         /// <param name="options">The options.</param>
         /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe.</param>
