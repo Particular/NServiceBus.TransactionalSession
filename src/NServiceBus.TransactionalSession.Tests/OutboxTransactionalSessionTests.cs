@@ -23,7 +23,7 @@ public class OutboxTransactionalSessionTests
     }
 
     [Test]
-    public async Task Open_should_use_custom_session_id_from_options()
+    public async Task Open_should_use_session_id_from_options()
     {
         using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), "queue address");
 
