@@ -11,8 +11,8 @@
     public interface ITransactionalSession : IBatchedMessageSession
     {
         /// <summary>
-        /// Gets the synchronized storage session for processing the current message.
-        /// Operations performed on the storage session and message operations (send and publish) for a single unit of work and will be atomically committed.  
+        /// Gets the synchronized storage session for this transactional session.
+        /// Storage operations are committed atomically with the message operations executed on this session.
         /// </summary>
         ISynchronizedStorageSession SynchronizedStorageSession { get; }
 
