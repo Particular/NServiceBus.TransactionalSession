@@ -11,7 +11,6 @@ using Transport;
 /// </summary>
 public static class RavenDBSupport
 {
-    //TODO also do for the double key overload?
     /// <summary>
     /// Opens a <see cref="ITransactionalSession"/> connected to a RavenDB database.
     /// </summary>
@@ -28,13 +27,14 @@ public static class RavenDBSupport
 
         options ??= new OpenSessionOptions();
         var headers = multiTenantConnectionContext != null ? new Dictionary<string, string>(multiTenantConnectionContext) : new Dictionary<string, string>(0);
-        // order matters because IncomingMessage is modifying the headers
+
+        // order matters because instantiating IncomingMessage is modifying the headers
         foreach (var header in headers)
         {
             options.Metadata.Add(header.Key, header.Value);
         }
 
-        options.Extensions.Set(new IncomingMessage("do not use", headers, ReadOnlyMemory<byte>.Empty));
+        options.Extensions.Set(new IncomingMessage(options.SessionId, headers, ReadOnlyMemory<byte>.Empty));
         return session.Open(options, cancellationToken);
     }
 
