@@ -8,6 +8,9 @@ namespace NServiceBus.TransactionalSession
     }
     public static class CosmosDBSupport
     {
+        public static System.Threading.Tasks.Task OpenCosmosDBSession(this NServiceBus.TransactionalSession.ITransactionalSession session, double partitionKey, [System.Runtime.CompilerServices.TupleElementNames(new string[] {
+                "containerName",
+                "partitionKeyPath"})] System.ValueTuple<string, string> container = default, NServiceBus.TransactionalSession.OpenSessionOptions options = null, System.Threading.CancellationToken cancellationToken = default) { }
         public static System.Threading.Tasks.Task OpenCosmosDBSession(this NServiceBus.TransactionalSession.ITransactionalSession session, string partitionKey, [System.Runtime.CompilerServices.TupleElementNames(new string[] {
                 "containerName",
                 "partitionKeyPath"})] System.ValueTuple<string, string> container = default, NServiceBus.TransactionalSession.OpenSessionOptions options = null, System.Threading.CancellationToken cancellationToken = default) { }
