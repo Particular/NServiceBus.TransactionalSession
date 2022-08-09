@@ -10,11 +10,20 @@ using Extensibility;
 /// </summary>
 public static class AzureTableSupport
 {
-    static string TableInformationTypeName = "NServiceBus.TableInformation";
-    static string TableEntityPartitionKeyTypeName = "NServiceBus.TableEntityPartitionKey";
-    static string SetAsDispatchedHolderTypeName = "NServiceBus.Persistence.AzureTable.SetAsDispatchedHolder";
     internal static string TableHolderResolverAssemblyQualifiedTypeName = "NServiceBus.Persistence.AzureTable.TableHolderResolver, NServiceBus.Persistence.AzureTable";
 
+    const string TableInformationTypeName = "NServiceBus.TableInformation";
+    const string TableEntityPartitionKeyTypeName = "NServiceBus.TableEntityPartitionKey";
+    const string SetAsDispatchedHolderTypeName = "NServiceBus.Persistence.AzureTable.SetAsDispatchedHolder";
+
+    static readonly Lazy<Type> TableInformationType =
+        new(() => Type.GetType("NServiceBus.TableInformation, NServiceBus.Persistence.AzureTable, Culture = neutral, PublicKeyToken = 9fc386479f8a226c"), LazyThreadSafetyMode.PublicationOnly);
+
+    static readonly Lazy<Type> TableEntityPartitionKeyType =
+        new(() => Type.GetType("NServiceBus.TableEntityPartitionKey, NServiceBus.Persistence.AzureTable, Culture=neutral, PublicKeyToken=9fc386479f8a226c"), LazyThreadSafetyMode.PublicationOnly);
+
+    static readonly Lazy<Type> SetAsDispatchedHolderType =
+        new(() => Type.GetType("NServiceBus.Persistence.AzureTable.SetAsDispatchedHolder, NServiceBus.Persistence.AzureTable, Version=4.0.0.0, Culture=neutral, PublicKeyToken=9fc386479f8a226c"), LazyThreadSafetyMode.PublicationOnly);
     /// <summary>
     /// Opens a <see cref="ITransactionalSession"/> connected to a AzureTable storage.
     /// </summary>
@@ -51,40 +60,54 @@ public static class AzureTableSupport
 
     static object CreateTableInformationInstance(string tableName)
     {
-        var tableInformationType = Type.GetType("NServiceBus.TableInformation, NServiceBus.Persistence.AzureTable, Version = 4.0.0.0, Culture = neutral, PublicKeyToken = 9fc386479f8a226c");
+        try
+        {
+            var tableInformationInstance = Activator.CreateInstance(TableInformationType.Value, tableName);
 
-        var tableInformationInstance = Activator.CreateInstance(tableInformationType, new object[] { tableName });
-
-        return tableInformationInstance;
+            return tableInformationInstance;
+        }
+        catch (Exception e)
+        {
+            throw new Exception($"Unable to create a `NServiceBus.TableInformation` instance for value '{tableName}'", e);
+        }
     }
 
     //TODO support other partitionkey values
     static object CreatePartitionKeyInstance(string partitionKeyString)
     {
-        //TODO make lazy for caching
-        var partitionKeyType = Type.GetType("NServiceBus.TableEntityPartitionKey, NServiceBus.Persistence.AzureTable, Version=4.0.0.0, Culture=neutral, PublicKeyToken=9fc386479f8a226c");
-        var partitionKeyInstance = Activator.CreateInstance(partitionKeyType, partitionKeyString);
+        try
+        {
+            var partitionKeyInstance = Activator.CreateInstance(TableEntityPartitionKeyType.Value, partitionKeyString);
 
-        //TODO throw exception if anything goes wrong because that would indicate a critical error
-        return partitionKeyInstance;
+            return partitionKeyInstance;
+        }
+        catch (Exception e)
+        {
+            throw new Exception($"Unable to create a `NServiceBus.TableEntityPartitionKey` instance for value '{partitionKeyString}'", e);
+        }
     }
 
     static object CreateSetAsDispatchedInstance(object tableHolderResolver, object partitionKey, ContextBag context)
     {
-        //TODO make lazy for caching
-        var setAsDispatchedType = Type.GetType("NServiceBus.Persistence.AzureTable.SetAsDispatchedHolder, NServiceBus.Persistence.AzureTable, Version=4.0.0.0, Culture=neutral, PublicKeyToken=9fc386479f8a226c");
-        var setAsDispatchedInstance = Activator.CreateInstance(setAsDispatchedType);
+        try
+        {
+            Type setAsDispatchedHolderType = SetAsDispatchedHolderType.Value;
+            var setAsDispatchedInstance = Activator.CreateInstance(setAsDispatchedHolderType);
 
-        var resolveAndSetIfAvailableMethod = tableHolderResolver.GetType().GetMethod("ResolveAndSetIfAvailable");
-        var tableHolderValue = resolveAndSetIfAvailableMethod.Invoke(tableHolderResolver, new[] { context });
+            var resolveAndSetIfAvailableMethod = tableHolderResolver.GetType().GetMethod("ResolveAndSetIfAvailable");
+            var tableHolderValue = resolveAndSetIfAvailableMethod.Invoke(tableHolderResolver, new[] { context });
 
-        var tableHolderProperty = setAsDispatchedType.GetProperty("TableHolder");
-        tableHolderProperty.SetValue(setAsDispatchedInstance, tableHolderValue);
+            var tableHolderProperty = setAsDispatchedHolderType.GetProperty("TableHolder");
+            tableHolderProperty.SetValue(setAsDispatchedInstance, tableHolderValue);
 
-        var partitionKeyProperty = setAsDispatchedType.GetProperty("PartitionKey");
-        partitionKeyProperty.SetValue(setAsDispatchedInstance, partitionKey);
+            var partitionKeyProperty = setAsDispatchedHolderType.GetProperty("PartitionKey");
+            partitionKeyProperty.SetValue(setAsDispatchedInstance, partitionKey);
 
-        //TODO throw exception if anything goes wrong because that would indicate a critical error
-        return setAsDispatchedInstance;
+            return setAsDispatchedInstance;
+        }
+        catch (Exception e)
+        {
+            throw new Exception("Unable to create a valid instance of `NServiceBus.Persistence.AzureTable.SetAsDispatchedHolder`", e);
+        }
     }
 }
