@@ -21,18 +21,17 @@
         {
             QueueAddress localQueueAddress = context.LocalQueueAddress();
 
-            if (context.Settings.TryGet("NServiceBus.Persistence.CosmosDB.OutboxStorage", out FeatureState cosmosSate) && cosmosSate == FeatureState.Active)
-            {
-                context.Pipeline.Register(new CosmosDBSupport.CosmosControlMessageBehavior(), "TODO");
-            }
-
             var isOutboxEnabled = context.Settings.IsFeatureActive(typeof(Outbox));
             var sessionCaptureTask = new SessionCaptureTask();
             context.RegisterStartupTask(sessionCaptureTask);
 
-
             if (isOutboxEnabled)
             {
+                if (context.Settings.TryGet("NServiceBus.Persistence.CosmosDB.OutboxStorage", out FeatureState cosmosSate) && cosmosSate == FeatureState.Active)
+                {
+                    context.Pipeline.Register(new CosmosDBSupport.CosmosControlMessageBehavior(), "Configures the partition key and container for the ITransactionalSession dispatch phase");
+                }
+
                 context.Services.AddScoped(sp =>
                 {
                     var physicalLocalQueueAddress = sp.GetRequiredService<ITransportAddressResolver>()
@@ -81,12 +80,12 @@
         {
             public IMessageSession CapturedSession { get; set; }
 
-            protected override Task OnStart(IMessageSession session, CancellationToken cancellationToken = new CancellationToken())
+            protected override Task OnStart(IMessageSession session, CancellationToken cancellationToken = new())
             {
                 CapturedSession = session;
                 return Task.CompletedTask;
             }
-            protected override Task OnStop(IMessageSession session, CancellationToken cancellationToken = new CancellationToken()) => Task.CompletedTask;
+            protected override Task OnStop(IMessageSession session, CancellationToken cancellationToken = new()) => Task.CompletedTask;
         }
     }
 }
