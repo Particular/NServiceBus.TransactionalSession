@@ -24,6 +24,7 @@ public static class AzureTableSupport
 
     static readonly Lazy<Type> SetAsDispatchedHolderType =
         new(() => Type.GetType("NServiceBus.Persistence.AzureTable.SetAsDispatchedHolder, NServiceBus.Persistence.AzureTable, Version=4.0.0.0, Culture=neutral, PublicKeyToken=9fc386479f8a226c"), LazyThreadSafetyMode.PublicationOnly);
+
     /// <summary>
     /// Opens a <see cref="ITransactionalSession"/> connected to a AzureTable storage.
     /// </summary>
@@ -72,7 +73,6 @@ public static class AzureTableSupport
         }
     }
 
-    //TODO support other partitionkey values
     static object CreatePartitionKeyInstance(string partitionKeyString)
     {
         try
