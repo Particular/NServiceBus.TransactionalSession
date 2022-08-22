@@ -33,7 +33,7 @@
                                         END;
                                         INSERT INTO [dbo].[SomeTable] VALUES ('{rowId}')";
 
-                    await storageSession.CreateSQLQuery(insertText).ListAsync();
+                    await storageSession.CreateSQLQuery(insertText).ExecuteUpdateAsync(CancellationToken.None);
 
                     await transactionalSession.Commit(CancellationToken.None).ConfigureAwait(false);
                 }))
