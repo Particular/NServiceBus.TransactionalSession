@@ -93,13 +93,6 @@ jobs:
           $dateTag = "Created=$(Get-Date -Format "yyyy-MM-dd")"
           $ignore = az tag create --resource-id $details.id --tags Package=TransactionalSession RunnerOS=${{ runner.os }} $dateTag
           echo "RavenDBConnectionString=http://$($fqdn):8080" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf-8 -Append
-      - name: Stop built-in MongoDB server (Windows)
-        if: runner.os == 'Windows' && contains(matrix.engines, 'MongoDB')
-        shell: pwsh
-        run:  |
-          # Need to stop default MongoDB server as it does not support replication
-          Stop-Service -Name "MongoDB"
-          Start-Sleep -s 5
       - name: Setup MongoDB server (Windows)
         if: runner.os == 'Windows' && contains(matrix.engines, 'MongoDB')
         shell: pwsh
@@ -147,6 +140,6 @@ jobs:
         run: |
           if ('${{ matrix.engines }}' -contains 'RavenDB') {
             echo "Removing container ${{ steps.setup-ravendb.outputs.hostname }}"
-            az container delete --resource-group GitHubActions-RG --name ${{ steps.setup-ravendb.outputs.hostname }} --yes
+            az container delete --resource-group GitHubActions-RG --name ${{ steps.setup-ravendb.outputs.hostname }} --yes | Out-Null
             echo "Removal complete"
           }
