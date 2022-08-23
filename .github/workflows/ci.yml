@@ -10,15 +10,26 @@ env:
   DOTNET_NOLOGO: true
 jobs:
   build:
-    name: ${{ matrix.name }}
+    name: ${{ matrix.os-name }}-${{ matrix.engines }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [ windows-2019, ubuntu-20.04 ]
+        engines: [
+          AzureStorage,
+          MongoDB,
+          SqlServer,
+          CosmosDB,
+          RavenDB,
+        ]
         include:
+          - engines: AzureStorage
+            upload-packages: true
+          # Add os-name alias for job name
           - os: windows-2019
-            name: Windows
+            os-name: Windows
           - os: ubuntu-20.04
-            name: Linux
+            os-name: Linux
       fail-fast: false
     steps:
       - name: Checkout
@@ -32,31 +43,30 @@ jobs:
       - name: Build
         run: dotnet build src --configuration Release
       - name: Upload packages
-        if: matrix.name == 'Windows'
+        if: matrix.upload-packages && matrix.name == 'Windows'
         uses: actions/upload-artifact@v3.1.0
         with:
           name: NuGet packages
           path: nugets/
           retention-days: 7
-# azure login
       - name: Azure login
         uses: azure/login@v1.4.5
         with:
           creds: ${{ secrets.AZURE_ACI_CREDENTIALS }}
-# setup RavenDB
       - name: Setup RavenDB server (Linux)
-        if: matrix.name == 'Linux'
+        if: matrix.name == 'Linux' && contains(matrix.engines, 'RavenDB')
         run: docker run --rm -d -p 8080:8080 -p 38888:38888 --name RavenDb -e RAVEN_Setup_Mode=None -e RAVEN_License_Eula_Accepted=true -e RAVEN_Security_UnsecuredAccessAllowed=PrivateNetwork ravendb/ravendb
-# setup MongoDB
+        env:
+          RavenDBConnectionString: "http://localhost:8080"
       - name: Stop built-in MongoDB server (Windows)
-        if: matrix.name == 'Windows'
+        if: matrix.name == 'Windows' && contains(matrix.engines, 'MongoDB')
         shell: pwsh
         run:  |
           # Need to stop default MongoDB server as it does not support replication
           Stop-Service -Name "MongoDB"
           Start-Sleep -s 5
       - name: Setup MongoDB server (Windows)
-        if: matrix.name == 'Windows'
+        if: matrix.name == 'Windows' && contains(matrix.engines, 'MongoDB')
         shell: pwsh
         run: |
           mkdir /temp/mongodb
@@ -65,31 +75,30 @@ jobs:
           Start-Sleep -s 5
           mongo --eval 'rs.initiate()'
       - name: Setup MongoDB server (Linux)
-        if: matrix.name == 'Linux'
+        if: matrix.name == 'Linux' && contains(matrix.engines, 'MongoDB')
         uses: supercharge/mongodb-github-action@1.7.0
         with:
           mongodb-replica-set: tr0
-# setup SQL Server
       - name: Setup SQL Server
+        if: contains(matrix.engines, 'SqlServer')
         uses: Particular/install-sql-server-action@v1.0.0
         with:
           connection-string-env-var: SQLServerConnectionString
           catalog: nservicebus
-# setup CosmosDB
       - name: Setup Cosmos DB
+        if: contains(matrix.engines, 'CosmosDB')
         uses: Particular/setup-cosmosdb-action@v1.0.0
         with:
           connection-string-name: CosmosDBPersistence_ConnectionString
           azure-credentials: ${{ secrets.AZURE_ACI_CREDENTIALS }}
           tag: TransactionalSession
-# setup Azure Storage
       - name: Setup Azure Storage Cosmos API
+        if: contains(matrix.engines, 'AzureStorage')
         uses: Particular/setup-cosmosdb-action@v1.0.0
         with:
           connection-string-name: AzureTableServerConnectionString
           azure-credentials: ${{ secrets.AZURE_ACI_CREDENTIALS }}
-          tag: AzureStoragePersistence
+          tag: TransactionalSession
           api: Table
-#run tests
       - name: Run tests
         uses: Particular/run-tests-action@v1.3.0
