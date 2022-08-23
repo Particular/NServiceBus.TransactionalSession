@@ -43,7 +43,7 @@ jobs:
       - name: Build
         run: dotnet build src --configuration Release
       - name: Upload packages
-        if: matrix.upload-packages && matrix.name == 'Windows'
+        if: matrix.upload-packages && runner.os == 'Windows'
         uses: actions/upload-artifact@v3.1.0
         with:
           name: NuGet packages
@@ -54,19 +54,19 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_ACI_CREDENTIALS }}
       - name: Setup RavenDB server (Linux)
-        if: matrix.name == 'Linux' && contains(matrix.engines, 'RavenDB')
+        if: runner.os == 'Linux' && contains(matrix.engines, 'RavenDB')
         run: docker run --rm -d -p 8080:8080 -p 38888:38888 --name RavenDb -e RAVEN_Setup_Mode=None -e RAVEN_License_Eula_Accepted=true -e RAVEN_Security_UnsecuredAccessAllowed=PrivateNetwork ravendb/ravendb
         env:
           RavenDBConnectionString: "http://localhost:8080"
       - name: Stop built-in MongoDB server (Windows)
-        if: matrix.name == 'Windows' && contains(matrix.engines, 'MongoDB')
+        if: runner.os == 'Windows' && contains(matrix.engines, 'MongoDB')
         shell: pwsh
         run:  |
           # Need to stop default MongoDB server as it does not support replication
           Stop-Service -Name "MongoDB"
           Start-Sleep -s 5
       - name: Setup MongoDB server (Windows)
-        if: matrix.name == 'Windows' && contains(matrix.engines, 'MongoDB')
+        if: runner.os == 'Windows' && contains(matrix.engines, 'MongoDB')
         shell: pwsh
         run: |
           mkdir /temp/mongodb
@@ -77,7 +77,7 @@ jobs:
         env:
           MongoDBConnectionString: "mongodb://127.0.0.1:27017"
       - name: Setup MongoDB server (Linux)
-        if: matrix.name == 'Linux' && contains(matrix.engines, 'MongoDB')
+        if: runner.os == 'Linux' && contains(matrix.engines, 'MongoDB')
         uses: supercharge/mongodb-github-action@1.7.0
         with:
           mongodb-replica-set: tr0
