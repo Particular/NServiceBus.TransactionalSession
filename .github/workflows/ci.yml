@@ -50,6 +50,7 @@ jobs:
           path: nugets/
           retention-days: 7
       - name: Azure login
+        if: contains(matrix.engines, 'AzureStorage') || contains(matrix.engines, 'CosmosDB')
         uses: azure/login@v1.4.5
         with:
           creds: ${{ secrets.AZURE_ACI_CREDENTIALS }}
