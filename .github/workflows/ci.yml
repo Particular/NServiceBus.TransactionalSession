@@ -12,10 +12,6 @@ jobs:
   build:
     name: ${{ matrix.os-name }}-${{ matrix.engines }}
     runs-on: ${{ matrix.os }}
-    env:
-      # define the environment variables that we require on the job level
-      MongoDBConnectionString: ''
-      RavenDBConnectionString: ''
     strategy:
       matrix:
         os: [ windows-2019, ubuntu-20.04 ]
@@ -60,8 +56,10 @@ jobs:
       - name: Setup RavenDB server (Linux)
         if: runner.os == 'Linux' && contains(matrix.engines, 'RavenDB')
         run: docker run --rm -d -p 8080:8080 -p 38888:38888 --name RavenDb -e RAVEN_Setup_Mode=None -e RAVEN_License_Eula_Accepted=true -e RAVEN_Security_UnsecuredAccessAllowed=PrivateNetwork ravendb/ravendb
-        env:
-          RavenDBConnectionString: "http://localhost:8080"
+      - name: Set RavenDB ConnectionString
+        if: runner.os == 'Linux' && contains(matrix.engines, 'RavenDB')
+        run: |
+          echo "RavenDBConnectionString=http://localhost:8080" >> $GITHUB_ENV
       - name: Stop built-in MongoDB server (Windows)
         if: runner.os == 'Windows' && contains(matrix.engines, 'MongoDB')
         shell: pwsh
@@ -78,15 +76,15 @@ jobs:
           Start-Process mongod -ArgumentList "--dbpath /temp/mongodb --replSet tr0 --bind_ip 127.0.0.1" -WindowStyle Hidden
           Start-Sleep -s 5
           mongo --eval 'rs.initiate()'
-        env:
-          MongoDBConnectionString: "mongodb://127.0.0.1:27017"
       - name: Setup MongoDB server (Linux)
         if: runner.os == 'Linux' && contains(matrix.engines, 'MongoDB')
         uses: supercharge/mongodb-github-action@1.7.0
         with:
           mongodb-replica-set: tr0
-        env:
-          MongoDBConnectionString: "mongodb://127.0.0.1:27017"
+      - name: Set MongoDB ConnectionString
+        if: contains(matrix.engines, 'MongoDB')
+        run: |
+          echo "MongoDBConnectionString=mongodb://127.0.0.1:27017" >> $GITHUB_ENV
       - name: Setup SQL Server
         if: contains(matrix.engines, 'SqlServer')
         uses: Particular/install-sql-server-action@v1.0.0
