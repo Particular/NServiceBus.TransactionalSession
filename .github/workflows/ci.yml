@@ -25,6 +25,11 @@ jobs:
         include:
           - engines: AzureStorage
             upload-packages: true
+            requires-azure-login: true
+          - engines: CosmosDB
+            requires-azure-login: true
+          - engines: RavenDB
+            requires-azure-login: true
           # Add os-name alias for job name
           - os: windows-2019
             os-name: Windows
@@ -50,7 +55,7 @@ jobs:
           path: nugets/
           retention-days: 7
       - name: Azure login
-        if: contains(matrix.engines, 'AzureStorage') || contains(matrix.engines, 'CosmosDB')
+        if: matrix.requires-azure-login
         uses: azure/login@v1.4.5
         with:
           creds: ${{ secrets.AZURE_ACI_CREDENTIALS }}
