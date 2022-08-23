@@ -5,7 +5,7 @@ using NUnit.Framework;
 using Persistence;
 
 [SetUpFixture]
-[EnvironmentSpecificTest(EnvironmentVariables.SqlServerConnectionString)]
+[ExecuteOnlyForEnvironmentWith(EnvironmentVariables.SqlServerConnectionString)]
 public class NHibernateSetup
 {
     [OneTimeSetUp]

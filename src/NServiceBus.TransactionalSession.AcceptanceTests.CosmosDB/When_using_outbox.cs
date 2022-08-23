@@ -10,7 +10,7 @@
     using Newtonsoft.Json;
     using NUnit.Framework;
 
-    [EnvironmentSpecificTest(EnvironmentVariables.CosmosConnectionString)]
+    [ExecuteOnlyForEnvironmentWith(EnvironmentVariables.CosmosConnectionString)]
     public class When_using_outbox : NServiceBusAcceptanceTest
     {
         static string PartitionKeyHeaderName = "Tests.PartitionKey";

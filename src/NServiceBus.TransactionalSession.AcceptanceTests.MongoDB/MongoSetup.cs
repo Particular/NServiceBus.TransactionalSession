@@ -7,7 +7,7 @@
     using NUnit.Framework;
 
     [SetUpFixture]
-    [EnvironmentSpecificTest(EnvironmentVariables.MongoDBConnectionString)]
+    [ExecuteOnlyForEnvironmentWith(EnvironmentVariables.MongoDBConnectionString)]
     public class MongoSetup
     {
         public const string DatabaseName = "TransactionalSessionAcceptanceTests";

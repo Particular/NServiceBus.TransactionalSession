@@ -8,7 +8,7 @@
     using AcceptanceTesting;
     using NUnit.Framework;
 
-    [EnvironmentSpecificTest(EnvironmentVariables.RavenDBConnectionString)]
+    [ExecuteOnlyForEnvironmentWith(EnvironmentVariables.RavenDBConnectionString)]
     public class When_using_outbox : NServiceBusAcceptanceTest
     {
         [Test]

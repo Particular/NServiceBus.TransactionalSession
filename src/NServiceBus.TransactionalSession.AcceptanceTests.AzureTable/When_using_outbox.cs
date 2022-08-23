@@ -11,7 +11,7 @@
     using Pipeline;
     using System.Linq;
 
-    [EnvironmentSpecificTest(EnvironmentVariables.AzureTableServerConnectionString)]
+    [ExecuteOnlyForEnvironmentWith(EnvironmentVariables.AzureTableServerConnectionString)]
     public class When_using_outbox : NServiceBusAcceptanceTest
     {
         static string PartitionKeyHeaderName = "Tests.PartitionKey";

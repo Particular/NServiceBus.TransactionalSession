@@ -10,7 +10,7 @@
     using Raven.Client.ServerWide.Operations;
 
     [SetUpFixture]
-    [EnvironmentSpecificTest(EnvironmentVariables.RavenDBConnectionString)]
+    [ExecuteOnlyForEnvironmentWith(EnvironmentVariables.RavenDBConnectionString)]
     public class RavenSetup
     {
         public const string DefaultDatabaseName = "TransactionalSessionTests";

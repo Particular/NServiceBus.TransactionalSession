@@ -8,7 +8,7 @@ using AcceptanceTesting;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
-[EnvironmentSpecificTest(EnvironmentVariables.RavenDBConnectionString)]
+[ExecuteOnlyForEnvironmentWith(EnvironmentVariables.RavenDBConnectionString)]
 public class When_using_outbox_with_multitenancy : NServiceBusAcceptanceTest
 {
     [Test]

@@ -7,7 +7,7 @@ using Microsoft.Azure.Cosmos.Table;
 using NUnit.Framework;
 
 [SetUpFixture]
-[EnvironmentSpecificTest(EnvironmentVariables.AzureTableServerConnectionString)]
+[ExecuteOnlyForEnvironmentWith(EnvironmentVariables.AzureTableServerConnectionString)]
 public class AzureTableSetup
 {
     [OneTimeSetUp]

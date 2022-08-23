@@ -12,7 +12,7 @@
     using Persistence.CosmosDB;
 
     [SetUpFixture]
-    [EnvironmentSpecificTest(EnvironmentVariables.CosmosConnectionString)]
+    [ExecuteOnlyForEnvironmentWith(EnvironmentVariables.CosmosConnectionString)]
     public class CosmosSetup
     {
         [OneTimeSetUp]
