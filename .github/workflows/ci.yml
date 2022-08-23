@@ -137,9 +137,11 @@ jobs:
       - name: Run tests
         uses: Particular/run-tests-action@v1.3.0
       - name: Teardown RavenDB
-        if: ${{ always() }} && contains(matrix.engines, 'RavenDB')
+        if: ${{ always() }}
         shell: pwsh
         run: |
-          echo "Removing container ${{ steps.setup-ravendb.outputs.hostname }}"
-          az container delete --resource-group GitHubActions-RG --name ${{ steps.setup-ravendb.outputs.hostname }} --yes
-          echo "Removal complete"
+          if ('${{ matrix.engines }}' -contains 'RavenDB') {
+            echo "Removing container ${{ steps.setup-ravendb.outputs.hostname }}"
+            az container delete --resource-group GitHubActions-RG --name ${{ steps.setup-ravendb.ravendb.hostname }} --yes
+            echo "Removal complete"
+          }
