@@ -12,6 +12,10 @@ jobs:
   build:
     name: ${{ matrix.os-name }}-${{ matrix.engines }}
     runs-on: ${{ matrix.os }}
+    env:
+      # define the environment variables that we require on the job level
+      MongoDBConnectionString: ''
+      RavenDBConnectionString: ''
     strategy:
       matrix:
         os: [ windows-2019, ubuntu-20.04 ]
