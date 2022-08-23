@@ -8,5 +8,5 @@
 
     public const string CosmosConnectionString = "CosmosDBPersistence_ConnectionString";
 
-    public const string MongoDBConnectionString = "NServiceBusStorageMongoDB_ConnectionString";
+    public const string MongoDBConnectionString = "MongoDBConnectionString";
 }

@@ -74,11 +74,15 @@ jobs:
           Start-Process mongod -ArgumentList "--dbpath /temp/mongodb --replSet tr0 --bind_ip 127.0.0.1" -WindowStyle Hidden
           Start-Sleep -s 5
           mongo --eval 'rs.initiate()'
+        env:
+          MongoDBConnectionString: "mongodb://127.0.0.1:27017"
       - name: Setup MongoDB server (Linux)
         if: matrix.name == 'Linux' && contains(matrix.engines, 'MongoDB')
         uses: supercharge/mongodb-github-action@1.7.0
         with:
           mongodb-replica-set: tr0
+        env:
+          MongoDBConnectionString: "mongodb://127.0.0.1:27017"
       - name: Setup SQL Server
         if: contains(matrix.engines, 'SqlServer')
         uses: Particular/install-sql-server-action@v1.0.0
