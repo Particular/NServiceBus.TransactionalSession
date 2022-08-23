@@ -147,6 +147,6 @@ jobs:
         run: |
           if ('${{ matrix.engines }}' -contains 'RavenDB') {
             echo "Removing container ${{ steps.setup-ravendb.outputs.hostname }}"
-            az container delete --resource-group GitHubActions-RG --name ${{ steps.setup-ravendb.ravendb.hostname }} --yes
+            az container delete --resource-group GitHubActions-RG --name ${{ steps.setup-ravendb.outputs.hostname }} --yes
             echo "Removal complete"
           }
