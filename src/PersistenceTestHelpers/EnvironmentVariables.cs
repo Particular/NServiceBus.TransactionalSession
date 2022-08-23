@@ -4,7 +4,7 @@
 
     public const string RavenDBConnectionString = "RavenDBConnectionString";
 
-    public const string SqlServerConnectionString = "SqlServerConnectionString";
+    public const string SqlServerConnectionString = "SQLServerConnectionString";
 
     public const string CosmosConnectionString = "CosmosDBPersistence_ConnectionString";
 
