@@ -12,7 +12,7 @@ using NUnit.Framework;
 using Persistence.Sql;
 
 [ExecuteOnlyForEnvironmentWith(EnvironmentVariables.SqlServerConnectionString)]
-public class When_running_with_multitennancy : NServiceBusAcceptanceTest
+public class When_running_with_multitenancy : NServiceBusAcceptanceTest
 {
     static readonly string tenantId = "aTenant";
     static readonly string tenantIdHeaderName = "TenantName";
