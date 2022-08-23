@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using Persistence.Sql;
 
+[ExecuteOnlyForEnvironmentWith(EnvironmentVariables.SqlServerConnectionString)]
 public class When_running_with_multitennancy : NServiceBusAcceptanceTest
 {
     static readonly string tenantId = "aTenant";
@@ -156,7 +157,7 @@ public class When_running_with_multitennancy : NServiceBusAcceptanceTest
 
         static string GetBaseConnectionString()
         {
-            string connection = Environment.GetEnvironmentVariable("SQLServerConnectionString");
+            string connection = EnvironmentHelper.GetEnvironmentVariable(EnvironmentVariables.SqlServerConnectionString);
             if (string.IsNullOrWhiteSpace(connection))
             {
                 throw new Exception("SQLServerConnectionString environment variable is empty");

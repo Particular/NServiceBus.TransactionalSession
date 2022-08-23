@@ -10,15 +10,31 @@ env:
   DOTNET_NOLOGO: true
 jobs:
   build:
-    name: ${{ matrix.name }}
+    name: ${{ matrix.os-name }}-${{ matrix.engines }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [ windows-2019, ubuntu-20.04 ]
+        engines: [
+          AzureStorage,
+          MongoDB,
+          SqlServer,
+          CosmosDB,
+          RavenDB,
+        ]
         include:
+          - engines: AzureStorage
+            upload-packages: true
+            requires-azure-login: true
+          - engines: CosmosDB
+            requires-azure-login: true
+          - engines: RavenDB
+            requires-azure-login: true
+          # Add os-name alias for job name
           - os: windows-2019
-            name: Windows
+            os-name: Windows
           - os: ubuntu-20.04
-            name: Linux
+            os-name: Linux
       fail-fast: false
     steps:
       - name: Checkout
@@ -32,64 +48,85 @@ jobs:
       - name: Build
         run: dotnet build src --configuration Release
       - name: Upload packages
-        if: matrix.name == 'Windows'
+        if: matrix.upload-packages && runner.os == 'Windows'
         uses: actions/upload-artifact@v3.1.0
         with:
           name: NuGet packages
           path: nugets/
           retention-days: 7
-# azure login
       - name: Azure login
+        if: matrix.requires-azure-login
         uses: azure/login@v1.4.5
         with:
           creds: ${{ secrets.AZURE_ACI_CREDENTIALS }}
-# setup RavenDB
-      - name: Setup RavenDB server (Linux)
-        if: matrix.name == 'Linux'
-        run: docker run --rm -d -p 8080:8080 -p 38888:38888 --name RavenDb -e RAVEN_Setup_Mode=None -e RAVEN_License_Eula_Accepted=true -e RAVEN_Security_UnsecuredAccessAllowed=PrivateNetwork ravendb/ravendb
-# setup MongoDB
-      - name: Stop built-in MongoDB server (Windows)
-        if: matrix.name == 'Windows'
-        shell: pwsh
-        run:  |
-          # Need to stop default MongoDB server as it does not support replication
-          Stop-Service -Name "MongoDB"
-          Start-Sleep -s 5
-      - name: Setup MongoDB server (Windows)
-        if: matrix.name == 'Windows'
+      - name: Setup RavenDB
+        id: setup-ravendb
+        if: contains(matrix.engines, 'RavenDB')
         shell: pwsh
         run: |
-          mkdir /temp/mongodb
-          # We need a MongoDB server started with a replica set configuration:
-          Start-Process mongod -ArgumentList "--dbpath /temp/mongodb --replSet tr0 --bind_ip 127.0.0.1" -WindowStyle Hidden
-          Start-Sleep -s 5
-          mongo --eval 'rs.initiate()'
-      - name: Setup MongoDB server (Linux)
-        if: matrix.name == 'Linux'
-        uses: supercharge/mongodb-github-action@1.7.0
+          $hostInfo = curl -H Metadata:true "169.254.169.254/metadata/instance?api-version=2017-08-01" | ConvertFrom-Json
+          $region = $hostInfo.compute.location
+          
+          $hostname = "psw-ts-ravendb-$(Get-Random)"
+          echo "::set-output name=hostname::$hostname"
+          echo "Creating RavenDB container $hostname in $region (This can take a while.)"
+          $details = az container create --image ravendb/ravendb:5.3-ubuntu-latest  --name $hostname --location $region --dns-name-label $hostname --resource-group GitHubActions-RG --cpu 4 --memory 8 --ports 8080 38888 --ip-address public -e RAVEN_ARGS='--ServerUrl=http://0.0.0.0:8080 --Setup.Mode=None --License.Eula.Accepted=true --Security.UnsecuredAccessAllowed=PublicNetwork' | ConvertFrom-Json
+          $fqdn=$details.ipAddress.fqdn
+          echo "::add-mask::$fqdn"
+          echo "Verifying connection..."
+          $tcpClient = New-Object Net.Sockets.TcpClient
+          $timeout = (Get-Date).AddMinutes(6)
+          while ($tcpClient.Connected -ne "True") {
+            try {
+                echo "Trying to connect..."
+                $tcpClient.Connect($fqdn, 8080)
+            } catch {
+                if ($timeout -lt (Get-Date)) {
+                  throw "Timed out verifying connection"
+                }
+                Start-Sleep -Seconds 2
+            }
+          }
+          echo "Connection verified"
+          $tcpClient.Close()
+          echo "Tagging container image"
+          $dateTag = "Created=$(Get-Date -Format "yyyy-MM-dd")"
+          $ignore = az tag create --resource-id $details.id --tags Package=TransactionalSession RunnerOS=${{ runner.os }} $dateTag
+          echo "RavenDBConnectionString=http://$($fqdn):8080" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf-8 -Append
+      - name: Setup MongoDB Server
+        uses: Particular/setup-mongodb-action@v1.0.0
         with:
+          connection-string-name: MongoDBConnectionString
           mongodb-replica-set: tr0
-# setup SQL Server
       - name: Setup SQL Server
+        if: contains(matrix.engines, 'SqlServer')
         uses: Particular/install-sql-server-action@v1.0.0
         with:
           connection-string-env-var: SQLServerConnectionString
           catalog: nservicebus
-# setup CosmosDB
       - name: Setup Cosmos DB
+        if: contains(matrix.engines, 'CosmosDB')
         uses: Particular/setup-cosmosdb-action@v1.0.0
         with:
           connection-string-name: CosmosDBPersistence_ConnectionString
           azure-credentials: ${{ secrets.AZURE_ACI_CREDENTIALS }}
           tag: TransactionalSession
-# setup Azure Storage
       - name: Setup Azure Storage Cosmos API
+        if: contains(matrix.engines, 'AzureStorage')
         uses: Particular/setup-cosmosdb-action@v1.0.0
         with:
           connection-string-name: AzureTableServerConnectionString
           azure-credentials: ${{ secrets.AZURE_ACI_CREDENTIALS }}
-          tag: AzureStoragePersistence
+          tag: TransactionalSession
           api: Table
-#run tests
       - name: Run tests
         uses: Particular/run-tests-action@v1.3.0
+      - name: Teardown RavenDB
+        if: ${{ always() }}
+        shell: pwsh
+        run: |
+          if ('${{ matrix.engines }}' -contains 'RavenDB') {
+            echo "Removing container ${{ steps.setup-ravendb.outputs.hostname }}"
+            az container delete --resource-group GitHubActions-RG --name ${{ steps.setup-ravendb.outputs.hostname }} --yes | Out-Null
+            echo "Removal complete"
+          }

@@ -7,6 +7,7 @@
     using NUnit.Framework;
 
     [SetUpFixture]
+    [ExecuteOnlyForEnvironmentWith(EnvironmentVariables.MongoDBConnectionString)]
     public class MongoSetup
     {
         public const string DatabaseName = "TransactionalSessionAcceptanceTests";
@@ -16,7 +17,7 @@
         [OneTimeSetUp]
         public void Setup()
         {
-            var containerConnectionString = Environment.GetEnvironmentVariable("NServiceBusStorageMongoDB_ConnectionString");
+            var containerConnectionString = EnvironmentHelper.GetEnvironmentVariable(EnvironmentVariables.MongoDBConnectionString);
             MongoClient = string.IsNullOrWhiteSpace(containerConnectionString) ? new MongoClient() : new MongoClient(containerConnectionString);
 
             TransactionSessionDefaultServer.ConfigurePersistence = configuration =>

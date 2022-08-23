@@ -8,6 +8,7 @@
     using Microsoft.Data.SqlClient;
     using NUnit.Framework;
 
+    [ExecuteOnlyForEnvironmentWith(EnvironmentVariables.SqlServerConnectionString)]
     public class When_using_outbox : NServiceBusAcceptanceTest
     {
         [OneTimeSetUp]

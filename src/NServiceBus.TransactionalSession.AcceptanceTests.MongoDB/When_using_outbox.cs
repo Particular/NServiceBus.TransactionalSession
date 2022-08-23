@@ -8,6 +8,7 @@
     using MongoDB.Driver;
     using NUnit.Framework;
 
+    [ExecuteOnlyForEnvironmentWith(EnvironmentVariables.MongoDBConnectionString)]
     public class When_using_outbox : NServiceBusAcceptanceTest
     {
         const string CollectionName = "SampleDocumentCollection";

@@ -7,6 +7,7 @@ using Microsoft.Azure.Cosmos.Table;
 using NUnit.Framework;
 
 [SetUpFixture]
+[ExecuteOnlyForEnvironmentWith(EnvironmentVariables.AzureTableServerConnectionString)]
 public class AzureTableSetup
 {
     [OneTimeSetUp]
@@ -35,7 +36,7 @@ public class AzureTableSetup
     public Task OneTimeTearDown() => Table.DeleteIfExistsAsync();
 
     public static string GetConnectionString() =>
-        Environment.GetEnvironmentVariable("AzureTableServerConnectionString") ?? "UseDevelopmentStorage=true";
+        EnvironmentHelper.GetEnvironmentVariable(EnvironmentVariables.AzureTableServerConnectionString) ?? "UseDevelopmentStorage=true";
 
     public static string TableName;
     public static CloudTableClient TableClient;

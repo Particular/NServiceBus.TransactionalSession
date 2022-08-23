@@ -5,6 +5,7 @@ using NUnit.Framework;
 using Persistence;
 
 [SetUpFixture]
+[ExecuteOnlyForEnvironmentWith(EnvironmentVariables.SqlServerConnectionString)]
 public class NHibernateSetup
 {
     [OneTimeSetUp]
@@ -22,12 +23,11 @@ public class NHibernateSetup
 
     public static string GetConnectionString()
     {
-        var environmentVariableName = "SQLServerConnectionString";
-        var connectionString = Environment.GetEnvironmentVariable(environmentVariableName);
+        var connectionString = EnvironmentHelper.GetEnvironmentVariable(EnvironmentVariables.SqlServerConnectionString);
 
         if (connectionString == null)
         {
-            throw new Exception($"No connection string found in environment variable {environmentVariableName}");
+            throw new Exception($"No connection string found in environment variable {EnvironmentVariables.SqlServerConnectionString}");
         }
 
         return connectionString;
