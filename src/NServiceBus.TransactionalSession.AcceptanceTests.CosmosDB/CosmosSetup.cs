@@ -65,8 +65,7 @@
 
         static string GetEnvironmentVariable(string variable, string fallbackEmulatorConnectionString)
         {
-            var candidate = Environment.GetEnvironmentVariable(variable, EnvironmentVariableTarget.User);
-            var environmentVariableConnectionString = string.IsNullOrWhiteSpace(candidate) ? Environment.GetEnvironmentVariable(variable) : candidate;
+            var environmentVariableConnectionString = EnvironmentHelper.GetEnvironmentVariable(variable);
 
             return string.IsNullOrEmpty(environmentVariableConnectionString) ? fallbackEmulatorConnectionString : environmentVariableConnectionString;
         }

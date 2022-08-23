@@ -36,7 +36,7 @@ public class AzureTableSetup
     public Task OneTimeTearDown() => Table.DeleteIfExistsAsync();
 
     public static string GetConnectionString() =>
-        Environment.GetEnvironmentVariable(EnvironmentVariables.AzureTableServerConnectionString) ?? "UseDevelopmentStorage=true";
+        EnvironmentHelper.GetEnvironmentVariable(EnvironmentVariables.AzureTableServerConnectionString) ?? "UseDevelopmentStorage=true";
 
     public static string TableName;
     public static CloudTableClient TableClient;

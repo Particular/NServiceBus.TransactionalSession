@@ -17,7 +17,7 @@
         [OneTimeSetUp]
         public void Setup()
         {
-            var containerConnectionString = Environment.GetEnvironmentVariable(EnvironmentVariables.MongoDBConnectionString);
+            var containerConnectionString = EnvironmentHelper.GetEnvironmentVariable(EnvironmentVariables.MongoDBConnectionString);
             MongoClient = string.IsNullOrWhiteSpace(containerConnectionString) ? new MongoClient() : new MongoClient(containerConnectionString);
 
             TransactionSessionDefaultServer.ConfigurePersistence = configuration =>

@@ -23,12 +23,11 @@ public class NHibernateSetup
 
     public static string GetConnectionString()
     {
-        var environmentVariableName = EnvironmentVariables.SqlServerConnectionString;
-        var connectionString = Environment.GetEnvironmentVariable(environmentVariableName);
+        var connectionString = EnvironmentHelper.GetEnvironmentVariable(EnvironmentVariables.SqlServerConnectionString);
 
         if (connectionString == null)
         {
-            throw new Exception($"No connection string found in environment variable {environmentVariableName}");
+            throw new Exception($"No connection string found in environment variable {EnvironmentVariables.SqlServerConnectionString}");
         }
 
         return connectionString;

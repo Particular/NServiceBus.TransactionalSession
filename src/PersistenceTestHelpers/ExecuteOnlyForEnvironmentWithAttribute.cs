@@ -13,7 +13,7 @@ public sealed class ExecuteOnlyForEnvironmentWithAttribute : Attribute, IApplyTo
 
     public void ApplyToContext(TestExecutionContext context)
     {
-        var environmentVariableValue = Environment.GetEnvironmentVariable(environmentVariableName);
+        var environmentVariableValue = EnvironmentHelper.GetEnvironmentVariable(environmentVariableName);
 
         if (string.IsNullOrWhiteSpace(environmentVariableValue))
         {

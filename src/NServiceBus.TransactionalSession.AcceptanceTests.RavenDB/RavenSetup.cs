@@ -65,14 +65,13 @@
             };
         }
 
-        public static string GetConnectionString()
+        static string GetConnectionString()
         {
-            var environmentVariableName = EnvironmentVariables.RavenDBConnectionString;
-            var connectionString = Environment.GetEnvironmentVariable(environmentVariableName);
+            var connectionString = EnvironmentHelper.GetEnvironmentVariable(EnvironmentVariables.RavenDBConnectionString);
 
             if (connectionString == null)
             {
-                throw new Exception($"No connection string found in environment variable {environmentVariableName}");
+                throw new Exception($"No connection string found in environment variable {EnvironmentVariables.RavenDBConnectionString}");
             }
 
             return connectionString;
