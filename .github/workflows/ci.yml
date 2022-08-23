@@ -93,26 +93,11 @@ jobs:
           $dateTag = "Created=$(Get-Date -Format "yyyy-MM-dd")"
           $ignore = az tag create --resource-id $details.id --tags Package=TransactionalSession RunnerOS=${{ runner.os }} $dateTag
           echo "RavenDBConnectionString=http://$($fqdn):8080" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf-8 -Append
-      - name: Setup MongoDB server (Windows)
-        if: runner.os == 'Windows' && contains(matrix.engines, 'MongoDB')
-        shell: pwsh
-        run: |
-          mkdir D:\temp\nservicebus-mongodb
-          mkdir D:\temp\nservicebus-mongodb\data
-          mkdir D:\temp\nservicebus-mongodb\logs
-          # We need a MongoDB server started with a replica set configuration:
-          mongod --dbpath D:\temp\nservicebus-mongodb\data --logpath D:\temp\nservicebus-mongodb\logs\logs.txt --replSet tr0 --bind_ip 127.0.0.1 --install --serviceName NServiceBusMongoDB --serviceDisplayName NServiceBusMongoDB
-          net start NServiceBusMongoDB
-          mongo --eval 'rs.initiate()'
-      - name: Setup MongoDB server (Linux)
-        if: runner.os == 'Linux' && contains(matrix.engines, 'MongoDB')
-        uses: supercharge/mongodb-github-action@1.7.0
+      - name: Setup MongoDB Server
+        uses: Particular/setup-mongodb-action@main
         with:
+          connection-string-name: MongoDBConnectionString
           mongodb-replica-set: tr0
-      - name: Set MongoDB ConnectionString
-        if: contains(matrix.engines, 'MongoDB')
-        run: |
-          echo "MongoDBConnectionString=mongodb://127.0.0.1:27017" >> $GITHUB_ENV
       - name: Setup SQL Server
         if: contains(matrix.engines, 'SqlServer')
         uses: Particular/install-sql-server-action@v1.0.0
