@@ -10,7 +10,7 @@
     using Transport;
 
     /// <summary>
-    /// Provides support for  <see cref="IBatchedMessageSession"/> and <see cref="ITransactionalSession" />.
+    /// Provides <see cref="ITransactionalSession" />.
     /// </summary>
     public class TransactionalSessionFeature : Feature
     {
@@ -21,46 +21,55 @@
         {
             QueueAddress localQueueAddress = context.LocalQueueAddress();
 
+            if (context.Settings.TryGet("NServiceBus.Persistence.CosmosDB.OutboxStorage", out FeatureState cosmosSate) && cosmosSate == FeatureState.Active)
+            {
+                context.Pipeline.Register(new CosmosDBSupport.CosmosControlMessageBehavior(), "TODO");
+            }
+
             var isOutboxEnabled = context.Settings.IsFeatureActive(typeof(Outbox));
             var sessionCaptureTask = new SessionCaptureTask();
             context.RegisterStartupTask(sessionCaptureTask);
-
-            if (isOutboxEnabled)
+            context.Services.AddScoped(sp =>
             {
-                if (context.Settings.TryGet("NServiceBus.Persistence.CosmosDB.OutboxStorage", out FeatureState cosmosSate) && cosmosSate == FeatureState.Active)
-                {
-                    context.Pipeline.Register(new CosmosDBSupport.CosmosControlMessageBehavior(), "Configures the partition key and container for the ITransactionalSession dispatch phase");
-                }
+                var physicalLocalQueueAddress = sp.GetRequiredService<ITransportAddressResolver>()
+                    .ToTransportAddress(localQueueAddress);
 
-                context.Services.AddScoped(sp =>
-                {
-                    var physicalLocalQueueAddress = sp.GetRequiredService<ITransportAddressResolver>()
-                        .ToTransportAddress(localQueueAddress);
+                ITransactionalSession transactionalSession;
 
-                    ITransactionalSession transactionalSession = new OutboxTransactionalSession(
+                if (isOutboxEnabled)
+                {
+                    transactionalSession = new OutboxTransactionalSession(
                         sp.GetRequiredService<IOutboxStorage>(),
                         sp.GetRequiredService<ICompletableSynchronizedStorageSession>(),
                         sessionCaptureTask.CapturedSession,
                         sp.GetRequiredService<IMessageDispatcher>(),
                         physicalLocalQueueAddress
-                    );
+                        );
+                }
+                else
+                {
+                    transactionalSession = new TransactionalSession(
+                        sp.GetRequiredService<ICompletableSynchronizedStorageSession>(),
+                        sessionCaptureTask.CapturedSession,
+                        sp.GetRequiredService<IMessageDispatcher>());
+                }
 
-                    if (context.Settings.TryGet("NServiceBus.Features.NHibernateOutbox", out FeatureState nhState) &&
-                        nhState == FeatureState.Active)
-                    {
-                        transactionalSession.PersisterSpecificOptions.Set(context.Settings.EndpointName());
-                    }
+                if (context.Settings.TryGet("NServiceBus.Features.NHibernateOutbox", out FeatureState nhState) && nhState == FeatureState.Active)
+                {
+                    transactionalSession.PersisterSpecificOptions.Set(context.Settings.EndpointName());
+                }
 
-                    if (context.Settings.TryGet("NServiceBus.Persistence.AzureTable.OutboxStorage",
-                            out FeatureState atState) && atState == FeatureState.Active)
-                    {
-                        transactionalSession.PersisterSpecificOptions.Set(
-                            sp.GetRequiredService(Type.GetType(AzureTableSupport.TableHolderResolverAssemblyQualifiedTypeName)));
-                    }
+                if (context.Settings.TryGet("NServiceBus.Persistence.AzureTable.OutboxStorage", out FeatureState atState) && atState == FeatureState.Active)
+                {
+                    transactionalSession.PersisterSpecificOptions.Set(sp.GetRequiredService(Type.GetType(AzureTableSupport.TableHolderResolverAssemblyQualifiedTypeName)));
+                }
 
-                    return transactionalSession;
-                });
 
+                return transactionalSession;
+            });
+
+            if (isOutboxEnabled)
+            {
                 context.Pipeline.Register(sp => new TransactionalSessionDelayControlMessageBehavior(sp.GetRequiredService<IMessageDispatcher>(),
                     sp.GetRequiredService<ITransportAddressResolver>().ToTransportAddress(localQueueAddress)
                 ), "Transaction commit control message delay behavior");
@@ -68,24 +77,20 @@
                 context.Pipeline.Register(new TransactionalSessionControlMessageExceptionBehavior(),
                     "Transaction commit control message delay acknowledgement behavior");
             }
-            else
-            {
-                context.Services.AddScoped<IBatchedMessageSession>(sp => new BatchedMessageSession(
-                    sessionCaptureTask.CapturedSession,
-                    sp.GetRequiredService<IMessageDispatcher>()));
-            }
         }
 
         class SessionCaptureTask : FeatureStartupTask
         {
             public IMessageSession CapturedSession { get; set; }
 
-            protected override Task OnStart(IMessageSession session, CancellationToken cancellationToken = new())
+            protected override Task OnStart(IMessageSession session, CancellationToken cancellationToken = new CancellationToken())
             {
                 CapturedSession = session;
                 return Task.CompletedTask;
             }
-            protected override Task OnStop(IMessageSession session, CancellationToken cancellationToken = new()) => Task.CompletedTask;
+
+            protected override Task OnStop(IMessageSession session, CancellationToken cancellationToken = new CancellationToken()) => Task.CompletedTask;
+
         }
     }
 }

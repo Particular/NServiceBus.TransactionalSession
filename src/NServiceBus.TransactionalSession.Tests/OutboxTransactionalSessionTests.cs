@@ -13,7 +13,7 @@ public class OutboxTransactionalSessionTests
     [Test]
     public async Task Open_should_generate_new_session_id()
     {
-        using ITransactionalSession session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), "queue address");
+        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), "queue address");
 
         Assert.IsNull(session.SessionId);
 
@@ -25,7 +25,7 @@ public class OutboxTransactionalSessionTests
     [Test]
     public async Task Open_should_use_session_id_from_options()
     {
-        using ITransactionalSession session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), "queue address");
+        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), "queue address");
 
         var openOptions = new OpenSessionOptions();
         await session.Open(openOptions);
@@ -36,13 +36,13 @@ public class OutboxTransactionalSessionTests
     [Test]
     public async Task Open_should_throw_if_session_already_open()
     {
-        using ITransactionalSession session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), "queue address");
+        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), "queue address");
 
         await session.Open();
 
         var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Open());
 
-        StringAssert.Contains("This session is already open. Open should only be called once.", exception.Message);
+        StringAssert.Contains($"This session is already open. {nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)} should only be called once.", exception.Message);
     }
 
     [Test]
@@ -51,7 +51,7 @@ public class OutboxTransactionalSessionTests
         var synchronizedStorageSession = new FakeSynchronizableStorageSession();
         var outboxStorage = new FakeOutboxStorage();
 
-        using ITransactionalSession session = new OutboxTransactionalSession(outboxStorage, synchronizedStorageSession, new FakeMessageSession(), new FakeDispatcher(), "queue address");
+        using var session = new OutboxTransactionalSession(outboxStorage, synchronizedStorageSession, new FakeMessageSession(), new FakeDispatcher(), "queue address");
 
         await session.Open();
 
@@ -65,7 +65,7 @@ public class OutboxTransactionalSessionTests
         var synchronizedStorageSession = new FakeSynchronizableStorageSession();
         synchronizedStorageSession.TryOpenCallback = (_, _) => false;
 
-        using ITransactionalSession session = new OutboxTransactionalSession(new FakeOutboxStorage(), synchronizedStorageSession, new FakeMessageSession(), new FakeDispatcher(), "queue address");
+        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), synchronizedStorageSession, new FakeMessageSession(), new FakeDispatcher(), "queue address");
 
         var exception = Assert.ThrowsAsync<Exception>(async () => await session.Open());
 
@@ -76,7 +76,7 @@ public class OutboxTransactionalSessionTests
     public async Task Send_should_set_PendingOperations_collection_on_context()
     {
         var messageSession = new FakeMessageSession();
-        using ITransactionalSession session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), "queue address");
+        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), "queue address");
 
         await session.Open();
         await session.Send(new object());
@@ -88,7 +88,7 @@ public class OutboxTransactionalSessionTests
     public async Task Publish_should_set_PendingOperations_collection_on_context()
     {
         var messageSession = new FakeMessageSession();
-        using ITransactionalSession session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), "queue address");
+        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), "queue address");
 
         await session.Open();
         await session.Publish(new object());
@@ -100,7 +100,7 @@ public class OutboxTransactionalSessionTests
     public void Send_should_throw_exeception_when_session_not_opened()
     {
         var messageSession = new FakeMessageSession();
-        using ITransactionalSession session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), "queue address");
+        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), "queue address");
 
         var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Send(new object()));
 
@@ -112,7 +112,7 @@ public class OutboxTransactionalSessionTests
     public void Publish_should_throw_exception_when_session_not_opened()
     {
         var messageSession = new FakeMessageSession();
-        using ITransactionalSession session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), "queue address");
+        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), "queue address");
 
         var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Publish(new object()));
 
@@ -129,7 +129,7 @@ public class OutboxTransactionalSessionTests
         var synchronizedSession = new FakeSynchronizableStorageSession();
         string queueAddress = "queue address";
 
-        using ITransactionalSession session = new OutboxTransactionalSession(outboxStorage, synchronizedSession, messageSession, dispatcher, queueAddress);
+        using var session = new OutboxTransactionalSession(outboxStorage, synchronizedSession, messageSession, dispatcher, queueAddress);
 
         await session.Open();
         var sendOptions = new SendOptions();
@@ -167,7 +167,7 @@ public class OutboxTransactionalSessionTests
         var dispatcher = new FakeDispatcher();
         var outboxStorage = new FakeOutboxStorage { StoreCallback = (_, _, _) => throw new Exception("some error") };
         var completableSynchronizedStorageSession = new FakeSynchronizableStorageSession();
-        using ITransactionalSession session = new OutboxTransactionalSession(outboxStorage, completableSynchronizedStorageSession, messageSession, dispatcher, "queue address");
+        using var session = new OutboxTransactionalSession(outboxStorage, completableSynchronizedStorageSession, messageSession, dispatcher, "queue address");
 
         await session.Open();
         await session.Send(new object());
@@ -196,7 +196,7 @@ public class OutboxTransactionalSessionTests
         var messageSession = new FakeMessageSession();
         var dispatcher = new FakeDispatcher();
         var outboxStorage = new FakeOutboxStorage();
-        using ITransactionalSession session = new OutboxTransactionalSession(outboxStorage, new FakeSynchronizableStorageSession(), messageSession, dispatcher, "queue address");
+        using var session = new OutboxTransactionalSession(outboxStorage, new FakeSynchronizableStorageSession(), messageSession, dispatcher, "queue address");
 
         var options = new OpenSessionOptions();
         options.CommitDelayIncrement = expectedDelayIncrement;
