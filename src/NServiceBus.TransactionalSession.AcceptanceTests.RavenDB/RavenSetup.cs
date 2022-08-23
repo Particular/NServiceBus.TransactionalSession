@@ -10,6 +10,7 @@
     using Raven.Client.ServerWide.Operations;
 
     [SetUpFixture]
+    [EnvironmentSpecificTest(EnvironmentVariables.RavenDBConnectionString)]
     public class RavenSetup
     {
         public const string DefaultDatabaseName = "TransactionalSessionTests";
@@ -33,7 +34,7 @@
             DocumentStore = new DocumentStore
             {
                 Database = DefaultDatabaseName,
-                Urls = new[] { "http://localhost:8080" }
+                Urls = new[] { GetConnectionString() }
             };
             DocumentStore.Initialize();
             var result = DocumentStore.Maintenance.Server.Send(new GetDatabaseNamesOperation(0, int.MaxValue));
@@ -62,6 +63,19 @@
                     return DefaultDatabaseName;
                 });
             };
+        }
+
+        public static string GetConnectionString()
+        {
+            var environmentVariableName = EnvironmentVariables.RavenDBConnectionString;
+            var connectionString = Environment.GetEnvironmentVariable(environmentVariableName);
+
+            if (connectionString == null)
+            {
+                throw new Exception($"No connection string found in environment variable {environmentVariableName}");
+            }
+
+            return connectionString;
         }
     }
 }

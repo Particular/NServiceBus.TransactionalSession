@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using Persistence.Sql;
 
+[EnvironmentSpecificTest(EnvironmentVariables.SqlServerConnectionString)]
 public class When_running_with_multitennancy : NServiceBusAcceptanceTest
 {
     static readonly string tenantId = "aTenant";

@@ -8,6 +8,7 @@
     using AcceptanceTesting;
     using NUnit.Framework;
 
+    [EnvironmentSpecificTest(EnvironmentVariables.SqlServerConnectionString)]
     public class When_using_outbox : NServiceBusAcceptanceTest
     {
         [Test]

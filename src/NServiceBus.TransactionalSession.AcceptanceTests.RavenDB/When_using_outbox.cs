@@ -7,8 +7,8 @@
     using Microsoft.Extensions.DependencyInjection;
     using AcceptanceTesting;
     using NUnit.Framework;
-    using NUnit.Framework.Internal;
 
+    [EnvironmentSpecificTest(EnvironmentVariables.RavenDBConnectionString)]
     public class When_using_outbox : NServiceBusAcceptanceTest
     {
         [Test]

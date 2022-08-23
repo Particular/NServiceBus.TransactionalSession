@@ -5,6 +5,7 @@ using NUnit.Framework;
 using Persistence;
 
 [SetUpFixture]
+[EnvironmentSpecificTest(EnvironmentVariables.SqlServerConnectionString)]
 public class NHibernateSetup
 {
     [OneTimeSetUp]
@@ -22,7 +23,7 @@ public class NHibernateSetup
 
     public static string GetConnectionString()
     {
-        var environmentVariableName = "SQLServerConnectionString";
+        var environmentVariableName = EnvironmentVariables.SqlServerConnectionString;
         var connectionString = Environment.GetEnvironmentVariable(environmentVariableName);
 
         if (connectionString == null)

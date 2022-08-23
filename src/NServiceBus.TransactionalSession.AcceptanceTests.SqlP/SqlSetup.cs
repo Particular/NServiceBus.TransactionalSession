@@ -20,7 +20,7 @@
 
         public static SqlConnection CreateSqlConnection()
         {
-            var environmentVariableName = "SQLServerConnectionString";
+            var environmentVariableName = EnvironmentVariables.SqlServerConnectionString;
             var connectionString = Environment.GetEnvironmentVariable(environmentVariableName);
 
             if (connectionString == null)
