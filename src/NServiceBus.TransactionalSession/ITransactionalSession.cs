@@ -20,7 +20,7 @@
 
         /// <summary>
         /// Enables passing persister-specific data between <see cref="TransactionalSessionFeature"/> and
-        /// persister-specific open methods <see cref="OpenSessionExtensions"/>.
+        /// persister-specific open methods.
         /// </summary>
         internal ContextBag PersisterSpecificOptions { get; }
 
