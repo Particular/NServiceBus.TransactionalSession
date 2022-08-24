@@ -120,7 +120,7 @@
         }
 
         /// <summary>
-        /// Publish the message to subscribers.
+        /// Publishes the message to subscribers.
         /// </summary>
         /// <param name="session">The instance of <see cref="ITransactionalSession" /> to use for the action.</param>
         /// <param name="message">The message to publish.</param>
@@ -134,7 +134,7 @@
         }
 
         /// <summary>
-        /// Publish the message to subscribers.
+        /// Publishes the message to subscribers.
         /// </summary>
         /// <param name="session">The instance of <see cref="ITransactionalSession" /> to use for the action.</param>
         /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe.</param>

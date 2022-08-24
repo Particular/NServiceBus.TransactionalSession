@@ -59,7 +59,7 @@ namespace NServiceBus.TransactionalSession
         {
             if (!IsOpen)
             {
-                throw new InvalidOperationException("Before sending any messages, make sure to open the session by calling the `Open`-method.");
+                throw new InvalidOperationException("The session has to be opened before sending any messages");
             }
 
             sendOptions.GetExtensions().Set(pendingOperations);

@@ -70,7 +70,7 @@
         string SessionId { get; }
 
         /// <summary>
-        /// Commit the session by applying all message and synchronized storage operation in an atomic manner.
+        /// Commits the session by applying all messaging and synchronized storage operations in an atomic manner.
         /// </summary>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
