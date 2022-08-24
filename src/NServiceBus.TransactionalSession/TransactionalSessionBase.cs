@@ -34,7 +34,19 @@ namespace NServiceBus.TransactionalSession
             }
         }
 
-        public string SessionId => options?.SessionId;
+        public string SessionId
+        {
+            get
+            {
+                if (!IsOpen)
+                {
+                    throw new InvalidOperationException(
+                        "Before accessing the SessionId, make sure to open the session by calling the `Open`-method.");
+                }
+
+                return options?.SessionId;
+            }
+        }
 
         protected ContextBag Context => options.Extensions;
 
