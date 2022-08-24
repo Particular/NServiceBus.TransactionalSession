@@ -4,6 +4,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Extensibility;
+using Pipeline;
 
 /// <summary>
 /// Provides <see cref="ITransactionalSession"/> support for Azure Table Storage.
@@ -29,21 +30,19 @@ public static class AzureTableSupport
     /// Opens a <see cref="ITransactionalSession"/> connected to a AzureTable storage.
     /// </summary>
     /// <param name="session">The session to open</param>
-    /// <param name="partitionKeyHeaderName">The header key name used to determine the partition id.</param>
     /// <param name="partitionKey">The specific partition used for this session.</param>
-    /// <param name="tableName"></param>
+    /// <param name="tableName">The optional table name to be used to be used.</param>
     /// <param name="options">The specific options used to open this session.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> to use.</param>
     /// <returns></returns>
-    public static Task OpenAzureTableSession(this ITransactionalSession session, string partitionKeyHeaderName, string partitionKey, string tableName = null, OpenSessionOptions options = null,
+    public static Task OpenAzureTableSession(this ITransactionalSession session, string partitionKey, string tableName = null, OpenSessionOptions options = null,
         CancellationToken cancellationToken = default)
     {
-        Guard.AgainstNullAndEmpty(nameof(partitionKeyHeaderName), "Partition key header name cannot be null.");
         Guard.AgainstNullAndEmpty(nameof(partitionKey), value: "Partition key value cannot be null.");
 
         options ??= new OpenSessionOptions();
 
-        options.Metadata.Add(partitionKeyHeaderName, partitionKey);
+        options.Metadata.Add(AzureTableControlMessageBehavior.PartitionKeyStringHeaderKey, partitionKey);
 
         var partitionKeyInstance = CreatePartitionKeyInstance(partitionKey);
         options.Extensions.Set(TableEntityPartitionKeyTypeName, partitionKeyInstance);
@@ -51,6 +50,7 @@ public static class AzureTableSupport
         if (tableName != null)
         {
             options.Extensions.Set(TableInformationTypeName, CreateTableInformationInstance(tableName));
+            options.Metadata.Add(AzureTableControlMessageBehavior.TableInformationHeaderKey, tableName);
         }
 
         var tableHolderResolver = session.PersisterSpecificOptions.Get<object>();
@@ -108,6 +108,29 @@ public static class AzureTableSupport
         catch (Exception e)
         {
             throw new Exception("Unable to create a valid instance of `NServiceBus.Persistence.AzureTable.SetAsDispatchedHolder`", e);
+        }
+    }
+
+    internal class AzureTableControlMessageBehavior : IBehavior<ITransportReceiveContext, ITransportReceiveContext>
+    {
+        public const string PartitionKeyStringHeaderKey = "NServiceBus.TxSession.AzureTable.PartitionKeyString";
+        public const string TableInformationHeaderKey = "NServiceBus.TxSession.AzureTable.TableInformation";
+
+        public Task Invoke(ITransportReceiveContext context, Func<ITransportReceiveContext, Task> next)
+        {
+            if (context.Message.Headers.TryGetValue(PartitionKeyStringHeaderKey, out var partitionKeyString))
+            {
+                var partitionKeyInstance = CreatePartitionKeyInstance(partitionKeyString);
+                context.Extensions.Set(TableEntityPartitionKeyTypeName, partitionKeyInstance);
+            }
+
+            if (context.Message.Headers.TryGetValue(TableInformationHeaderKey, out string containerName))
+            {
+                var tableInformationInstance = CreateTableInformationInstance(containerName);
+                context.Extensions.Set(TableInformationTypeName, tableInformationInstance);
+            }
+
+            return next(context);
         }
     }
 }

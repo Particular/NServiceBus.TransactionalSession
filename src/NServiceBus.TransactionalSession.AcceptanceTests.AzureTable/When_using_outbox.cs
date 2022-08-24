@@ -8,8 +8,8 @@
     using Microsoft.Azure.Cosmos.Table;
     using NUnit.Framework;
     using Persistence.AzureTable;
-    using Pipeline;
     using System.Linq;
+    using Pipeline;
 
     [ExecuteOnlyForEnvironmentWith(EnvironmentVariables.AzureTableServerConnectionString)]
     public class When_using_outbox : NServiceBusAcceptanceTest
@@ -27,7 +27,7 @@
                 {
                     using var scope = ctx.ServiceProvider.CreateScope();
                     using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
-                    await transactionalSession.OpenAzureTableSession(PartitionKeyHeaderName, PartitionKeyValue, AzureTableSetup.TableName);
+                    await transactionalSession.OpenAzureTableSession(PartitionKeyValue, AzureTableSetup.TableName);
 
                     var sendOptions = new SendOptions();
                     sendOptions.SetHeader(PartitionKeyHeaderName, PartitionKeyValue);
@@ -72,13 +72,9 @@
                     using (var scope = ctx.ServiceProvider.CreateScope())
                     using (var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>())
                     {
-                        await transactionalSession.OpenAzureTableSession(PartitionKeyHeaderName, PartitionKeyValue, AzureTableSetup.TableName);
+                        await transactionalSession.OpenAzureTableSession(PartitionKeyValue, AzureTableSetup.TableName);
 
-                        var sendOptions = new SendOptions();
-                        sendOptions.SetHeader(PartitionKeyHeaderName, PartitionKeyValue);
-                        sendOptions.RouteToThisEndpoint();
-
-                        await transactionalSession.Send(new SampleMessage(), sendOptions);
+                        await transactionalSession.SendLocal(new SampleMessage());
 
                         var storageSession = transactionalSession.SynchronizedStorageSession.AzureTablePersistenceSession();
 
@@ -92,12 +88,12 @@
                         storageSession.Batch.Add(TableOperation.Insert(entity));
                     }
 
-                    var competeMessageSendOptions = new SendOptions();
-                    competeMessageSendOptions.SetHeader(PartitionKeyHeaderName, PartitionKeyValue);
-                    competeMessageSendOptions.RouteToThisEndpoint();
+                    var sendOptions = new SendOptions();
+                    sendOptions.SetHeader(PartitionKeyHeaderName, PartitionKeyValue);
+                    sendOptions.RouteToThisEndpoint();
 
                     //Send immediately dispatched message to finish the test
-                    await statelessSession.Send(new CompleteTestMessage(), competeMessageSendOptions);
+                    await statelessSession.Send(new CompleteTestMessage(), sendOptions);
                 }))
                 .Done(c => c.CompleteMessageReceived)
                 .Run();
@@ -120,18 +116,16 @@
                     using var scope = ctx.ServiceProvider.CreateScope();
                     using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
-                    await transactionalSession.OpenAzureTableSession(PartitionKeyHeaderName, PartitionKeyValue);
+                    await transactionalSession.OpenAzureTableSession(PartitionKeyValue);
 
                     var sendOptions = new SendOptions();
                     sendOptions.SetHeader(PartitionKeyHeaderName, PartitionKeyValue);
                     sendOptions.RequireImmediateDispatch();
                     sendOptions.RouteToThisEndpoint();
-
                     await transactionalSession.Send(new SampleMessage(), sendOptions, CancellationToken.None);
                 }))
                 .Done(c => c.MessageReceived)
-                .Run()
-                ;
+                .Run();
 
             Assert.True(result.MessageReceived);
         }
@@ -178,6 +172,19 @@
 
                 readonly Context testContext;
             }
+
+            class PartitionKeyProviderBehavior : Behavior<ITransportReceiveContext>
+            {
+                public override Task Invoke(ITransportReceiveContext context, Func<Task> next)
+                {
+                    if (context.Message.Headers.TryGetValue(PartitionKeyHeaderName, out var partitionKeyValue))
+                    {
+                        context.Extensions.Set(new TableEntityPartitionKey(partitionKeyValue));
+                    }
+
+                    return next();
+                }
+            }
         }
 
         class SampleMessage : ICommand
@@ -191,19 +198,6 @@
         public class MyTableEntity : TableEntity
         {
             public string Data { get; set; }
-        }
-
-        class PartitionKeyProviderBehavior : Behavior<ITransportReceiveContext>
-        {
-            public override Task Invoke(ITransportReceiveContext context, Func<Task> next)
-            {
-                if (context.Message.Headers.TryGetValue(PartitionKeyHeaderName, out var partitionKeyValue))
-                {
-                    context.Extensions.Set(new TableEntityPartitionKey(partitionKeyValue));
-                }
-
-                return next();
-            }
         }
     }
 }
