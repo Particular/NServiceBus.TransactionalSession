@@ -6,6 +6,7 @@
     using AcceptanceTesting;
     using NUnit.Framework;
 
+    [ExecuteOnlyForEnvironmentWith(EnvironmentVariables.MongoDBConnectionString)]
     public class When_not_using_outbox : NServiceBusAcceptanceTest
     {
         [Test]
@@ -17,15 +18,14 @@
                     using var scope = ctx.ServiceProvider.CreateScope();
                     using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
-                    await transactionalSession.Open();
+                    await transactionalSession.OpenMongoDBSession();
 
                     await transactionalSession.SendLocal(new SampleMessage());
 
                     await transactionalSession.Commit();
                 }))
                 .Done(c => c.MessageReceived)
-                .Run()
-                ;
+                .Run();
         }
 
         [Test]
@@ -37,7 +37,7 @@
                     using (var scope = ctx.ServiceProvider.CreateScope())
                     using (var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>())
                     {
-                        await transactionalSession.Open();
+                        await transactionalSession.OpenMongoDBSession();
 
                         await transactionalSession.SendLocal(new SampleMessage());
                     }
@@ -46,8 +46,7 @@
                     await messageSession.SendLocal(new CompleteTestMessage());
                 }))
                 .Done(c => c.CompleteMessageReceived)
-                .Run()
-                ;
+                .Run();
 
             Assert.True(result.CompleteMessageReceived);
             Assert.False(result.MessageReceived);

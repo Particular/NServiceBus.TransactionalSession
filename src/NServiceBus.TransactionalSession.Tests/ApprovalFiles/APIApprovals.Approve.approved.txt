@@ -15,30 +15,15 @@ namespace NServiceBus.TransactionalSession
                 "containerName",
                 "partitionKeyPath"})] System.ValueTuple<string, string> container = default, NServiceBus.TransactionalSession.OpenSessionOptions options = null, System.Threading.CancellationToken cancellationToken = default) { }
     }
-    public interface IBatchedMessageSession : System.IDisposable
+    public interface ITransactionalSession : System.IDisposable
     {
+        string SessionId { get; }
+        NServiceBus.Persistence.ISynchronizedStorageSession SynchronizedStorageSession { get; }
         System.Threading.Tasks.Task Commit(System.Threading.CancellationToken cancellationToken = default);
         System.Threading.Tasks.Task Publish(object message, NServiceBus.PublishOptions publishOptions, System.Threading.CancellationToken cancellationToken = default);
         System.Threading.Tasks.Task Publish<T>(System.Action<T> messageConstructor, NServiceBus.PublishOptions publishOptions, System.Threading.CancellationToken cancellationToken = default);
         System.Threading.Tasks.Task Send(object message, NServiceBus.SendOptions sendOptions, System.Threading.CancellationToken cancellationToken = default);
         System.Threading.Tasks.Task Send<T>(System.Action<T> messageConstructor, NServiceBus.SendOptions sendOptions, System.Threading.CancellationToken cancellationToken = default);
-    }
-    public interface ITransactionalSession : NServiceBus.TransactionalSession.IBatchedMessageSession, System.IDisposable
-    {
-        string SessionId { get; }
-        NServiceBus.Persistence.ISynchronizedStorageSession SynchronizedStorageSession { get; }
-    }
-    public static class MessageSessionExtensions
-    {
-        public static System.Threading.Tasks.Task Publish(this NServiceBus.TransactionalSession.IBatchedMessageSession session, object message, System.Threading.CancellationToken cancellationToken = default) { }
-        public static System.Threading.Tasks.Task Publish<T>(this NServiceBus.TransactionalSession.IBatchedMessageSession session, System.Threading.CancellationToken cancellationToken = default) { }
-        public static System.Threading.Tasks.Task Publish<T>(this NServiceBus.TransactionalSession.IBatchedMessageSession session, System.Action<T> messageConstructor, System.Threading.CancellationToken cancellationToken = default) { }
-        public static System.Threading.Tasks.Task Send(this NServiceBus.TransactionalSession.IBatchedMessageSession session, object message, System.Threading.CancellationToken cancellationToken = default) { }
-        public static System.Threading.Tasks.Task Send(this NServiceBus.TransactionalSession.IBatchedMessageSession session, string destination, object message, System.Threading.CancellationToken cancellationToken = default) { }
-        public static System.Threading.Tasks.Task Send<T>(this NServiceBus.TransactionalSession.IBatchedMessageSession session, System.Action<T> messageConstructor, System.Threading.CancellationToken cancellationToken = default) { }
-        public static System.Threading.Tasks.Task Send<T>(this NServiceBus.TransactionalSession.IBatchedMessageSession session, string destination, System.Action<T> messageConstructor, System.Threading.CancellationToken cancellationToken = default) { }
-        public static System.Threading.Tasks.Task SendLocal(this NServiceBus.TransactionalSession.IBatchedMessageSession session, object message, System.Threading.CancellationToken cancellationToken = default) { }
-        public static System.Threading.Tasks.Task SendLocal<T>(this NServiceBus.TransactionalSession.IBatchedMessageSession session, System.Action<T> messageConstructor, System.Threading.CancellationToken cancellationToken = default) { }
     }
     public static class MongoDBSupport
     {
@@ -62,6 +47,18 @@ namespace NServiceBus.TransactionalSession
     public static class SqlServerSupport
     {
         public static System.Threading.Tasks.Task OpenSqlSession(this NServiceBus.TransactionalSession.ITransactionalSession session, string tenantIdHeaderName = null, string tenantId = null, NServiceBus.TransactionalSession.OpenSessionOptions options = null, System.Threading.CancellationToken cancellationToken = default) { }
+    }
+    public static class TransactionalSessionExtensions
+    {
+        public static System.Threading.Tasks.Task Publish(this NServiceBus.TransactionalSession.ITransactionalSession session, object message, System.Threading.CancellationToken cancellationToken = default) { }
+        public static System.Threading.Tasks.Task Publish<T>(this NServiceBus.TransactionalSession.ITransactionalSession session, System.Threading.CancellationToken cancellationToken = default) { }
+        public static System.Threading.Tasks.Task Publish<T>(this NServiceBus.TransactionalSession.ITransactionalSession session, System.Action<T> messageConstructor, System.Threading.CancellationToken cancellationToken = default) { }
+        public static System.Threading.Tasks.Task Send(this NServiceBus.TransactionalSession.ITransactionalSession session, object message, System.Threading.CancellationToken cancellationToken = default) { }
+        public static System.Threading.Tasks.Task Send(this NServiceBus.TransactionalSession.ITransactionalSession session, string destination, object message, System.Threading.CancellationToken cancellationToken = default) { }
+        public static System.Threading.Tasks.Task Send<T>(this NServiceBus.TransactionalSession.ITransactionalSession session, System.Action<T> messageConstructor, System.Threading.CancellationToken cancellationToken = default) { }
+        public static System.Threading.Tasks.Task Send<T>(this NServiceBus.TransactionalSession.ITransactionalSession session, string destination, System.Action<T> messageConstructor, System.Threading.CancellationToken cancellationToken = default) { }
+        public static System.Threading.Tasks.Task SendLocal(this NServiceBus.TransactionalSession.ITransactionalSession session, object message, System.Threading.CancellationToken cancellationToken = default) { }
+        public static System.Threading.Tasks.Task SendLocal<T>(this NServiceBus.TransactionalSession.ITransactionalSession session, System.Action<T> messageConstructor, System.Threading.CancellationToken cancellationToken = default) { }
     }
     public class TransactionalSessionFeature : NServiceBus.Features.Feature
     {
