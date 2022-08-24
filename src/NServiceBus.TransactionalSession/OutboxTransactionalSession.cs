@@ -24,12 +24,8 @@
             this.physicalQueueAddress = physicalQueueAddress;
         }
 
-        public override async Task Commit(CancellationToken cancellationToken = default)
+        protected override async Task CommitInternal(CancellationToken cancellationToken = default)
         {
-            ThrowIfDisposed();
-            ThrowIfCommitted();
-            ThrowIfNotOpened();
-
             var headers = new Dictionary<string, string>
             {
                 { Headers.MessageId, SessionId },
@@ -57,52 +53,9 @@
             await synchronizedStorageSession.CompleteAsync(cancellationToken).ConfigureAwait(false);
 
             await outboxTransaction.Commit(cancellationToken).ConfigureAwait(false);
-
-            committed = true;
         }
 
-        public async Task Send(object message, SendOptions sendOptions, CancellationToken cancellationToken = default)
-        {
-            ThrowIfDisposed();
-            ThrowIfCommitted();
-            ThrowIfNotOpened();
-
-            sendOptions.GetExtensions().Set(pendingOperations);
-            await messageSession.Send(message, sendOptions, cancellationToken).ConfigureAwait(false);
-        }
-
-        public async Task Send<T>(Action<T> messageConstructor, SendOptions sendOptions, CancellationToken cancellationToken = default)
-        {
-            ThrowIfDisposed();
-            ThrowIfCommitted();
-            ThrowIfNotOpened();
-
-            sendOptions.GetExtensions().Set(pendingOperations);
-            await messageSession.Send(messageConstructor, sendOptions, cancellationToken).ConfigureAwait(false);
-        }
-
-        public async Task Publish(object message, PublishOptions publishOptions, CancellationToken cancellationToken = default)
-        {
-            ThrowIfDisposed();
-            ThrowIfCommitted();
-            ThrowIfNotOpened();
-
-            publishOptions.GetExtensions().Set(pendingOperations);
-            await messageSession.Publish(message, publishOptions, cancellationToken).ConfigureAwait(false);
-        }
-
-        public async Task Publish<T>(Action<T> messageConstructor, PublishOptions publishOptions,
-            CancellationToken cancellationToken = default)
-        {
-            ThrowIfDisposed();
-            ThrowIfCommitted();
-            ThrowIfNotOpened();
-
-            publishOptions.GetExtensions().Set(pendingOperations);
-            await messageSession.Publish(messageConstructor, publishOptions, cancellationToken).ConfigureAwait(false);
-        }
-
-        public void Dispose()
+        protected override void Dispose(bool disposing)
         {
             if (disposed)
             {
@@ -152,15 +105,6 @@
         public override async Task Open(OpenSessionOptions options = null, CancellationToken cancellationToken = default)
         {
             await base.Open(options, cancellationToken).ConfigureAwait(false);
-            ThrowIfDisposed();
-            ThrowIfCommitted();
-
-            if (IsOpen)
-            {
-                throw new InvalidOperationException($"This session is already open. Open should only be called once.");
-            }
-
-            this.options = options ?? new OpenSessionOptions();
 
             outboxTransaction = await outboxStorage.BeginTransaction(Context, cancellationToken).ConfigureAwait(false);
 
@@ -169,38 +113,6 @@
                 throw new Exception("Outbox and synchronized storage persister are not compatible.");
             }
         }
-
-        void ThrowIfDisposed()
-        {
-            if (disposed)
-            {
-                throw new ObjectDisposedException(nameof(Dispose));
-            }
-        }
-
-        void ThrowIfCommitted()
-        {
-            if (committed)
-            {
-                throw new InvalidOperationException("This session has already been committed. Complete all session operations before calling `Commit` or use a new session.");
-            }
-        }
-
-        void ThrowIfNotOpened()
-        {
-            if (!IsOpen)
-            {
-                throw new InvalidOperationException("This session has not been opened yet. Make sure to open the session first by calling the `Open`-method.");
-            }
-        }
-
-        bool committed;
-
-        bool disposed;
-
-        IOutboxTransaction outboxTransaction;
-
-        OpenSessionOptions options;
 
         readonly string physicalQueueAddress;
         readonly IOutboxStorage outboxStorage;

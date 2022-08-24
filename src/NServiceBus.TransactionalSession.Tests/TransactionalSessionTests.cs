@@ -81,7 +81,7 @@ public class TransactionalSessionTests
 
         var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Send(new object()));
 
-        StringAssert.Contains("The session has to be opened before sending any messages.", exception.Message);
+        StringAssert.Contains("This session has not been opened yet.", exception.Message);
         Assert.IsEmpty(messageSession.SentMessages);
     }
 
@@ -93,7 +93,7 @@ public class TransactionalSessionTests
 
         var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Publish(new object()));
 
-        StringAssert.Contains("The session has to be opened before publishing any messages.", exception.Message);
+        StringAssert.Contains("This session has not been opened yet.", exception.Message);
         Assert.IsEmpty(messageSession.PublishedMessages);
     }
 

@@ -92,7 +92,7 @@ public class OutboxTransactionalSessionTests
 
         var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Send(new object()));
 
-        StringAssert.Contains("The session has to be opened before sending any messages", exception.Message);
+        StringAssert.Contains("This session has not been opened yet.", exception.Message);
         Assert.IsEmpty(messageSession.SentMessages);
     }
 
@@ -104,7 +104,7 @@ public class OutboxTransactionalSessionTests
 
         var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Publish(new object()));
 
-        StringAssert.Contains("The session has to be opened before publishing any messages", exception.Message);
+        StringAssert.Contains("This session has not been opened yet.", exception.Message);
         Assert.IsEmpty(messageSession.PublishedMessages);
     }
 
@@ -202,18 +202,6 @@ public class OutboxTransactionalSessionTests
         Assert.AreEqual(expectedMaximumCommitDuration.ToString("c"), controlMessage.Message.Headers[OutboxTransactionalSession.RemainingCommitDurationHeaderName]);
         Assert.AreEqual(expectedMetadataValue, controlMessage.Message.Headers["metadata-key"], "metadata should be propagated to headers");
         Assert.IsFalse(controlMessage.Message.Headers.ContainsKey("extensions-key"), "extensions should not be propagated to headers");
-    }
-
-    [Test]
-    public async Task Open_should_throw_if_session_already_open()
-    {
-        using ITransactionalSession session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), "queue address");
-
-        await session.Open();
-
-        var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Open());
-
-        StringAssert.Contains("This session is already open. Open should only be called once.", exception.Message);
     }
 
     [Test]
