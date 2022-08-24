@@ -11,18 +11,6 @@ using NUnit.Framework;
 public class OutboxTransactionalSessionTests
 {
     [Test]
-    public async Task Open_should_generate_new_session_id()
-    {
-        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), "queue address");
-
-        Assert.IsNull(session.SessionId);
-
-        await session.Open();
-
-        Assert.NotNull(session.SessionId);
-    }
-
-    [Test]
     public async Task Open_should_use_session_id_from_options()
     {
         using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), "queue address");
@@ -104,7 +92,7 @@ public class OutboxTransactionalSessionTests
 
         var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Send(new object()));
 
-        StringAssert.Contains("Before sending any messages, make sure to open the session by calling the `Open`-method.", exception.Message);
+        StringAssert.Contains("The session has to be opened before sending any messages", exception.Message);
         Assert.IsEmpty(messageSession.SentMessages);
     }
 
@@ -116,7 +104,7 @@ public class OutboxTransactionalSessionTests
 
         var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Publish(new object()));
 
-        StringAssert.Contains("Before publishing any messages, make sure to open the session by calling the `Open`-method.", exception.Message);
+        StringAssert.Contains("The session has to be opened before publishing any messages", exception.Message);
         Assert.IsEmpty(messageSession.PublishedMessages);
     }
 

@@ -6,6 +6,7 @@
     using AcceptanceTesting;
     using NUnit.Framework;
 
+    [ExecuteOnlyForEnvironmentWith(EnvironmentVariables.MongoDBConnectionString)]
     public class When_not_using_outbox : NServiceBusAcceptanceTest
     {
         [Test]

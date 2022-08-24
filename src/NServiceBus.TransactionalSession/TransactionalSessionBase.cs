@@ -27,7 +27,7 @@ namespace NServiceBus.TransactionalSession
                 if (!IsOpen)
                 {
                     throw new InvalidOperationException(
-                        "Before accessing the SynchronizedStorageSession, make sure to open the session by calling the `Open`-method.");
+                        "The session has to be opened before accessing the SynchronizedStorageSession.");
                 }
 
                 return synchronizedStorageSession;
@@ -41,7 +41,7 @@ namespace NServiceBus.TransactionalSession
                 if (!IsOpen)
                 {
                     throw new InvalidOperationException(
-                        "Before accessing the SessionId, make sure to open the session by calling the `Open`-method.");
+                        "The session has to be opened before accessing the SessionId.");
                 }
 
                 return options?.SessionId;
@@ -71,7 +71,7 @@ namespace NServiceBus.TransactionalSession
         {
             if (!IsOpen)
             {
-                throw new InvalidOperationException("The session has to be opened before sending any messages");
+                throw new InvalidOperationException("The session has to be opened before sending any messages.");
             }
 
             sendOptions.GetExtensions().Set(pendingOperations);
@@ -82,7 +82,7 @@ namespace NServiceBus.TransactionalSession
         {
             if (!IsOpen)
             {
-                throw new InvalidOperationException("Before sending any messages, make sure to open the session by calling the `Open`-method.");
+                throw new InvalidOperationException("The session has to be opened before sending any messages.");
             }
 
             sendOptions.GetExtensions().Set(pendingOperations);
@@ -93,7 +93,7 @@ namespace NServiceBus.TransactionalSession
         {
             if (!IsOpen)
             {
-                throw new InvalidOperationException("Before publishing any messages, make sure to open the session by calling the `Open`-method.");
+                throw new InvalidOperationException("The session has to be opened before publishing any messages.");
             }
 
             publishOptions.GetExtensions().Set(pendingOperations);
@@ -104,7 +104,7 @@ namespace NServiceBus.TransactionalSession
         {
             if (!IsOpen)
             {
-                throw new InvalidOperationException("Before publishing any messages, make sure to open the session by calling the `Open`-method.");
+                throw new InvalidOperationException("The session has to be opened before publishing any messages.");
             }
 
             publishOptions.GetExtensions().Set(pendingOperations);

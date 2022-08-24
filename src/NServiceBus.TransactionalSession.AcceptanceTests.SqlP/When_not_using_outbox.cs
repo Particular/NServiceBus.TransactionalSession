@@ -6,6 +6,7 @@
     using AcceptanceTesting;
     using NUnit.Framework;
 
+    [ExecuteOnlyForEnvironmentWith(EnvironmentVariables.SqlServerConnectionString)]
     public class When_not_using_outbox : NServiceBusAcceptanceTest
     {
         [OneTimeSetUp]
