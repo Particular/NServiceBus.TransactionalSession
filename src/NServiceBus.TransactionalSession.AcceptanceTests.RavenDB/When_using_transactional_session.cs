@@ -1,49 +1,47 @@
 ﻿namespace NServiceBus.TransactionalSession.AcceptanceTests
 {
     using System;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Extensions.DependencyInjection;
     using AcceptanceTesting;
-    using MongoDB.Driver;
     using NUnit.Framework;
 
-    [ExecuteOnlyForEnvironmentWith(EnvironmentVariables.MongoDBConnectionString)]
-    public class When_using_outbox : NServiceBusAcceptanceTest
+    [ExecuteOnlyForEnvironmentWith(EnvironmentVariables.RavenDBConnectionString)]
+    public class When_using_transactional_session : NServiceBusAcceptanceTest
     {
-        const string CollectionName = "SampleDocumentCollection";
-
-        [Test]
-        public async Task Should_send_messages_on_transactional_session_commit()
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task Should_send_messages_on_transactional_session_commit(bool outboxEnabled)
         {
             var context = await Scenario.Define<Context>()
                 .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
                 {
                     using var scope = ctx.ServiceProvider.CreateScope();
                     using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
-                    await transactionalSession.OpenMongoDBSession();
-                    ctx.SessionId = transactionalSession.SessionId;
-
-                    var mongoSession = transactionalSession.SynchronizedStorageSession.GetClientSession();
-                    await mongoSession.Client.GetDatabase(MongoSetup.DatabaseName)
-                        .GetCollection<SampleDocument>(CollectionName)
-                        .InsertOneAsync(mongoSession, new SampleDocument { Id = transactionalSession.SessionId });
+                    await transactionalSession.OpenRavenDBSession();
 
                     await transactionalSession.SendLocal(new SampleMessage(), CancellationToken.None);
+
+                    var ravenSession = transactionalSession.SynchronizedStorageSession.RavenSession();
+                    var document = new TestDocument { Id = ctx.SessionId = transactionalSession.SessionId };
+                    await ravenSession.StoreAsync(document);
 
                     await transactionalSession.Commit(CancellationToken.None).ConfigureAwait(false);
                 }))
                 .Done(c => c.MessageReceived)
                 .Run();
 
-            var documents = await MongoSetup.MongoClient.GetDatabase(MongoSetup.DatabaseName)
-                .GetCollection<SampleDocument>(CollectionName)
-                .FindAsync<SampleDocument>(Builders<SampleDocument>.Filter.Where(d => d.Id == context.SessionId));
-            Assert.AreEqual(1, documents.ToList().Count);
+            var documents = RavenSetup.DocumentStore.OpenSession(RavenSetup.DefaultDatabaseName)
+                .Query<TestDocument>()
+                .Where(d => d.Id == context.SessionId);
+            Assert.AreEqual(1, documents.Count());
         }
 
-        [Test]
-        public async Task Should_not_send_messages_if_session_is_not_committed()
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task Should_not_send_messages_if_session_is_not_committed(bool outboxEnabled)
         {
             var context = await Scenario.Define<Context>()
                 .WithEndpoint<AnEndpoint>(s => s.When(async (statelessSession, ctx) =>
@@ -51,15 +49,13 @@
                     using (var scope = ctx.ServiceProvider.CreateScope())
                     using (var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>())
                     {
-                        await transactionalSession.OpenMongoDBSession();
-                        ctx.SessionId = transactionalSession.SessionId;
+                        await transactionalSession.OpenRavenDBSession();
+
+                        var ravenSession = transactionalSession.SynchronizedStorageSession.RavenSession();
+                        var document = new TestDocument { Id = ctx.SessionId = transactionalSession.SessionId };
+                        await ravenSession.StoreAsync(document);
 
                         await transactionalSession.SendLocal(new SampleMessage());
-
-                        var mongoSession = transactionalSession.SynchronizedStorageSession.GetClientSession();
-                        await mongoSession.Client.GetDatabase(MongoSetup.DatabaseName)
-                            .GetCollection<SampleDocument>(CollectionName)
-                            .InsertOneAsync(mongoSession, new SampleDocument { Id = transactionalSession.SessionId });
                     }
 
                     //Send immediately dispatched message to finish the test
@@ -71,14 +67,16 @@
             Assert.True(context.CompleteMessageReceived);
             Assert.False(context.MessageReceived);
 
-            var documents = await MongoSetup.MongoClient.GetDatabase(MongoSetup.DatabaseName)
-                .GetCollection<SampleDocument>(CollectionName)
-                .FindAsync<SampleDocument>(Builders<SampleDocument>.Filter.Where(d => d.Id == context.SessionId));
-            Assert.IsFalse(documents.Any());
+            var documents = RavenSetup.DocumentStore.OpenSession(RavenSetup.DefaultDatabaseName)
+                .Query<TestDocument>()
+                .Where(d => d.Id == context.SessionId);
+            var d = documents.FirstOrDefault();
+            Assert.IsEmpty(documents);
         }
 
-        [Test]
-        public async Task Should_send_immediate_dispatch_messages_even_if_session_is_not_committed()
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task Should_send_immediate_dispatch_messages_even_if_session_is_not_committed(bool outboxEnabled)
         {
             var result = await Scenario.Define<Context>()
                 .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
@@ -86,7 +84,7 @@
                     using var scope = ctx.ServiceProvider.CreateScope();
                     using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
-                    await transactionalSession.OpenMongoDBSession();
+                    await transactionalSession.OpenRavenDBSession();
 
                     var sendOptions = new SendOptions();
                     sendOptions.RequireImmediateDispatch();
@@ -104,14 +102,23 @@
         {
             public bool MessageReceived { get; set; }
             public bool CompleteMessageReceived { get; set; }
-            public string SessionId { get; set; }
             public IServiceProvider ServiceProvider { get; set; }
+            public string SessionId { get; set; }
         }
 
         class AnEndpoint : EndpointConfigurationBuilder
         {
-            public AnEndpoint() =>
-                EndpointSetup<TransactionSessionWithOutboxEndpoint>();
+            public AnEndpoint()
+            {
+                if ((bool)TestContext.CurrentContext.Test.Arguments[0]!)
+                {
+                    EndpointSetup<TransactionSessionDefaultServer>();
+                }
+                else
+                {
+                    EndpointSetup<TransactionSessionWithOutboxEndpoint>();
+                }
+            }
 
             class SampleHandler : IHandleMessages<SampleMessage>
             {
@@ -150,7 +157,7 @@
         {
         }
 
-        class SampleDocument
+        public class TestDocument
         {
             public string Id { get; set; }
         }

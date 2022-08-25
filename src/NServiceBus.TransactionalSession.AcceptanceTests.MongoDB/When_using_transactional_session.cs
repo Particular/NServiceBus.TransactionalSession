@@ -1,66 +1,67 @@
 ﻿namespace NServiceBus.TransactionalSession.AcceptanceTests
 {
     using System;
-    using System.Data.SqlClient;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Extensions.DependencyInjection;
     using AcceptanceTesting;
+    using MongoDB.Driver;
     using NUnit.Framework;
 
-    [ExecuteOnlyForEnvironmentWith(EnvironmentVariables.SqlServerConnectionString)]
-    public class When_using_outbox : NServiceBusAcceptanceTest
+    [ExecuteOnlyForEnvironmentWith(EnvironmentVariables.MongoDBConnectionString)]
+    public class When_using_transactional_session : NServiceBusAcceptanceTest
     {
-        [Test]
-        public async Task Should_send_messages_and_insert_row_on_transactional_session_commit()
-        {
-            var rowId = Guid.NewGuid().ToString();
+        const string CollectionName = "SampleDocumentCollection";
 
-            await Scenario.Define<Context>()
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task Should_send_messages_on_transactional_session_commit(bool outboxEnabled)
+        {
+            var context = await Scenario.Define<Context>()
                 .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
                 {
                     using var scope = ctx.ServiceProvider.CreateScope();
                     using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
-                    await transactionalSession.OpenNHibernateSession();
+                    await transactionalSession.OpenMongoDBSession();
+                    ctx.SessionId = transactionalSession.SessionId;
+
+                    var mongoSession = transactionalSession.SynchronizedStorageSession.GetClientSession();
+                    await mongoSession.Client.GetDatabase(MongoSetup.DatabaseName)
+                        .GetCollection<SampleDocument>(CollectionName)
+                        .InsertOneAsync(mongoSession, new SampleDocument { Id = transactionalSession.SessionId });
 
                     await transactionalSession.SendLocal(new SampleMessage(), CancellationToken.None);
-
-                    var storageSession = transactionalSession.SynchronizedStorageSession.Session();
-
-                    var insertText = $@"IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='SomeTable' and xtype='U')
-                                        BEGIN
-	                                        CREATE TABLE [dbo].[SomeTable]([Id] [nvarchar](50) NOT NULL)
-                                        END;
-                                        INSERT INTO [dbo].[SomeTable] VALUES ('{rowId}')";
-
-                    await storageSession.CreateSQLQuery(insertText).ExecuteUpdateAsync(CancellationToken.None);
 
                     await transactionalSession.Commit(CancellationToken.None).ConfigureAwait(false);
                 }))
                 .Done(c => c.MessageReceived)
                 .Run();
 
-            using var connection = new SqlConnection(NHibernateSetup.GetConnectionString());
-            await connection.OpenAsync();
-
-            using var queryCommand = new SqlCommand($"SELECT TOP 1 [Id] FROM [dbo].[SomeTable] WHERE [Id]='{rowId}'", connection);
-            var result = await queryCommand.ExecuteScalarAsync();
-
-            Assert.AreEqual(rowId, result);
+            var documents = await MongoSetup.MongoClient.GetDatabase(MongoSetup.DatabaseName)
+                .GetCollection<SampleDocument>(CollectionName)
+                .FindAsync<SampleDocument>(Builders<SampleDocument>.Filter.Where(d => d.Id == context.SessionId));
+            Assert.AreEqual(1, documents.ToList().Count);
         }
 
-        [Test]
-        public async Task Should_not_send_messages_if_session_is_not_committed()
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task Should_not_send_messages_if_session_is_not_committed(bool outboxEnabled)
         {
-            var result = await Scenario.Define<Context>()
+            var context = await Scenario.Define<Context>()
                 .WithEndpoint<AnEndpoint>(s => s.When(async (statelessSession, ctx) =>
                 {
                     using (var scope = ctx.ServiceProvider.CreateScope())
                     using (var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>())
                     {
-                        await transactionalSession.OpenNHibernateSession();
+                        await transactionalSession.OpenMongoDBSession();
+                        ctx.SessionId = transactionalSession.SessionId;
 
                         await transactionalSession.SendLocal(new SampleMessage());
+
+                        var mongoSession = transactionalSession.SynchronizedStorageSession.GetClientSession();
+                        await mongoSession.Client.GetDatabase(MongoSetup.DatabaseName)
+                            .GetCollection<SampleDocument>(CollectionName)
+                            .InsertOneAsync(mongoSession, new SampleDocument { Id = transactionalSession.SessionId });
                     }
 
                     //Send immediately dispatched message to finish the test
@@ -69,12 +70,18 @@
                 .Done(c => c.CompleteMessageReceived)
                 .Run();
 
-            Assert.True(result.CompleteMessageReceived);
-            Assert.False(result.MessageReceived);
+            Assert.True(context.CompleteMessageReceived);
+            Assert.False(context.MessageReceived);
+
+            var documents = await MongoSetup.MongoClient.GetDatabase(MongoSetup.DatabaseName)
+                .GetCollection<SampleDocument>(CollectionName)
+                .FindAsync<SampleDocument>(Builders<SampleDocument>.Filter.Where(d => d.Id == context.SessionId));
+            Assert.IsFalse(documents.Any());
         }
 
-        [Test]
-        public async Task Should_send_immediate_dispatch_messages_even_if_session_is_not_committed()
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task Should_send_immediate_dispatch_messages_even_if_session_is_not_committed(bool outboxEnabled)
         {
             var result = await Scenario.Define<Context>()
                 .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
@@ -82,7 +89,7 @@
                     using var scope = ctx.ServiceProvider.CreateScope();
                     using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
-                    await transactionalSession.OpenNHibernateSession();
+                    await transactionalSession.OpenMongoDBSession();
 
                     var sendOptions = new SendOptions();
                     sendOptions.RequireImmediateDispatch();
@@ -100,13 +107,23 @@
         {
             public bool MessageReceived { get; set; }
             public bool CompleteMessageReceived { get; set; }
+            public string SessionId { get; set; }
             public IServiceProvider ServiceProvider { get; set; }
         }
 
         class AnEndpoint : EndpointConfigurationBuilder
         {
-            public AnEndpoint() =>
-                EndpointSetup<TransactionSessionWithOutboxEndpoint>();
+            public AnEndpoint()
+            {
+                if ((bool)TestContext.CurrentContext.Test.Arguments[0]!)
+                {
+                    EndpointSetup<TransactionSessionDefaultServer>();
+                }
+                else
+                {
+                    EndpointSetup<TransactionSessionWithOutboxEndpoint>();
+                }
+            }
 
             class SampleHandler : IHandleMessages<SampleMessage>
             {
@@ -143,6 +160,11 @@
 
         class CompleteTestMessage : ICommand
         {
+        }
+
+        class SampleDocument
+        {
+            public string Id { get; set; }
         }
     }
 }

@@ -1,103 +1,83 @@
 ﻿namespace NServiceBus.TransactionalSession.AcceptanceTests
 {
     using System;
-    using System.Net;
+    using System.Data.SqlClient;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Extensions.DependencyInjection;
     using AcceptanceTesting;
-    using Microsoft.Azure.Cosmos;
-    using Newtonsoft.Json;
     using NUnit.Framework;
 
-    [ExecuteOnlyForEnvironmentWith(EnvironmentVariables.CosmosConnectionString)]
-    public class When_using_outbox : NServiceBusAcceptanceTest
+    [ExecuteOnlyForEnvironmentWith(EnvironmentVariables.SqlServerConnectionString)]
+    public class When_using_transactional_session : NServiceBusAcceptanceTest
     {
-        static string PartitionKeyHeaderName = "Tests.PartitionKey";
-        static string PartitionKeyValue = "SomePartition";
-
-        [Test]
-        public async Task Should_send_messages_and_store_document_on_transactional_session_commit()
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task Should_send_messages_and_insert_row_on_transactional_session_commit(bool outboxEnabled)
         {
-            var documentId = Guid.NewGuid().ToString();
+            var rowId = Guid.NewGuid().ToString();
 
             await Scenario.Define<Context>()
                 .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
                 {
                     using var scope = ctx.ServiceProvider.CreateScope();
                     using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
-                    await transactionalSession.OpenCosmosDBSession(PartitionKeyValue);
+                    await transactionalSession.OpenNHibernateSession();
 
-                    var sendOptions = new SendOptions();
-                    sendOptions.SetHeader(PartitionKeyHeaderName, PartitionKeyValue);
-                    sendOptions.RouteToThisEndpoint();
+                    await transactionalSession.SendLocal(new SampleMessage(), CancellationToken.None);
 
-                    await transactionalSession.Send(new SampleMessage(), sendOptions, CancellationToken.None);
+                    var storageSession = transactionalSession.SynchronizedStorageSession.Session();
 
-                    var storageSession = transactionalSession.SynchronizedStorageSession.CosmosPersistenceSession();
-                    storageSession.Batch.CreateItem(new MyDocument
-                    {
-                        Id = documentId,
-                        Data = "SomeData",
-                        PartitionKey = PartitionKeyValue
-                    });
+                    var insertText = $@"IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='SomeTable' and xtype='U')
+                                        BEGIN
+	                                        CREATE TABLE [dbo].[SomeTable]([Id] [nvarchar](50) NOT NULL)
+                                        END;
+                                        INSERT INTO [dbo].[SomeTable] VALUES ('{rowId}')";
+
+                    await storageSession.CreateSQLQuery(insertText).ExecuteUpdateAsync(CancellationToken.None);
 
                     await transactionalSession.Commit(CancellationToken.None).ConfigureAwait(false);
                 }))
                 .Done(c => c.MessageReceived)
                 .Run();
 
-            var response = await CosmosSetup.Container.ReadItemAsync<MyDocument>(documentId, new PartitionKey(PartitionKeyValue));
+            using var connection = new SqlConnection(NHibernateSetup.GetConnectionString());
+            await connection.OpenAsync();
 
-            Assert.IsNotNull(response);
-            Assert.AreEqual("SomeData", response.Resource.Data);
+            using var queryCommand = new SqlCommand($"SELECT TOP 1 [Id] FROM [dbo].[SomeTable] WHERE [Id]='{rowId}'", connection);
+            var result = await queryCommand.ExecuteScalarAsync();
+
+            Assert.AreEqual(rowId, result);
         }
 
-        [Test]
-        public async Task Should_not_send_messages_if_session_is_not_committed()
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task Should_not_send_messages_if_session_is_not_committed(bool outboxEnabled)
         {
-            var documentId = Guid.NewGuid().ToString();
-
             var result = await Scenario.Define<Context>()
                 .WithEndpoint<AnEndpoint>(s => s.When(async (statelessSession, ctx) =>
                 {
                     using (var scope = ctx.ServiceProvider.CreateScope())
                     using (var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>())
                     {
-                        await transactionalSession.OpenCosmosDBSession(PartitionKeyValue);
+                        await transactionalSession.OpenNHibernateSession();
 
                         await transactionalSession.SendLocal(new SampleMessage());
-
-                        var storageSession = transactionalSession.SynchronizedStorageSession.CosmosPersistenceSession();
-                        storageSession.Batch.CreateItem(new MyDocument
-                        {
-                            Id = documentId,
-                            Data = "SomeData",
-                            PartitionKey = PartitionKeyValue
-                        });
                     }
 
-                    var sendOptions = new SendOptions();
-                    sendOptions.SetHeader(PartitionKeyHeaderName, PartitionKeyValue);
-                    sendOptions.RouteToThisEndpoint();
-
                     //Send immediately dispatched message to finish the test
-                    await statelessSession.Send(new CompleteTestMessage(), sendOptions);
+                    await statelessSession.SendLocal(new CompleteTestMessage());
                 }))
                 .Done(c => c.CompleteMessageReceived)
                 .Run();
 
-
             Assert.True(result.CompleteMessageReceived);
             Assert.False(result.MessageReceived);
-
-            var exception = Assert.ThrowsAsync<CosmosException>(async () =>
-                await CosmosSetup.Container.ReadItemAsync<MyDocument>(documentId, new PartitionKey(PartitionKeyValue)));
-            Assert.AreEqual(HttpStatusCode.NotFound, exception.StatusCode);
         }
 
-        [Test]
-        public async Task Should_send_immediate_dispatch_messages_even_if_session_is_not_committed()
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task Should_send_immediate_dispatch_messages_even_if_session_is_not_committed(bool outboxEnabled)
         {
             var result = await Scenario.Define<Context>()
                 .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
@@ -105,10 +85,9 @@
                     using var scope = ctx.ServiceProvider.CreateScope();
                     using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
-                    await transactionalSession.OpenCosmosDBSession(PartitionKeyValue);
+                    await transactionalSession.OpenNHibernateSession();
 
                     var sendOptions = new SendOptions();
-                    sendOptions.SetHeader(PartitionKeyHeaderName, PartitionKeyValue);
                     sendOptions.RequireImmediateDispatch();
                     sendOptions.RouteToThisEndpoint();
                     await transactionalSession.Send(new SampleMessage(), sendOptions, CancellationToken.None);
@@ -129,13 +108,17 @@
 
         class AnEndpoint : EndpointConfigurationBuilder
         {
-            public AnEndpoint() =>
-                EndpointSetup<TransactionSessionWithOutboxEndpoint>(c =>
+            public AnEndpoint()
+            {
+                if ((bool)TestContext.CurrentContext.Test.Arguments[0]!)
                 {
-                    var persistence = c.UsePersistence<CosmosPersistence>();
-
-                    persistence.TransactionInformation().ExtractPartitionKeyFromHeader(PartitionKeyHeaderName);
-                });
+                    EndpointSetup<TransactionSessionDefaultServer>();
+                }
+                else
+                {
+                    EndpointSetup<TransactionSessionWithOutboxEndpoint>();
+                }
+            }
 
             class SampleHandler : IHandleMessages<SampleMessage>
             {
@@ -172,16 +155,6 @@
 
         class CompleteTestMessage : ICommand
         {
-        }
-
-        class MyDocument
-        {
-            [JsonProperty("id")]
-            public string Id { get; set; }
-            public string Data { get; set; }
-
-            [JsonProperty(CosmosSetup.PartitionPropertyName)]
-            public string PartitionKey { get; set; }
         }
     }
 }
