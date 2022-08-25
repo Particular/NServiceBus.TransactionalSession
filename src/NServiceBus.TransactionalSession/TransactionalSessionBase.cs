@@ -52,10 +52,23 @@ namespace NServiceBus.TransactionalSession
 
         protected bool IsOpen => options != null;
 
-        public abstract Task Commit(CancellationToken cancellationToken = default);
+        public async Task Commit(CancellationToken cancellationToken = default)
+        {
+            ThrowIfInvalidState();
+
+            await CommitInternal(cancellationToken).ConfigureAwait(false);
+
+            committed = true;
+        }
+
+
+        protected abstract Task CommitInternal(CancellationToken cancellationToken = default);
 
         public virtual Task Open(OpenSessionOptions options = null, CancellationToken cancellationToken = default)
         {
+            ThrowIfDisposed();
+            ThrowIfCommitted();
+
             if (IsOpen)
             {
                 throw new InvalidOperationException($"This session is already open. {nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)} should only be called once.");
@@ -69,10 +82,7 @@ namespace NServiceBus.TransactionalSession
 
         public async Task Send(object message, SendOptions sendOptions, CancellationToken cancellationToken = default)
         {
-            if (!IsOpen)
-            {
-                throw new InvalidOperationException("The session has to be opened before sending any messages.");
-            }
+            ThrowIfInvalidState();
 
             sendOptions.GetExtensions().Set(pendingOperations);
             await messageSession.Send(message, sendOptions, cancellationToken).ConfigureAwait(false);
@@ -80,10 +90,7 @@ namespace NServiceBus.TransactionalSession
 
         public async Task Send<T>(Action<T> messageConstructor, SendOptions sendOptions, CancellationToken cancellationToken = default)
         {
-            if (!IsOpen)
-            {
-                throw new InvalidOperationException("The session has to be opened before sending any messages.");
-            }
+            ThrowIfInvalidState();
 
             sendOptions.GetExtensions().Set(pendingOperations);
             await messageSession.Send(messageConstructor, sendOptions, cancellationToken).ConfigureAwait(false);
@@ -91,10 +98,7 @@ namespace NServiceBus.TransactionalSession
 
         public async Task Publish(object message, PublishOptions publishOptions, CancellationToken cancellationToken = default)
         {
-            if (!IsOpen)
-            {
-                throw new InvalidOperationException("The session has to be opened before publishing any messages.");
-            }
+            ThrowIfInvalidState();
 
             publishOptions.GetExtensions().Set(pendingOperations);
             await messageSession.Publish(message, publishOptions, cancellationToken).ConfigureAwait(false);
@@ -102,13 +106,41 @@ namespace NServiceBus.TransactionalSession
 
         public async Task Publish<T>(Action<T> messageConstructor, PublishOptions publishOptions, CancellationToken cancellationToken = default)
         {
-            if (!IsOpen)
-            {
-                throw new InvalidOperationException("The session has to be opened before publishing any messages.");
-            }
+            ThrowIfInvalidState();
 
             publishOptions.GetExtensions().Set(pendingOperations);
             await messageSession.Publish(messageConstructor, publishOptions, cancellationToken).ConfigureAwait(false);
+        }
+
+        void ThrowIfDisposed()
+        {
+            if (disposed)
+            {
+                throw new ObjectDisposedException(nameof(Dispose));
+            }
+        }
+
+        void ThrowIfCommitted()
+        {
+            if (committed)
+            {
+                throw new InvalidOperationException("This session has already been committed. Complete all session operations before calling `Commit` or use a new session.");
+            }
+        }
+
+        void ThrowIfNotOpened()
+        {
+            if (!IsOpen)
+            {
+                throw new InvalidOperationException("This session has not been opened yet.");
+            }
+        }
+
+        void ThrowIfInvalidState()
+        {
+            ThrowIfDisposed();
+            ThrowIfCommitted();
+            ThrowIfNotOpened();
         }
 
         public void Dispose()
@@ -140,5 +172,6 @@ namespace NServiceBus.TransactionalSession
         protected OpenSessionOptions options;
         readonly IMessageSession messageSession;
         protected bool disposed;
+        protected bool committed;
     }
 }

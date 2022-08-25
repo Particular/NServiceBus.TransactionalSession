@@ -14,7 +14,7 @@
         {
         }
 
-        public override async Task Commit(CancellationToken cancellationToken = default)
+        protected override async Task CommitInternal(CancellationToken cancellationToken = default)
         {
             await synchronizedStorageSession.CompleteAsync(cancellationToken).ConfigureAwait(false);
 

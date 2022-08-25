@@ -92,7 +92,7 @@ public class OutboxTransactionalSessionTests
 
         var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Send(new object()));
 
-        StringAssert.Contains("The session has to be opened before sending any messages", exception.Message);
+        StringAssert.Contains("This session has not been opened yet.", exception.Message);
         Assert.IsEmpty(messageSession.SentMessages);
     }
 
@@ -104,7 +104,7 @@ public class OutboxTransactionalSessionTests
 
         var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Publish(new object()));
 
-        StringAssert.Contains("The session has to be opened before publishing any messages", exception.Message);
+        StringAssert.Contains("This session has not been opened yet.", exception.Message);
         Assert.IsEmpty(messageSession.PublishedMessages);
     }
 
@@ -202,5 +202,38 @@ public class OutboxTransactionalSessionTests
         Assert.AreEqual(expectedMaximumCommitDuration.ToString("c"), controlMessage.Message.Headers[OutboxTransactionalSession.RemainingCommitDurationHeaderName]);
         Assert.AreEqual(expectedMetadataValue, controlMessage.Message.Headers["metadata-key"], "metadata should be propagated to headers");
         Assert.IsFalse(controlMessage.Message.Headers.ContainsKey("extensions-key"), "extensions should not be propagated to headers");
+    }
+
+    [Test]
+    public void Operations_should_throw_when_already_disposed()
+    {
+        ITransactionalSession session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), "queue address");
+
+        session.Dispose();
+
+        Assert.ThrowsAsync<ObjectDisposedException>(async () => await session.Open());
+        Assert.ThrowsAsync<ObjectDisposedException>(async () => await session.Send(new object()));
+        Assert.ThrowsAsync<ObjectDisposedException>(async () => await session.Publish(new object()));
+        Assert.ThrowsAsync<ObjectDisposedException>(async () => await session.Commit());
+
+        Assert.DoesNotThrow(() => session.Dispose(), "multiple calls to dispose should not throw");
+    }
+
+    [Test]
+    public async Task Operations_should_throw_when_already_committed()
+    {
+        ITransactionalSession session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), "queue address");
+
+        await session.Open();
+        await session.Commit();
+
+        var openException = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Open());
+        StringAssert.Contains("This session has already been committed. Complete all session operations before calling `Commit` or use a new session.", openException.Message);
+        var sendException = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Send(new object()));
+        StringAssert.Contains("This session has already been committed. Complete all session operations before calling `Commit` or use a new session.", sendException.Message);
+        var publishException = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Publish(new object()));
+        StringAssert.Contains("This session has already been committed. Complete all session operations before calling `Commit` or use a new session.", publishException.Message);
+        var commitException = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Commit());
+        StringAssert.Contains("This session has already been committed. Complete all session operations before calling `Commit` or use a new session.", commitException.Message);
     }
 }

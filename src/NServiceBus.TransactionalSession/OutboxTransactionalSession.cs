@@ -24,7 +24,7 @@
             this.physicalQueueAddress = physicalQueueAddress;
         }
 
-        public override async Task Commit(CancellationToken cancellationToken = default)
+        protected override async Task CommitInternal(CancellationToken cancellationToken = default)
         {
             var headers = new Dictionary<string, string>
             {
