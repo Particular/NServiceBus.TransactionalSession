@@ -94,7 +94,7 @@ jobs:
           $ignore = az tag create --resource-id $details.id --tags Package=TransactionalSession RunnerOS=${{ runner.os }} $dateTag
           echo "RavenDBConnectionString=http://$($fqdn):8080" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf-8 -Append
       - name: Setup MongoDB Server
-        uses: Particular/setup-mongodb-action@v1.0.0
+        uses: Particular/setup-mongodb-action@v1.0.1
         with:
           connection-string-name: MongoDBConnectionString
           mongodb-replica-set: tr0
