@@ -12,13 +12,14 @@
     using Pipeline;
 
     [ExecuteOnlyForEnvironmentWith(EnvironmentVariables.AzureTableServerConnectionString)]
-    public class When_using_outbox : NServiceBusAcceptanceTest
+    public class When_using_transactional_session : NServiceBusAcceptanceTest
     {
         static string PartitionKeyHeaderName = "Tests.PartitionKey";
         static string PartitionKeyValue = "SomePartition";
 
-        [Test]
-        public async Task Should_send_messages_and_store_entity_on_transactional_session_commit()
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task Should_send_messages_and_store_entity_on_transactional_session_commit(bool outboxEnabled)
         {
             var entityRowId = Guid.NewGuid().ToString();
 
@@ -61,8 +62,9 @@
             Assert.AreEqual(tableEntity.Properties["Data"].StringValue, "MyCustomData");
         }
 
-        [Test]
-        public async Task Should_not_send_messages_if_session_is_not_committed()
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task Should_not_send_messages_if_session_is_not_committed(bool outboxEnabled)
         {
             var entityRowId = Guid.NewGuid().ToString();
 
@@ -107,8 +109,9 @@
             Assert.IsEmpty(AzureTableSetup.Table.ExecuteQuery(query));
         }
 
-        [Test]
-        public async Task Should_send_immediate_dispatch_messages_even_if_session_is_not_committed()
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task Should_send_immediate_dispatch_messages_even_if_session_is_not_committed(bool outboxEnabled)
         {
             var result = await Scenario.Define<Context>()
                 .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
@@ -139,11 +142,22 @@
 
         class AnEndpoint : EndpointConfigurationBuilder
         {
-            public AnEndpoint() =>
-                EndpointSetup<TransactionSessionWithOutboxEndpoint>(c =>
+            public AnEndpoint()
+            {
+                void Configure(EndpointConfiguration c)
                 {
                     c.Pipeline.Register(sp => new PartitionKeyProviderBehavior(), "Extract partition key value from message header.");
-                });
+                }
+
+                if ((bool)TestContext.CurrentContext.Test.Arguments[0]!)
+                {
+                    EndpointSetup<TransactionSessionDefaultServer>(Configure);
+                }
+                else
+                {
+                    EndpointSetup<TransactionSessionWithOutboxEndpoint>(Configure);
+                }
+            }
 
             class SampleHandler : IHandleMessages<SampleMessage>
             {
