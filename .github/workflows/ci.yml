@@ -60,39 +60,10 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_ACI_CREDENTIALS }}
       - name: Setup RavenDB
-        id: setup-ravendb
-        if: contains(matrix.engines, 'RavenDB')
-        shell: pwsh
-        run: |
-          $hostInfo = curl -H Metadata:true "169.254.169.254/metadata/instance?api-version=2017-08-01" | ConvertFrom-Json
-          $region = $hostInfo.compute.location
-          
-          $hostname = "psw-ts-ravendb-$(Get-Random)"
-          echo "::set-output name=hostname::$hostname"
-          echo "Creating RavenDB container $hostname in $region (This can take a while.)"
-          $details = az container create --image ravendb/ravendb:5.3-ubuntu-latest  --name $hostname --location $region --dns-name-label $hostname --resource-group GitHubActions-RG --cpu 4 --memory 8 --ports 8080 38888 --ip-address public -e RAVEN_ARGS='--ServerUrl=http://0.0.0.0:8080 --Setup.Mode=None --License.Eula.Accepted=true --Security.UnsecuredAccessAllowed=PublicNetwork' | ConvertFrom-Json
-          $fqdn=$details.ipAddress.fqdn
-          echo "::add-mask::$fqdn"
-          echo "Verifying connection..."
-          $tcpClient = New-Object Net.Sockets.TcpClient
-          $timeout = (Get-Date).AddMinutes(6)
-          while ($tcpClient.Connected -ne "True") {
-            try {
-                echo "Trying to connect..."
-                $tcpClient.Connect($fqdn, 8080)
-            } catch {
-                if ($timeout -lt (Get-Date)) {
-                  throw "Timed out verifying connection"
-                }
-                Start-Sleep -Seconds 2
-            }
-          }
-          echo "Connection verified"
-          $tcpClient.Close()
-          echo "Tagging container image"
-          $dateTag = "Created=$(Get-Date -Format "yyyy-MM-dd")"
-          $ignore = az tag create --resource-id $details.id --tags Package=TransactionalSession RunnerOS=${{ runner.os }} $dateTag
-          echo "RavenDBConnectionString=http://$($fqdn):8080" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf-8 -Append
+        uses: Particular/setup-ravendb-action@025826ef3f027ae36880d95f6b7056b5b007f583
+        with:
+          single-connection-string-name: RavenDBConnectionString
+          ravendb-license: ${{ secrets.RAVEN_LICENSE }}
       - name: Setup MongoDB Server
         if: contains(matrix.engines, 'MongoDB')
         uses: Particular/setup-mongodb-action@v1.1.0
@@ -122,12 +93,3 @@ jobs:
           api: Table
       - name: Run tests
         uses: Particular/run-tests-action@v1.3.0
-      - name: Teardown RavenDB
-        if: ${{ always() }}
-        shell: pwsh
-        run: |
-          if ('${{ matrix.engines }}' -contains 'RavenDB') {
-            echo "Removing container ${{ steps.setup-ravendb.outputs.hostname }}"
-            az container delete --resource-group GitHubActions-RG --name ${{ steps.setup-ravendb.outputs.hostname }} --yes | Out-Null
-            echo "Removal complete"
-          }
