@@ -60,6 +60,7 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_ACI_CREDENTIALS }}
       - name: Setup RavenDB
+        if: contains(matrix.engines, 'RavenDB')
         uses: Particular/setup-ravendb-action@025826ef3f027ae36880d95f6b7056b5b007f583
         with:
           single-connection-string-name: RavenDBConnectionString
