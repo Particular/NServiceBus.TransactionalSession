@@ -142,14 +142,14 @@ public static class CosmosDBSupport
         }
     }
 
-    internal class CosmosControlMessageBehavior : Behavior<ITransportReceiveContext>
+    internal class CosmosControlMessageBehavior : IBehavior<ITransportReceiveContext, ITransportReceiveContext>
     {
         public const string PartitionKeyStringHeaderKey = "NServiceBus.TxSession.CosmosDB.PartitionKeyString";
         public const string PartitionKeyDoubleHeaderKey = "NServiceBus.TxSession.CosmosDB.PartitionKeyDouble";
         public const string ContainerNameHeaderKey = "NServiceBus.TxSession.CosmosDB.ContainerName";
         public const string ContainerPartitionKeyPathHeaderKey = "NServiceBus.TxSession.CosmosDB.ContainerPartitionKeyPath";
 
-        public override Task Invoke(ITransportReceiveContext context, Func<Task> next)
+        public Task Invoke(ITransportReceiveContext context, Func<ITransportReceiveContext, Task> next)
         {
             if (context.Message.Headers.TryGetValue(PartitionKeyStringHeaderKey, out var partitionKeyString))
             {
@@ -169,7 +169,7 @@ public static class CosmosDBSupport
                 context.Extensions.Set(ContainerInformationTypeFullName, containerInformationInstance);
             }
 
-            return next();
+            return next(context);
         }
     }
 }
