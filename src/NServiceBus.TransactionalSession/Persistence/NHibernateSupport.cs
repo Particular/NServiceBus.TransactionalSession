@@ -20,14 +20,15 @@ public static class NHibernateSupport
     {
         var endpointQualifiedMessageIdKeyName = "NServiceBus.Persistence.NHibernate.EndpointQualifiedMessageId";
 
-        var endpointName = session.PersisterSpecificOptions.Get<string>();
+        if (session.PersisterSpecificOptions.TryGet(out string endpointName))
+        {
+            options ??= new OpenSessionOptions();
 
-        options ??= new OpenSessionOptions();
+            var endpointQualifiedMessageId = $"{endpointName}/{options.SessionId}";
 
-        var endpointQualifiedMessageId = $"{endpointName}/{options.SessionId}";
-
-        options.Extensions.Set(endpointQualifiedMessageIdKeyName, endpointQualifiedMessageId);
-        options.Metadata.Add(endpointQualifiedMessageIdKeyName, endpointQualifiedMessageId);
+            options.Extensions.Set(endpointQualifiedMessageIdKeyName, endpointQualifiedMessageId);
+            options.Metadata.Add(endpointQualifiedMessageIdKeyName, endpointQualifiedMessageId);
+        }
 
         return session.Open(options, cancellationToken);
     }
