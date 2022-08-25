@@ -54,14 +54,14 @@ namespace NServiceBus.TransactionalSession
 
         public async Task Commit(CancellationToken cancellationToken = default)
         {
-            ThrowIfDisposed();
-            ThrowIfCommitted();
-            ThrowIfNotOpened();
+            ThrowIfInvalidState();
 
             await CommitInternal(cancellationToken).ConfigureAwait(false);
 
             committed = true;
         }
+
+
         protected abstract Task CommitInternal(CancellationToken cancellationToken = default);
 
         public virtual Task Open(OpenSessionOptions options = null, CancellationToken cancellationToken = default)
@@ -82,9 +82,7 @@ namespace NServiceBus.TransactionalSession
 
         public async Task Send(object message, SendOptions sendOptions, CancellationToken cancellationToken = default)
         {
-            ThrowIfDisposed();
-            ThrowIfCommitted();
-            ThrowIfNotOpened();
+            ThrowIfInvalidState();
 
             sendOptions.GetExtensions().Set(pendingOperations);
             await messageSession.Send(message, sendOptions, cancellationToken).ConfigureAwait(false);
@@ -92,9 +90,7 @@ namespace NServiceBus.TransactionalSession
 
         public async Task Send<T>(Action<T> messageConstructor, SendOptions sendOptions, CancellationToken cancellationToken = default)
         {
-            ThrowIfDisposed();
-            ThrowIfCommitted();
-            ThrowIfNotOpened();
+            ThrowIfInvalidState();
 
             sendOptions.GetExtensions().Set(pendingOperations);
             await messageSession.Send(messageConstructor, sendOptions, cancellationToken).ConfigureAwait(false);
@@ -102,9 +98,7 @@ namespace NServiceBus.TransactionalSession
 
         public async Task Publish(object message, PublishOptions publishOptions, CancellationToken cancellationToken = default)
         {
-            ThrowIfDisposed();
-            ThrowIfCommitted();
-            ThrowIfNotOpened();
+            ThrowIfInvalidState();
 
             publishOptions.GetExtensions().Set(pendingOperations);
             await messageSession.Publish(message, publishOptions, cancellationToken).ConfigureAwait(false);
@@ -112,9 +106,7 @@ namespace NServiceBus.TransactionalSession
 
         public async Task Publish<T>(Action<T> messageConstructor, PublishOptions publishOptions, CancellationToken cancellationToken = default)
         {
-            ThrowIfDisposed();
-            ThrowIfCommitted();
-            ThrowIfNotOpened();
+            ThrowIfInvalidState();
 
             publishOptions.GetExtensions().Set(pendingOperations);
             await messageSession.Publish(messageConstructor, publishOptions, cancellationToken).ConfigureAwait(false);
@@ -142,6 +134,13 @@ namespace NServiceBus.TransactionalSession
             {
                 throw new InvalidOperationException("This session has not been opened yet.");
             }
+        }
+
+        void ThrowIfInvalidState()
+        {
+            ThrowIfDisposed();
+            ThrowIfCommitted();
+            ThrowIfNotOpened();
         }
 
         public void Dispose()
