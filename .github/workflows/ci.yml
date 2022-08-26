@@ -64,7 +64,7 @@ jobs:
         uses: Particular/setup-ravendb-action@3f7caf796203bd4c5eb7bc479d371b02e2c9f0c6
         with:
           single-connection-string-name: RavenDBConnectionString
-          ravendb-license: ${{ secrets.RAVEN_LICENSE }}
+          ravendb-license: ${{ secrets.RAVENDB_LICENSE }}
       - name: Setup MongoDB Server
         if: contains(matrix.engines, 'MongoDB')
         uses: Particular/setup-mongodb-action@v1.1.0
