@@ -3,10 +3,7 @@
     using System;
     using System.Linq;
     using System.Threading.Tasks;
-    using Features;
     using NServiceBus.AcceptanceTesting;
-    using NServiceBus.AcceptanceTests;
-    using NServiceBus.AcceptanceTests.EndpointTemplates;
     using NServiceBus.Outbox;
     using NUnit.Framework;
     using ObjectBuilder;
@@ -60,7 +57,7 @@
                 EndpointSetup<TransactionSessionWithOutboxEndpoint>((c, r) =>
                 {
                     var receiverEndpointName = AcceptanceTesting.Customization.Conventions.EndpointNamingConvention(typeof(ReceiverEndpoint));
-                    c.ConfigureTransport().Routing().RouteToEndpoint(typeof(SomeMessage), receiverEndpointName);
+                    c.ConfigureRouting().RouteToEndpoint(typeof(SomeMessage), receiverEndpointName);
                     c.Pipeline.Register(new StorageManipulationBehavior(), "configures the outbox to not see the commited values yet");
                 });
 

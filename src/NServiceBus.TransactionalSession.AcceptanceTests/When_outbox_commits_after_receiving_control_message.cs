@@ -4,9 +4,6 @@
     using System.Threading;
     using System.Threading.Tasks;
     using AcceptanceTesting;
-    using Features;
-    using NServiceBus.AcceptanceTests;
-    using NServiceBus.AcceptanceTests.EndpointTemplates;
     using NUnit.Framework;
     using ObjectBuilder;
     using Pipeline;
@@ -52,7 +49,7 @@
                 {
                     var receiverEndpointName = AcceptanceTesting.Customization.Conventions.EndpointNamingConvention(typeof(ReceiverEndpoint));
 
-                    c.ConfigureTransport().Routing().RouteToEndpoint(typeof(SomeMessage), receiverEndpointName);
+                    c.ConfigureRouting().RouteToEndpoint(typeof(SomeMessage), receiverEndpointName);
 
                     c.Pipeline.Register(new DelayedOutboxTransactionCommitBehavior((Context)r.ScenarioContext), "delays the outbox transaction commit");
                 });

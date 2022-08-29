@@ -2,9 +2,6 @@
 {
     using System.Threading.Tasks;
     using AcceptanceTesting;
-    using Features;
-    using NServiceBus.AcceptanceTests;
-    using NServiceBus.AcceptanceTests.EndpointTemplates;
     using NUnit.Framework;
     using ObjectBuilder;
 
@@ -65,7 +62,7 @@
         class AnEndpoint : EndpointConfigurationBuilder
         {
             public AnEndpoint() =>
-                EndpointSetup<TransactionSessionWithoutOutboxEndpoint>((c, r) =>
+                EndpointSetup<TransactionSessionDefaultServer>((c, r) =>
                 {
                 });
 

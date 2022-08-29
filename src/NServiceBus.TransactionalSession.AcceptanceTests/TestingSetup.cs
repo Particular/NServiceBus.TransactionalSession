@@ -4,7 +4,7 @@ using AcceptanceTesting;
 using NUnit.Framework;
 
 [SetUpFixture]
-public class SetupFixture
+public class TestingSetup
 {
 
     [OneTimeSetUp]
@@ -12,5 +12,10 @@ public class SetupFixture
     {
         typeof(ITransactionalSession).ToString();
         typeof(CustomTestingPersistence).ToString();
+
+        TransactionSessionDefaultServer.ConfigurePersistence = configuration =>
+        {
+            var persistence = configuration.UsePersistence<CustomTestingPersistence>();
+        };
     }
 }

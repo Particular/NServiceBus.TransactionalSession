@@ -29,7 +29,6 @@ public class CaptureBuilderFeature : Feature
     }
 }
 
-
 public interface IInjectBuilder
 {
     IBuilder Builder { get; set; }

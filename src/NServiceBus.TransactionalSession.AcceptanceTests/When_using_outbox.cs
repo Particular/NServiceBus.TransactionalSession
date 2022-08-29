@@ -3,7 +3,6 @@
     using System.Threading;
     using System.Threading.Tasks;
     using AcceptanceTesting;
-    using NServiceBus.AcceptanceTests;
     using NUnit.Framework;
     using ObjectBuilder;
 
