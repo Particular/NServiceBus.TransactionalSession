@@ -95,7 +95,7 @@ jobs:
           echo "RavenDBConnectionString=http://$($fqdn):8080" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf-8 -Append
       - name: Setup MongoDB Server
         if: contains(matrix.engines, 'MongoDB')
-        uses: Particular/setup-mongodb-action@v1.0.1
+        uses: Particular/setup-mongodb-action@8691615c96bfc261304b7e9da81ff965775bc242
         with:
           connection-string-name: MongoDBConnectionString
           mongodb-replica-set: tr0
