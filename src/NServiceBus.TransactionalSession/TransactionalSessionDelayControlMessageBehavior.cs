@@ -21,16 +21,15 @@
 
         public override async Task Invoke(IIncomingPhysicalMessageContext context, Func<Task> next)
         {
-            var isCommitControlMessage = context.Message.Headers.ContainsKey(OutboxTransactionalSession.RemainingCommitDurationHeaderName);
-
-            if (isCommitControlMessage == false)
+            if (!context.Message.Headers.TryGetValue(OutboxTransactionalSession.RemainingCommitDurationHeaderName, out var remainingCommitDurationHeader)
+                || !context.Message.Headers.TryGetValue(OutboxTransactionalSession.CommitDelayIncrementHeaderName, out var commitDelayIncrementHeader))
             {
                 await next().ConfigureAwait(false);
                 return;
             }
 
-            var remainingCommitDuration = TimeSpan.Parse(context.Message.Headers[OutboxTransactionalSession.RemainingCommitDurationHeaderName]);
-            var commitDelayIncrement = TimeSpan.Parse(context.Message.Headers[OutboxTransactionalSession.CommitDelayIncrementHeaderName]);
+            var remainingCommitDuration = TimeSpan.Parse(remainingCommitDurationHeader);
+            var commitDelayIncrement = TimeSpan.Parse(commitDelayIncrementHeader);
 
             var messageId = context.MessageId;
             if (remainingCommitDuration <= TimeSpan.Zero)

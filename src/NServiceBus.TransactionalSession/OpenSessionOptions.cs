@@ -34,6 +34,8 @@
 
         internal TimeSpan CommitDelayIncrement { get; set; } = TimeSpan.FromSeconds(2);
 
+        internal string SessionId { get; } = Guid.NewGuid().ToString();
+
         Dictionary<string, string> metadata;
         ContextBag extensions;
     }

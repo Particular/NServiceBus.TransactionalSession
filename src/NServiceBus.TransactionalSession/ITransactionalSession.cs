@@ -4,6 +4,7 @@
     using System;
     using System.Threading;
     using System.Threading.Tasks;
+    using Extensibility;
 
     /// <summary>
     /// A transactional session that provides basic message operations. 
@@ -15,7 +16,13 @@
         /// </summary>
         /// <param name="options">The options.</param>
         /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe.</param>
-        Task Open(OpenSessionOptions options = null, CancellationToken cancellationToken = default);
+        internal Task Open(OpenSessionOptions options = null, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Enables passing persister-specific data between <see cref="TransactionalSessionFeature"/> and
+        /// persister-specific open methods.
+        /// </summary>
+        internal ContextBag PersisterSpecificOptions { get; }
 
         /// <summary>
         /// Sends the provided message.
@@ -47,7 +54,6 @@
         /// <param name="messageConstructor">An action which initializes properties of the message.</param>
         /// <param name="publishOptions">Specific options for this event.</param>
         Task Publish<T>(Action<T> messageConstructor, PublishOptions publishOptions);
-#pragma warning restore PS0018 // A task-returning method should have a CancellationToken parameter unless it has a parameter implementing ICancellableContext
 
         /// <summary>
         /// Gets the synchronized storage session for processing the current message. NServiceBus makes sure the changes made
@@ -61,10 +67,11 @@
         string SessionId { get; }
 
         /// <summary>
-        /// Commit the session by applying all message and synchronized storage operation in an atomic manner.
+        /// Commits the session by applying all messaging and synchronized storage operations in an atomic manner.
         /// </summary>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         Task Commit(CancellationToken cancellationToken = default);
+#pragma warning restore PS0018 // A task-returning method should have a CancellationToken parameter unless it has a parameter implementing ICancellableContext
     }
 }

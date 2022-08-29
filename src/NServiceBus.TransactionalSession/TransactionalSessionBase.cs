@@ -28,36 +28,64 @@
                 if (!IsOpen)
                 {
                     throw new InvalidOperationException(
-                        "Before accessing the SynchronizedStorageSession, make sure to open the session by calling the `Open`-method.");
+                        "The session has to be opened before accessing the SynchronizedStorageSession.");
                 }
 
                 return synchronizedStorageSession;
             }
         }
 
-        public string SessionId { get; private set; }
+        public string SessionId
+        {
+            get
+            {
+                if (!IsOpen)
+                {
+                    throw new InvalidOperationException(
+                        "The session has to be opened before accessing the SessionId.");
+                }
+
+                return options?.SessionId;
+            }
+        }
 
         protected ContextBag Context => options.Extensions;
 
         protected bool IsOpen => options != null;
 
-        public abstract Task Commit(CancellationToken cancellationToken = default);
+        public async Task Commit(CancellationToken cancellationToken = default)
+        {
+            ThrowIfInvalidState();
+
+            await CommitInternal(cancellationToken).ConfigureAwait(false);
+
+            committed = true;
+        }
+
+
+        protected abstract Task CommitInternal(CancellationToken cancellationToken = default);
 
         public virtual Task Open(OpenSessionOptions options = null, CancellationToken cancellationToken = default)
         {
+            ThrowIfDisposed();
+            ThrowIfCommitted();
+
+            if (IsOpen)
+            {
+                throw new InvalidOperationException($"This session is already open. {nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)} should only be called once.");
+            }
+
             this.options = options ?? new OpenSessionOptions();
-            SessionId = Guid.NewGuid().ToString();
             return Task.CompletedTask;
         }
+
+        ContextBag ITransactionalSession.PersisterSpecificOptions { get; } = new ContextBag();
 
 #pragma warning disable PS0018 // A task-returning method should have a CancellationToken parameter unless it has a parameter implementing ICancellableContext
         public async Task Send(object message, SendOptions sendOptions)
 #pragma warning restore PS0018 // A task-returning method should have a CancellationToken parameter unless it has a parameter implementing ICancellableContext
         {
-            if (!IsOpen)
-            {
-                throw new InvalidOperationException("Before sending any messages, make sure to open the session by calling the `Open`-method.");
-            }
+            ThrowIfInvalidState();
 
             sendOptions.GetExtensions().Set(pendingOperations);
             await messageSession.Send(message, sendOptions).ConfigureAwait(false);
@@ -67,10 +95,7 @@
         public async Task Send<T>(Action<T> messageConstructor, SendOptions sendOptions)
 #pragma warning restore PS0018 // A task-returning method should have a CancellationToken parameter unless it has a parameter implementing ICancellableContext
         {
-            if (!IsOpen)
-            {
-                throw new InvalidOperationException("Before sending any messages, make sure to open the session by calling the `Open`-method.");
-            }
+            ThrowIfInvalidState();
 
             sendOptions.GetExtensions().Set(pendingOperations);
             await messageSession.Send(messageConstructor, sendOptions).ConfigureAwait(false);
@@ -80,10 +105,7 @@
         public async Task Publish(object message, PublishOptions publishOptions)
 #pragma warning restore PS0018 // A task-returning method should have a CancellationToken parameter unless it has a parameter implementing ICancellableContext
         {
-            if (!IsOpen)
-            {
-                throw new InvalidOperationException("Before publishing any messages, make sure to open the session by calling the `Open`-method.");
-            }
+            ThrowIfInvalidState();
 
             publishOptions.GetExtensions().Set(pendingOperations);
             await messageSession.Publish(message, publishOptions).ConfigureAwait(false);
@@ -93,13 +115,41 @@
         public async Task Publish<T>(Action<T> messageConstructor, PublishOptions publishOptions)
 #pragma warning restore PS0018 // A task-returning method should have a CancellationToken parameter unless it has a parameter implementing ICancellableContext
         {
-            if (!IsOpen)
-            {
-                throw new InvalidOperationException("Before publishing any messages, make sure to open the session by calling the `Open`-method.");
-            }
+            ThrowIfInvalidState();
 
             publishOptions.GetExtensions().Set(pendingOperations);
             await messageSession.Publish(messageConstructor, publishOptions).ConfigureAwait(false);
+        }
+
+        void ThrowIfDisposed()
+        {
+            if (disposed)
+            {
+                throw new ObjectDisposedException(nameof(Dispose));
+            }
+        }
+
+        void ThrowIfCommitted()
+        {
+            if (committed)
+            {
+                throw new InvalidOperationException("This session has already been committed. Complete all session operations before calling `Commit` or use a new session.");
+            }
+        }
+
+        void ThrowIfNotOpened()
+        {
+            if (!IsOpen)
+            {
+                throw new InvalidOperationException("This session has not been opened yet.");
+            }
+        }
+
+        void ThrowIfInvalidState()
+        {
+            ThrowIfDisposed();
+            ThrowIfCommitted();
+            ThrowIfNotOpened();
         }
 
         public void Dispose()
@@ -131,6 +181,7 @@
         protected readonly TransportTransaction transportTransaction;
         protected OpenSessionOptions options;
         readonly IMessageSession messageSession;
-        bool disposed;
+        protected bool disposed;
+        protected bool committed;
     }
 }

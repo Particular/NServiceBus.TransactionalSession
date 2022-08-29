@@ -28,7 +28,7 @@
             this.physicalQueueAddress = physicalQueueAddress;
         }
 
-        public override async Task Commit(CancellationToken cancellationToken = default)
+        protected override async Task CommitInternal(CancellationToken cancellationToken = default)
         {
             var headers = new Dictionary<string, string>
             {
@@ -47,7 +47,7 @@
             var message = new OutgoingMessage(SessionId, headers, Array.Empty<byte>());
 
             var outgoingMessages = new TransportOperations(new TransportTransportOperation(message, new UnicastAddressTag(physicalQueueAddress)));
-            await dispatcher.Dispatch(outgoingMessages, transportTransaction, new ContextBag()).ConfigureAwait(false);
+            await dispatcher.Dispatch(outgoingMessages, new TransportTransaction(), new ContextBag()).ConfigureAwait(false);
 
             var outboxMessage =
                 new OutboxMessage(SessionId, ConvertToOutboxOperations(pendingOperations.Operations));
@@ -61,12 +61,17 @@
 
         protected override void Dispose(bool disposing)
         {
-            base.Dispose(disposing);
+            if (disposed)
+            {
+                return;
+            }
 
             if (disposing)
             {
                 outboxTransaction?.Dispose();
             }
+
+            base.Dispose(disposing);
         }
 
         static OutboxTransportOperation[] ConvertToOutboxOperations(TransportTransportOperation[] operations)
