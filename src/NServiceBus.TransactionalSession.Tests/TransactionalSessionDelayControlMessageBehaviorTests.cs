@@ -18,7 +18,7 @@ public class TransactionalSessionDelayControlMessageBehaviorTests
         var behavior = new TransactionalSessionDelayControlMessageBehavior(dispatcher, "queue address");
 
         bool continued = false;
-        await behavior.Invoke(new TestableIncomingPhysicalMessageContext(), () =>
+        await behavior.Invoke(new TestableIncomingPhysicalMessageContext(), _ =>
         {
             continued = true;
             return Task.CompletedTask;
@@ -39,7 +39,7 @@ public class TransactionalSessionDelayControlMessageBehaviorTests
         messageContext.Message.Headers[OutboxTransactionalSession.CommitDelayIncrementHeaderName] = TimeSpan.FromSeconds(5).ToString("c");
 
         bool continued = false;
-        await behavior.Invoke(messageContext, () =>
+        await behavior.Invoke(messageContext, _ =>
         {
             continued = true;
             return Task.CompletedTask;
@@ -63,7 +63,7 @@ public class TransactionalSessionDelayControlMessageBehaviorTests
         messageContext.Message.Headers["custom-header-key"] = "custom-header-value";
 
         bool continued = false;
-        Assert.ThrowsAsync<ConsumeMessageException>(async () => await behavior.Invoke(messageContext, () =>
+        Assert.ThrowsAsync<ConsumeMessageException>(async () => await behavior.Invoke(messageContext, _ =>
         {
             continued = true;
             return Task.CompletedTask;
