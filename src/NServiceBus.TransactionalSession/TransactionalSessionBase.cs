@@ -31,7 +31,7 @@
                         "The session has to be opened before accessing the SynchronizedStorageSession.");
                 }
 
-                return synchronizedStorageSession;
+                return synchronizedStorageSession.GetAdaptedSession();
             }
         }
 
