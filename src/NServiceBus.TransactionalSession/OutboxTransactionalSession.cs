@@ -22,7 +22,8 @@
             CompletableSynchronizedStorageSession synchronizedStorageSession,
             IMessageSession messageSession,
             IDispatchMessages dispatcher,
-            string physicalQueueAddress) : base(synchronizedStorageSession, messageSession, dispatcher)
+            string physicalQueueAddress,
+            ITransactionalSessionExtension extension) : base(synchronizedStorageSession, messageSession, dispatcher, extension)
         {
             this.outboxStorage = outboxStorage;
             this.physicalQueueAddress = physicalQueueAddress;

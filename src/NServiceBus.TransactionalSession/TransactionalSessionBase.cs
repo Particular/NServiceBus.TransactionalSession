@@ -12,13 +12,15 @@
         protected TransactionalSessionBase(
             CompletableSynchronizedStorageSession synchronizedStorageSession,
             IMessageSession messageSession,
-            IDispatchMessages dispatcher)
+            IDispatchMessages dispatcher,
+            ITransactionalSessionExtension extension)
         {
             this.synchronizedStorageSession = synchronizedStorageSession;
             this.messageSession = messageSession;
             this.dispatcher = dispatcher;
             pendingOperations = new PendingTransportOperations();
             transportTransaction = new TransportTransaction();
+            this.extension = extension;
         }
 
         public SynchronizedStorageSession SynchronizedStorageSession
@@ -168,6 +170,7 @@
             if (disposing)
             {
                 synchronizedStorageSession?.Dispose();
+                (extension as IDisposable)?.Dispose();
             }
 
             disposed = true;
@@ -177,6 +180,7 @@
         protected readonly IDispatchMessages dispatcher;
         protected readonly PendingTransportOperations pendingOperations;
         protected readonly TransportTransaction transportTransaction;
+        protected ITransactionalSessionExtension extension;
         protected OpenSessionOptions options;
         readonly IMessageSession messageSession;
         protected bool disposed;

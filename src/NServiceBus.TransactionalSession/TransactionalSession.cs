@@ -11,7 +11,8 @@
         public TransactionalSession(
             CompletableSynchronizedStorageSession synchronizedStorageSession,
             IMessageSession messageSession,
-            IDispatchMessages dispatcher) : base(synchronizedStorageSession, messageSession, dispatcher)
+            IDispatchMessages dispatcher,
+            ITransactionalSessionExtension extension) : base(synchronizedStorageSession, messageSession, dispatcher, extension)
         {
         }
 

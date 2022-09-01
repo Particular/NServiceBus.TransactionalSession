@@ -44,7 +44,8 @@
                         builder.Build<CompletableSynchronizedStorageSession>(),
                         sessionCaptureTask.CapturedSession,
                         builder.Build<IDispatchMessages>(),
-                        physicalLocalQueueAddress
+                        physicalLocalQueueAddress,
+                        builder.Build<ITransactionalSessionExtension>()
                         );
                 }
                 else
@@ -52,7 +53,8 @@
                     transactionalSession = new TransactionalSession(
                         builder.Build<CompletableSynchronizedStorageSession>(),
                         sessionCaptureTask.CapturedSession,
-                        builder.Build<IDispatchMessages>());
+                        builder.Build<IDispatchMessages>(),
+                        builder.Build<ITransactionalSessionExtension>());
                 }
 
                 // if (context.Settings.TryGet("NServiceBus.Features.NHibernateOutbox", out FeatureState nhState) && nhState == FeatureState.Active)
