@@ -17,7 +17,7 @@
 
         [TestCase(true)]
         [TestCase(false)]
-        public async Task Should_send_messages_and_insert_rows_in_sychronized_session_on_transactional_session_commit(bool outboxEnabled)
+        public async Task Should_send_messages_and_insert_rows_in_synchronized_session_on_transactional_session_commit(bool outboxEnabled)
         {
             var rowId = Guid.NewGuid().ToString();
 
