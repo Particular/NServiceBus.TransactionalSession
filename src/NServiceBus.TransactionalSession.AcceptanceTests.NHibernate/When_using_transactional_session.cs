@@ -13,7 +13,7 @@
     {
         [TestCase(true)]
         [TestCase(false)]
-        public async Task Should_send_messages_and_insert_row_on_transactional_session_commit(bool outboxEnabled)
+        public async Task Should_send_messages_and_store_document_in_synchronized_session_on_transactional_session_commit(bool outboxEnabled)
         {
             var rowId = Guid.NewGuid().ToString();
 
@@ -27,6 +27,45 @@
                     await transactionalSession.SendLocal(new SampleMessage(), CancellationToken.None);
 
                     var storageSession = transactionalSession.SynchronizedStorageSession.Session();
+
+                    var insertText = $@"IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='SomeTable' and xtype='U')
+                                        BEGIN
+	                                        CREATE TABLE [dbo].[SomeTable]([Id] [nvarchar](50) NOT NULL)
+                                        END;
+                                        INSERT INTO [dbo].[SomeTable] VALUES ('{rowId}')";
+
+                    await storageSession.CreateSQLQuery(insertText).ExecuteUpdateAsync(CancellationToken.None);
+
+                    await transactionalSession.Commit(CancellationToken.None).ConfigureAwait(false);
+                }))
+                .Done(c => c.MessageReceived)
+                .Run();
+
+            using var connection = new SqlConnection(NHibernateSetup.GetConnectionString());
+            await connection.OpenAsync();
+
+            using var queryCommand = new SqlCommand($"SELECT TOP 1 [Id] FROM [dbo].[SomeTable] WHERE [Id]='{rowId}'", connection);
+            var result = await queryCommand.ExecuteScalarAsync();
+
+            Assert.AreEqual(rowId, result);
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task Should_send_messages_and_store_document_in_nhibernate_session_on_transactional_session_commit(bool outboxEnabled)
+        {
+            var rowId = Guid.NewGuid().ToString();
+
+            await Scenario.Define<Context>()
+                .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
+                {
+                    using var scope = ctx.ServiceProvider.CreateScope();
+                    using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+                    await transactionalSession.OpenNHibernateSession();
+
+                    await transactionalSession.SendLocal(new SampleMessage(), CancellationToken.None);
+
+                    var storageSession = scope.ServiceProvider.GetRequiredService<INHibernateStorageSession>().Session;
 
                     var insertText = $@"IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='SomeTable' and xtype='U')
                                         BEGIN

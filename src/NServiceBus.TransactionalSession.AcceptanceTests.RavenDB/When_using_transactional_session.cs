@@ -7,13 +7,14 @@
     using Microsoft.Extensions.DependencyInjection;
     using AcceptanceTesting;
     using NUnit.Framework;
+    using Raven.Client.Documents.Session;
 
     [ExecuteOnlyForEnvironmentWith(EnvironmentVariables.RavenDBConnectionString)]
     public class When_using_transactional_session : NServiceBusAcceptanceTest
     {
         [TestCase(true)]
         [TestCase(false)]
-        public async Task Should_send_messages_on_transactional_session_commit(bool outboxEnabled)
+        public async Task Should_send_messages_and_store_document_in_synchronized_session_on_transactional_session_commit(bool outboxEnabled)
         {
             var context = await Scenario.Define<Context>()
                 .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
@@ -25,6 +26,34 @@
                     await transactionalSession.SendLocal(new SampleMessage(), CancellationToken.None);
 
                     var ravenSession = transactionalSession.SynchronizedStorageSession.RavenSession();
+                    var document = new TestDocument { Id = ctx.SessionId = transactionalSession.SessionId };
+                    await ravenSession.StoreAsync(document);
+
+                    await transactionalSession.Commit(CancellationToken.None).ConfigureAwait(false);
+                }))
+                .Done(c => c.MessageReceived)
+                .Run();
+
+            var documents = RavenSetup.DocumentStore.OpenSession(RavenSetup.DefaultDatabaseName)
+                .Query<TestDocument>()
+                .Where(d => d.Id == context.SessionId);
+            Assert.AreEqual(1, documents.Count());
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task Should_send_messages_and_store_document_in_raven_session_on_transactional_session_commit(bool outboxEnabled)
+        {
+            var context = await Scenario.Define<Context>()
+                .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
+                {
+                    using var scope = ctx.ServiceProvider.CreateScope();
+                    using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+                    await transactionalSession.OpenRavenDBSession();
+
+                    await transactionalSession.SendLocal(new SampleMessage(), CancellationToken.None);
+
+                    var ravenSession = scope.ServiceProvider.GetRequiredService<IAsyncDocumentSession>();
                     var document = new TestDocument { Id = ctx.SessionId = transactionalSession.SessionId };
                     await ravenSession.StoreAsync(document);
 

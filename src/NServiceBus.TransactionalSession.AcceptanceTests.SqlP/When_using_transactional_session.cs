@@ -7,6 +7,7 @@
     using AcceptanceTesting;
     using Microsoft.Data.SqlClient;
     using NUnit.Framework;
+    using NServiceBus.Persistence.Sql;
 
     [ExecuteOnlyForEnvironmentWith(EnvironmentVariables.SqlServerConnectionString)]
     public class When_using_transactional_session : NServiceBusAcceptanceTest
@@ -16,7 +17,7 @@
 
         [TestCase(true)]
         [TestCase(false)]
-        public async Task Should_send_messages_and_insert_rows_on_transactional_session_commit(bool outboxEnabled)
+        public async Task Should_send_messages_and_insert_rows_in_sychronized_session_on_transactional_session_commit(bool outboxEnabled)
         {
             var rowId = Guid.NewGuid().ToString();
 
@@ -30,6 +31,49 @@
                     await transactionalSession.SendLocal(new SampleMessage(), CancellationToken.None);
 
                     var storageSession = transactionalSession.SynchronizedStorageSession.SqlPersistenceSession();
+
+                    var insertText = $@"IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='SomeTable' and xtype='U')
+                                        BEGIN
+	                                        CREATE TABLE [dbo].[SomeTable]([Id] [nvarchar](50) NOT NULL)
+                                        END;
+                                        INSERT INTO [dbo].[SomeTable] VALUES ('{rowId}')";
+
+                    using (var insertCommand = new SqlCommand(insertText, (SqlConnection)storageSession.Connection, (SqlTransaction)storageSession.Transaction))
+                    {
+                        await insertCommand.ExecuteNonQueryAsync();
+                    }
+
+                    await transactionalSession.Commit(CancellationToken.None).ConfigureAwait(false);
+                }))
+                .Done(c => c.MessageReceived)
+                .Run();
+
+            using var connection = SqlSetup.CreateSqlConnection();
+            await connection.OpenAsync();
+
+            using var queryCommand = new SqlCommand($"SELECT TOP 1 [Id] FROM [dbo].[SomeTable] WHERE [Id]='{rowId}'", connection);
+            var result = await queryCommand.ExecuteScalarAsync();
+
+            Assert.AreEqual(rowId, result);
+        }
+
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task Should_send_messages_and_insert_rows_in_sql_session_on_transactional_session_commit(bool outboxEnabled)
+        {
+            var rowId = Guid.NewGuid().ToString();
+
+            await Scenario.Define<Context>()
+                .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
+                {
+                    using var scope = ctx.ServiceProvider.CreateScope();
+                    using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+                    await transactionalSession.OpenSqlSession();
+
+                    await transactionalSession.SendLocal(new SampleMessage(), CancellationToken.None);
+
+                    var storageSession = scope.ServiceProvider.GetRequiredService<ISqlStorageSession>();
 
                     var insertText = $@"IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='SomeTable' and xtype='U')
                                         BEGIN

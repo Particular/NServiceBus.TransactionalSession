@@ -19,7 +19,7 @@
 
         [TestCase(true)]
         [TestCase(false)]
-        public async Task Should_send_messages_and_store_entity_on_transactional_session_commit(bool outboxEnabled)
+        public async Task Should_send_messages_and_store_document_in_synchronized_session_on_transactional_session_commit(bool outboxEnabled)
         {
             var entityRowId = Guid.NewGuid().ToString();
 
@@ -37,6 +37,51 @@
                     await transactionalSession.Send(new SampleMessage(), sendOptions, CancellationToken.None);
 
                     var storageSession = transactionalSession.SynchronizedStorageSession.AzureTablePersistenceSession();
+
+                    var entity = new MyTableEntity
+                    {
+                        RowKey = entityRowId,
+                        PartitionKey = PartitionKeyValue,
+                        Data = "MyCustomData"
+                    };
+
+                    storageSession.Batch.Add(TableOperation.Insert(entity));
+
+                    await transactionalSession.Commit(CancellationToken.None).ConfigureAwait(false);
+                }))
+                .Done(c => c.MessageReceived)
+                .Run();
+
+            var query = new TableQuery<DynamicTableEntity>()
+                .Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, PartitionKeyValue))
+                .Where(TableQuery.GenerateFilterCondition("RowKey", QueryComparisons.Equal, entityRowId));
+
+            var tableEntity = AzureTableSetup.Table.ExecuteQuery(query).FirstOrDefault();
+
+            Assert.IsNotNull(tableEntity);
+            Assert.AreEqual(tableEntity.Properties["Data"].StringValue, "MyCustomData");
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task Should_send_messages_and_store_document_in_sql_session_on_transactional_session_commit(bool outboxEnabled)
+        {
+            var entityRowId = Guid.NewGuid().ToString();
+
+            await Scenario.Define<Context>()
+                .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
+                {
+                    using var scope = ctx.ServiceProvider.CreateScope();
+                    using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+                    await transactionalSession.OpenAzureTableSession(PartitionKeyValue, AzureTableSetup.TableName);
+
+                    var sendOptions = new SendOptions();
+                    sendOptions.SetHeader(PartitionKeyHeaderName, PartitionKeyValue);
+                    sendOptions.RouteToThisEndpoint();
+
+                    await transactionalSession.Send(new SampleMessage(), sendOptions, CancellationToken.None);
+
+                    var storageSession = scope.ServiceProvider.GetRequiredService<IAzureTableStorageSession>();
 
                     var entity = new MyTableEntity
                     {
