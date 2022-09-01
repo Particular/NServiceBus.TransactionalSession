@@ -1,6 +1,5 @@
 ﻿namespace NServiceBus.TransactionalSession
 {
-    using System;
     using System.Threading.Tasks;
     using Features;
     using Outbox;

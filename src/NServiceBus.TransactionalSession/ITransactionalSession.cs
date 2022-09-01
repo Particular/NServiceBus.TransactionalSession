@@ -4,7 +4,6 @@
     using System;
     using System.Threading;
     using System.Threading.Tasks;
-    using Extensibility;
 
     /// <summary>
     /// A transactional session that provides basic message operations. 
