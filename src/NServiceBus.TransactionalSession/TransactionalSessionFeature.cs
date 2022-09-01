@@ -19,17 +19,17 @@
         {
             var physicalLocalQueueAddress = context.Settings.LocalAddress();
 
-            // Due to ordering issues it might not always be possible to check whether the feature is active. Checking for enabled and active is the safest bet since the behaviors use defensive techniques to get the values
-            if (context.Settings.TryGet("NServiceBus.Persistence.CosmosDB.SynchronizedStorage", out FeatureState cosmosSate) && cosmosSate is FeatureState.Enabled or FeatureState.Active)
-            {
-                context.Pipeline.Register(new CosmosDBSupport.CosmosControlMessageBehavior(), "Propagates control message header values to PartitionKeys and ContainerInformation when necessary.");
-            }
-
-            // Due to ordering issues it might not always be possible to check whether the feature is active. Checking for enabled and active is the safest bet since the behaviors use defensive techniques to get the values
-            if (context.Settings.TryGet("NServiceBus.Persistence.AzureTable.SynchronizedStorage", out FeatureState azureTableState) && azureTableState is FeatureState.Enabled or FeatureState.Active)
-            {
-                context.Pipeline.Register(new AzureTableSupport.AzureTableControlMessageBehavior(), "Propagates control message header values to TableEntityPartitionKeys and TableInformation when necessary.");
-            }
+            // // Due to ordering issues it might not always be possible to check whether the feature is active. Checking for enabled and active is the safest bet since the behaviors use defensive techniques to get the values
+            // if (context.Settings.TryGet("NServiceBus.Persistence.CosmosDB.SynchronizedStorage", out FeatureState cosmosSate) && cosmosSate is FeatureState.Enabled or FeatureState.Active)
+            // {
+            //     context.Pipeline.Register(new CosmosDBSupport.CosmosControlMessageBehavior(), "Propagates control message header values to PartitionKeys and ContainerInformation when necessary.");
+            // }
+            //
+            // // Due to ordering issues it might not always be possible to check whether the feature is active. Checking for enabled and active is the safest bet since the behaviors use defensive techniques to get the values
+            // if (context.Settings.TryGet("NServiceBus.Persistence.AzureTable.SynchronizedStorage", out FeatureState azureTableState) && azureTableState is FeatureState.Enabled or FeatureState.Active)
+            // {
+            //     context.Pipeline.Register(new AzureTableSupport.AzureTableControlMessageBehavior(), "Propagates control message header values to TableEntityPartitionKeys and TableInformation when necessary.");
+            // }
 
             var isOutboxEnabled = context.Settings.IsFeatureActive(typeof(Outbox));
             var sessionCaptureTask = new SessionCaptureTask();
@@ -56,15 +56,15 @@
                         builder.Build<IDispatchMessages>());
                 }
 
-                if (context.Settings.TryGet("NServiceBus.Features.NHibernateOutbox", out FeatureState nhState) && nhState == FeatureState.Active)
-                {
-                    transactionalSession.PersisterSpecificOptions.Set(context.Settings.EndpointName());
-                }
-
-                if (context.Settings.TryGet("NServiceBus.Persistence.AzureTable.SynchronizedStorage", out FeatureState atState) && atState == FeatureState.Active)
-                {
-                    transactionalSession.PersisterSpecificOptions.Set(builder.Build(Type.GetType(AzureTableSupport.TableHolderResolverAssemblyQualifiedTypeName)));
-                }
+                // if (context.Settings.TryGet("NServiceBus.Features.NHibernateOutbox", out FeatureState nhState) && nhState == FeatureState.Active)
+                // {
+                //     transactionalSession.PersisterSpecificOptions.Set(context.Settings.EndpointName());
+                // }
+                //
+                // if (context.Settings.TryGet("NServiceBus.Persistence.AzureTable.SynchronizedStorage", out FeatureState atState) && atState == FeatureState.Active)
+                // {
+                //     transactionalSession.PersisterSpecificOptions.Set(builder.Build(Type.GetType(AzureTableSupport.TableHolderResolverAssemblyQualifiedTypeName)));
+                // }
 
                 return transactionalSession;
             }, DependencyLifecycle.InstancePerUnitOfWork);

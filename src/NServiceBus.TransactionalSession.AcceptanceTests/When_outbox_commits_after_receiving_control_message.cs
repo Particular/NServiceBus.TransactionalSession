@@ -20,7 +20,7 @@
                         using var scope = context.Builder.CreateChildBuilder();
                         using var transactionalSession = scope.Build<ITransactionalSession>();
 
-                        var options = new OpenSessionOptions();
+                        var options = new CustomTestingPersistenceTransactionalSessionOptions();
                         options.Extensions.Set(CustomTestingOutboxTransaction.TransactionCommitTCSKey, context.TxCommitTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously));
 
                         await transactionalSession.Open(options);

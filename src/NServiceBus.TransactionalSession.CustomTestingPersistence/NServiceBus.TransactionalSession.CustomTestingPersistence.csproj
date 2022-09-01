@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NServiceBus.AcceptanceTesting" Version="7.8.0-storage-session.2" />
+    <PackageReference Include="NServiceBus.AcceptanceTesting" Version="7.8.0-storage-session.3" />
   </ItemGroup>
 
   <ItemGroup>

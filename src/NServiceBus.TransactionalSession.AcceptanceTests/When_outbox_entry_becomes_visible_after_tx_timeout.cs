@@ -22,7 +22,7 @@
                         using var scope = ctx.Builder.CreateChildBuilder();
                         using var transactionalSession = scope.Build<ITransactionalSession>();
 
-                        var options = new OpenSessionOptions { MaximumCommitDuration = TimeSpan.Zero };
+                        var options = new CustomTestingPersistenceTransactionalSessionOptions { MaximumCommitDuration = TimeSpan.Zero };
                         await transactionalSession.Open(options);
 
                         await transactionalSession.Send(new SomeMessage());

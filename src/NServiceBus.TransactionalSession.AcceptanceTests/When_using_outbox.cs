@@ -16,7 +16,7 @@
                 {
                     using var scope = ctx.Builder.CreateChildBuilder();
                     using var transactionalSession = scope.Build<ITransactionalSession>();
-                    await transactionalSession.Open();
+                    await transactionalSession.Open(new CustomTestingPersistenceTransactionalSessionOptions());
 
                     await transactionalSession.SendLocal(new SampleMessage());
 
@@ -35,7 +35,7 @@
                     using (var scope = ctx.Builder.CreateChildBuilder())
                     using (var transactionalSession = scope.Build<ITransactionalSession>())
                     {
-                        await transactionalSession.Open();
+                        await transactionalSession.Open(new CustomTestingPersistenceTransactionalSessionOptions());
 
                         await transactionalSession.SendLocal(new SampleMessage());
                     }
@@ -59,7 +59,7 @@
                     using var scope = ctx.Builder.CreateChildBuilder();
                     using var transactionalSession = scope.Build<ITransactionalSession>();
 
-                    await transactionalSession.Open();
+                    await transactionalSession.Open(new CustomTestingPersistenceTransactionalSessionOptions());
 
                     var sendOptions = new SendOptions();
                     sendOptions.RequireImmediateDispatch();

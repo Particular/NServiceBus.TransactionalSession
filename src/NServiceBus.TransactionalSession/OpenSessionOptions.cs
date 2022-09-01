@@ -10,7 +10,7 @@
     /// <remarks>
     /// The behavior of this class is exposed via extension methods.
     /// </remarks>
-    public class OpenSessionOptions : IExtendable
+    public abstract class OpenSessionOptions : IExtendable
     {
         /// <summary>
         /// Options extensions.
