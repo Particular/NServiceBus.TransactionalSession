@@ -4,13 +4,13 @@ namespace NServiceBus.TransactionalSession
     using System.Threading.Tasks;
     using Pipeline;
 
-    class TransactionalSessionControlMessageExceptionBehavior : Behavior<ITransportReceiveContext>
+    class TransactionalSessionControlMessageExceptionBehavior : IBehavior<ITransportReceiveContext, ITransportReceiveContext>
     {
-        public override async Task Invoke(ITransportReceiveContext context, Func<Task> next)
+        public async Task Invoke(ITransportReceiveContext context, Func<ITransportReceiveContext, Task> next)
         {
             try
             {
-                await next().ConfigureAwait(false);
+                await next(context).ConfigureAwait(false);
             }
             catch (ConsumeMessageException)
             {

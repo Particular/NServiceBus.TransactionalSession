@@ -9,7 +9,7 @@ namespace NServiceBus.TransactionalSession
     using Routing;
     using Transport;
 
-    class TransactionalSessionDelayControlMessageBehavior : Behavior<IIncomingPhysicalMessageContext>
+    class TransactionalSessionDelayControlMessageBehavior : IBehavior<IIncomingPhysicalMessageContext, IIncomingPhysicalMessageContext>
     {
         public TransactionalSessionDelayControlMessageBehavior(IMessageDispatcher dispatcher, string physicalQueueAddress)
         {
@@ -17,12 +17,12 @@ namespace NServiceBus.TransactionalSession
             this.physicalQueueAddress = physicalQueueAddress;
         }
 
-        public override async Task Invoke(IIncomingPhysicalMessageContext context, Func<Task> next)
+        public async Task Invoke(IIncomingPhysicalMessageContext context, Func<IIncomingPhysicalMessageContext, Task> next)
         {
             if (!context.Message.Headers.TryGetValue(OutboxTransactionalSession.RemainingCommitDurationHeaderName, out var remainingCommitDurationHeader)
                 || !context.Message.Headers.TryGetValue(OutboxTransactionalSession.CommitDelayIncrementHeaderName, out var commitDelayIncrementHeader))
             {
-                await next().ConfigureAwait(false);
+                await next(context).ConfigureAwait(false);
                 return;
             }
 
