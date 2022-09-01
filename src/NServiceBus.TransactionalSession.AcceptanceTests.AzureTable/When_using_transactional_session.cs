@@ -64,7 +64,7 @@
 
         [TestCase(true)]
         [TestCase(false)]
-        public async Task Should_send_messages_and_store_document_in_sql_session_on_transactional_session_commit(bool outboxEnabled)
+        public async Task Should_send_messages_and_store_document_in_azuretable_session_on_transactional_session_commit(bool outboxEnabled)
         {
             var entityRowId = Guid.NewGuid().ToString();
 
