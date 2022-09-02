@@ -23,7 +23,7 @@
             await dispatcher.Dispatch(new TransportOperations(pendingOperations.Operations), new TransportTransaction(), cancellationToken).ConfigureAwait(false);
         }
 
-        public override async Task Open(OpenSessionOptions options = null, CancellationToken cancellationToken = default)
+        public override async Task Open(OpenSessionOptions options, CancellationToken cancellationToken = default)
         {
             await base.Open(options, cancellationToken).ConfigureAwait(false);
 

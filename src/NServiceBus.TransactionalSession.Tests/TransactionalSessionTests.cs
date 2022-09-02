@@ -26,9 +26,9 @@ public class TransactionalSessionTests
     {
         using var session = new TransactionalSession(new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>());
 
-        await session.Open();
+        await session.Open(new FakeOpenSessionOptions());
 
-        var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Open());
+        var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Open(new FakeOpenSessionOptions()));
 
         StringAssert.Contains($"This session is already open. {nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)} should only be called once.", exception.Message);
     }
@@ -55,7 +55,7 @@ public class TransactionalSessionTests
         var messageSession = new FakeMessageSession();
         using var session = new TransactionalSession(new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>());
 
-        await session.Open();
+        await session.Open(new FakeOpenSessionOptions());
         await session.Send(new object());
 
         Assert.IsTrue(messageSession.SentMessages.Single().Options.GetExtensions().TryGet(out PendingTransportOperations pendingTransportOperations));
@@ -67,7 +67,7 @@ public class TransactionalSessionTests
         var messageSession = new FakeMessageSession();
         using var session = new TransactionalSession(new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>());
 
-        await session.Open();
+        await session.Open(new FakeOpenSessionOptions());
         await session.Publish(new object());
 
         Assert.IsTrue(messageSession.PublishedMessages.Single().Options.GetExtensions().TryGet(out PendingTransportOperations pendingTransportOperations));
@@ -104,7 +104,7 @@ public class TransactionalSessionTests
         var synchronizableSession = new FakeSynchronizableStorageSession();
         using var session = new TransactionalSession(synchronizableSession, new FakeMessageSession(), dispatcher, Enumerable.Empty<IOpenSessionOptionsCustomization>());
 
-        await session.Open();
+        await session.Open(new FakeOpenSessionOptions());
         var sendOptions = new SendOptions();
         string messageId = Guid.NewGuid().ToString();
         sendOptions.SetMessageId(messageId);
@@ -131,7 +131,7 @@ public class TransactionalSessionTests
 
         using var session = new TransactionalSession(storageSession, new FakeMessageSession(), dispatcher, Enumerable.Empty<IOpenSessionOptionsCustomization>());
 
-        await session.Open();
+        await session.Open(new FakeOpenSessionOptions());
         await session.Send(new object());
         Assert.ThrowsAsync<Exception>(async () => await session.Commit());
 

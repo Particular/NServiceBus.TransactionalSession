@@ -102,7 +102,7 @@
             throw new Exception($"Unknown routing strategy {addressTag.GetType().FullName}");
         }
 
-        public override async Task Open(OpenSessionOptions options = null, CancellationToken cancellationToken = default)
+        public override async Task Open(OpenSessionOptions options, CancellationToken cancellationToken = default)
         {
             await base.Open(options, cancellationToken).ConfigureAwait(false);
 

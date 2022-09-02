@@ -25,6 +25,7 @@
                         {
                             TransactionCommitTaskCompletionSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously)
                         };
+                        context.TxCommitTcs = options.TransactionCommitTaskCompletionSource;
 
                         await transactionalSession.Open(options);
                         await transactionalSession.Send(new SomeMessage());
