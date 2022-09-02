@@ -24,6 +24,11 @@ namespace NServiceBus.TransactionalSession
         public System.TimeSpan MaximumCommitDuration { get; set; }
         public System.Collections.Generic.IDictionary<string, string> Metadata { get; }
     }
+    public class TransactionalSession : NServiceBus.Features.Feature
+    {
+        public TransactionalSession() { }
+        protected override void Setup(NServiceBus.Features.FeatureConfigurationContext context) { }
+    }
     public static class TransactionalSessionExtensions
     {
         public static System.Threading.Tasks.Task Publish(this NServiceBus.TransactionalSession.ITransactionalSession session, object message, System.Threading.CancellationToken cancellationToken = default) { }
@@ -35,11 +40,6 @@ namespace NServiceBus.TransactionalSession
         public static System.Threading.Tasks.Task Send<T>(this NServiceBus.TransactionalSession.ITransactionalSession session, string destination, System.Action<T> messageConstructor, System.Threading.CancellationToken cancellationToken = default) { }
         public static System.Threading.Tasks.Task SendLocal(this NServiceBus.TransactionalSession.ITransactionalSession session, object message, System.Threading.CancellationToken cancellationToken = default) { }
         public static System.Threading.Tasks.Task SendLocal<T>(this NServiceBus.TransactionalSession.ITransactionalSession session, System.Action<T> messageConstructor, System.Threading.CancellationToken cancellationToken = default) { }
-    }
-    public class TransactionalSessionFeature : NServiceBus.Features.Feature
-    {
-        public TransactionalSessionFeature() { }
-        protected override void Setup(NServiceBus.Features.FeatureConfigurationContext context) { }
     }
 }
 namespace NServiceBus

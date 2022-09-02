@@ -1,10 +1,11 @@
-namespace NServiceBus.TransactionalSession
+﻿namespace NServiceBus.TransactionalSession
 {
     using System;
     using System.Threading.Tasks;
     using Pipeline;
 
-    class TransactionalSessionControlMessageExceptionBehavior : IBehavior<ITransportReceiveContext, ITransportReceiveContext>
+    class TransactionalSessionControlMessageExceptionBehavior : IBehavior<ITransportReceiveContext,
+        ITransportReceiveContext>
     {
         public async Task Invoke(ITransportReceiveContext context, Func<ITransportReceiveContext, Task> next)
         {

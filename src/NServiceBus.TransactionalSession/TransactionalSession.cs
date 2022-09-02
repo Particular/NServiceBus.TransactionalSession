@@ -1,33 +1,79 @@
 ﻿namespace NServiceBus.TransactionalSession
 {
-    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
+    using Features;
+    using Microsoft.Extensions.DependencyInjection;
+    using Outbox;
     using Persistence;
     using Transport;
 
-    class TransactionalSession : TransactionalSessionBase
+    /// <summary>
+    /// Provides <see cref="ITransactionalSession" />.
+    /// </summary>
+    public class TransactionalSession : Feature
     {
-        public TransactionalSession(
-            ICompletableSynchronizedStorageSession synchronizedStorageSession,
-            IMessageSession messageSession,
-            IMessageDispatcher dispatcher,
-            IEnumerable<IOpenSessionOptionsCustomization> customizations) : base(synchronizedStorageSession, messageSession, dispatcher, customizations)
+        /// <summary>
+        /// See <see cref="Feature.Setup" />.
+        /// </summary>
+        protected override void Setup(FeatureConfigurationContext context)
         {
+            QueueAddress localQueueAddress = context.LocalQueueAddress();
+
+            var isOutboxEnabled = context.Settings.IsFeatureActive(typeof(Outbox));
+            var sessionCaptureTask = new SessionCaptureTask();
+            context.RegisterStartupTask(sessionCaptureTask);
+            context.Services.AddScoped(sp =>
+            {
+                var physicalLocalQueueAddress = sp.GetRequiredService<ITransportAddressResolver>()
+                    .ToTransportAddress(localQueueAddress);
+
+                ITransactionalSession transactionalSession;
+
+                if (isOutboxEnabled)
+                {
+                    transactionalSession = new OutboxTransactionalSession(
+                        sp.GetRequiredService<IOutboxStorage>(),
+                        sp.GetRequiredService<ICompletableSynchronizedStorageSession>(),
+                        sessionCaptureTask.CapturedSession,
+                        sp.GetRequiredService<IMessageDispatcher>(),
+                        sp.GetServices<IOpenSessionOptionsCustomization>(), physicalLocalQueueAddress);
+                }
+                else
+                {
+                    transactionalSession = new NonOutboxTransactionalSession(
+                        sp.GetRequiredService<ICompletableSynchronizedStorageSession>(),
+                        sessionCaptureTask.CapturedSession,
+                        sp.GetRequiredService<IMessageDispatcher>(),
+                        sp.GetServices<IOpenSessionOptionsCustomization>());
+                }
+
+                return transactionalSession;
+            });
+
+            if (isOutboxEnabled)
+            {
+                context.Pipeline.Register(sp => new TransactionalSessionDelayControlMessageBehavior(sp.GetRequiredService<IMessageDispatcher>(),
+                    sp.GetRequiredService<ITransportAddressResolver>().ToTransportAddress(localQueueAddress)
+                ), "Transaction commit control message delay behavior");
+
+                context.Pipeline.Register(new TransactionalSessionControlMessageExceptionBehavior(),
+                    "Transaction commit control message delay acknowledgement behavior");
+            }
         }
 
-        protected override async Task CommitInternal(CancellationToken cancellationToken = default)
+        class SessionCaptureTask : FeatureStartupTask
         {
-            await synchronizedStorageSession.CompleteAsync(cancellationToken).ConfigureAwait(false);
+            public IMessageSession CapturedSession { get; set; }
 
-            await dispatcher.Dispatch(new TransportOperations(pendingOperations.Operations), new TransportTransaction(), cancellationToken).ConfigureAwait(false);
-        }
+            protected override Task OnStart(IMessageSession session, CancellationToken cancellationToken = new CancellationToken())
+            {
+                CapturedSession = session;
+                return Task.CompletedTask;
+            }
 
-        public override async Task Open(OpenSessionOptions options, CancellationToken cancellationToken = default)
-        {
-            await base.Open(options, cancellationToken).ConfigureAwait(false);
+            protected override Task OnStop(IMessageSession session, CancellationToken cancellationToken = new CancellationToken()) => Task.CompletedTask;
 
-            await synchronizedStorageSession.Open(null, new TransportTransaction(), Context, cancellationToken).ConfigureAwait(false);
         }
     }
 }

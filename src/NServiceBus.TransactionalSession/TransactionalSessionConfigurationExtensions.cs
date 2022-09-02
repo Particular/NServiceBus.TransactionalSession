@@ -1,7 +1,5 @@
 ﻿namespace NServiceBus
 {
-    using TransactionalSession;
-
     /// <summary>
     /// Enables the transactional session feature.
     /// </summary>
@@ -12,6 +10,6 @@
         /// </summary>
         /// <param name="endpointConfiguration">Endpoint configuration.</param>
         public static void EnableTransactionalSession(this EndpointConfiguration endpointConfiguration) =>
-            endpointConfiguration.EnableFeature<TransactionalSessionFeature>();
+            endpointConfiguration.EnableFeature<TransactionalSession.TransactionalSession>();
     }
 }

@@ -11,7 +11,7 @@
     using TransportTransportOperation = Transport.TransportOperation;
     using OutboxTransportOperation = Outbox.TransportOperation;
 
-    class OutboxTransactionalSession : TransactionalSessionBase
+    sealed class OutboxTransactionalSession : TransactionalSessionBase
     {
         public OutboxTransactionalSession(IOutboxStorage outboxStorage,
                                           ICompletableSynchronizedStorageSession synchronizedStorageSession,

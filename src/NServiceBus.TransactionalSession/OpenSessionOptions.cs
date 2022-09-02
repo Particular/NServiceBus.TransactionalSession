@@ -7,9 +7,6 @@ namespace NServiceBus.TransactionalSession
     /// <summary>
     /// Allows the users to control how the transaction session behaves.
     /// </summary>
-    /// <remarks>
-    /// The behavior of this class is exposed via extension methods.
-    /// </remarks>
     public abstract class OpenSessionOptions
     {
         /// <summary>
