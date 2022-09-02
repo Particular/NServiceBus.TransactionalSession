@@ -13,12 +13,12 @@
 
     class OutboxTransactionalSession : TransactionalSessionBase
     {
-        public OutboxTransactionalSession(
-            IOutboxStorage outboxStorage,
-            ICompletableSynchronizedStorageSession synchronizedStorageSession,
-            IMessageSession messageSession,
-            IMessageDispatcher dispatcher,
-            string physicalQueueAddress) : base(synchronizedStorageSession, messageSession, dispatcher)
+        public OutboxTransactionalSession(IOutboxStorage outboxStorage,
+                                          ICompletableSynchronizedStorageSession synchronizedStorageSession,
+                                          IMessageSession messageSession,
+                                          IMessageDispatcher dispatcher,
+                                          IEnumerable<IOpenSessionOptionsCustomization> customizations,
+                                          string physicalQueueAddress) : base(synchronizedStorageSession, messageSession, dispatcher, customizations)
         {
             this.outboxStorage = outboxStorage;
             this.physicalQueueAddress = physicalQueueAddress;
@@ -102,7 +102,7 @@
             throw new Exception($"Unknown routing strategy {addressTag.GetType().FullName}");
         }
 
-        public override async Task Open(OpenSessionOptions options = null, CancellationToken cancellationToken = default)
+        public override async Task Open(OpenSessionOptions options, CancellationToken cancellationToken = default)
         {
             await base.Open(options, cancellationToken).ConfigureAwait(false);
 

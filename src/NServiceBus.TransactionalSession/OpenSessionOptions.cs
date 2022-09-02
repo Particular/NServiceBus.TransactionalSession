@@ -10,14 +10,12 @@ namespace NServiceBus.TransactionalSession
     /// <remarks>
     /// The behavior of this class is exposed via extension methods.
     /// </remarks>
-    public class OpenSessionOptions : IExtendable
+    public abstract class OpenSessionOptions
     {
         /// <summary>
         /// Options extensions.
         /// </summary>
-        public ContextBag Extensions => extensions ??= new ContextBag();
-
-        internal bool HasExtensions => extensions != null;
+        protected internal ContextBag Extensions { get; } = new();
 
         /// <summary>
         /// Session metadata that gets added during the session commit operation.
@@ -37,7 +35,5 @@ namespace NServiceBus.TransactionalSession
         internal string SessionId { get; } = Guid.NewGuid().ToString();
 
         Dictionary<string, string> metadata;
-        ContextBag extensions;
-
     }
 }

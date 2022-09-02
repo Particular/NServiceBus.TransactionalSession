@@ -4,10 +4,9 @@
     using System;
     using System.Threading;
     using System.Threading.Tasks;
-    using Extensibility;
 
     /// <summary>
-    /// A transactional session that provides basic message operations. 
+    /// A transactional session that provides basic message operations.
     /// </summary>
     public interface ITransactionalSession : IDisposable
     {
@@ -16,13 +15,7 @@
         /// </summary>
         /// <param name="options">The options.</param>
         /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe.</param>
-        internal Task Open(OpenSessionOptions options = null, CancellationToken cancellationToken = default);
-
-        /// <summary>
-        /// Enables passing persister-specific data between <see cref="TransactionalSessionFeature"/> and
-        /// persister-specific open methods.
-        /// </summary>
-        internal ContextBag PersisterSpecificOptions { get; }
+        Task Open(OpenSessionOptions options, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Sends the provided message.

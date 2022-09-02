@@ -1,84 +1,85 @@
-﻿namespace NServiceBus.TransactionalSession.Tests;
-
-using System;
-using System.Linq;
-using System.Threading.Tasks;
-using Fakes;
-using NUnit.Framework;
-using Testing;
-using Transport;
-
-[TestFixture]
-public class TransactionalSessionDelayControlMessageBehaviorTests
+﻿namespace NServiceBus.TransactionalSession.Tests
 {
-    [Test]
-    public async Task Should_continue_pipeline_when_message_not_transactional_session_control_message()
+    using System;
+    using System.Linq;
+    using System.Threading.Tasks;
+    using Fakes;
+    using NUnit.Framework;
+    using Testing;
+    using Transport;
+
+    [TestFixture]
+    public class TransactionalSessionDelayControlMessageBehaviorTests
     {
-        var dispatcher = new FakeDispatcher();
-        var behavior = new TransactionalSessionDelayControlMessageBehavior(dispatcher, "queue address");
-
-        bool continued = false;
-        await behavior.Invoke(new TestableIncomingPhysicalMessageContext(), _ =>
+        [Test]
+        public async Task Should_continue_pipeline_when_message_not_transactional_session_control_message()
         {
-            continued = true;
-            return Task.CompletedTask;
-        });
+            var dispatcher = new FakeDispatcher();
+            var behavior = new TransactionalSessionDelayControlMessageBehavior(dispatcher, "queue address");
 
-        Assert.IsTrue(continued);
-        Assert.IsEmpty(dispatcher.Dispatched);
-    }
+            bool continued = false;
+            await behavior.Invoke(new TestableIncomingPhysicalMessageContext(), _ =>
+            {
+                continued = true;
+                return Task.CompletedTask;
+            });
 
-    [Test]
-    public async Task Should_stop_pipeline_and_return_when_control_message_has_been_retried_beyond_remaining_commit_duration()
-    {
-        var dispatcher = new FakeDispatcher();
-        var behavior = new TransactionalSessionDelayControlMessageBehavior(dispatcher, "queue address");
+            Assert.IsTrue(continued);
+            Assert.IsEmpty(dispatcher.Dispatched);
+        }
 
-        var messageContext = new TestableIncomingPhysicalMessageContext();
-        messageContext.Message.Headers[OutboxTransactionalSession.RemainingCommitDurationHeaderName] = TimeSpan.FromSeconds(-10).ToString("c");
-        messageContext.Message.Headers[OutboxTransactionalSession.CommitDelayIncrementHeaderName] = TimeSpan.FromSeconds(5).ToString("c");
-
-        bool continued = false;
-        await behavior.Invoke(messageContext, _ =>
+        [Test]
+        public async Task Should_stop_pipeline_and_return_when_control_message_has_been_retried_beyond_remaining_commit_duration()
         {
-            continued = true;
-            return Task.CompletedTask;
-        });
+            var dispatcher = new FakeDispatcher();
+            var behavior = new TransactionalSessionDelayControlMessageBehavior(dispatcher, "queue address");
 
-        Assert.IsFalse(continued, "should not continue pipeline");
-        Assert.IsEmpty(dispatcher.Dispatched);
-    }
+            var messageContext = new TestableIncomingPhysicalMessageContext();
+            messageContext.Message.Headers[OutboxTransactionalSession.RemainingCommitDurationHeaderName] = TimeSpan.FromSeconds(-10).ToString("c");
+            messageContext.Message.Headers[OutboxTransactionalSession.CommitDelayIncrementHeaderName] = TimeSpan.FromSeconds(5).ToString("c");
 
-    [Test]
-    public void Should_dispatch_new_control_message_and_throw_ConsumeMessageException()
-    {
-        const string queueAddress = "queue address";
+            bool continued = false;
+            await behavior.Invoke(messageContext, _ =>
+            {
+                continued = true;
+                return Task.CompletedTask;
+            });
 
-        var dispatcher = new FakeDispatcher();
-        var behavior = new TransactionalSessionDelayControlMessageBehavior(dispatcher, queueAddress);
+            Assert.IsFalse(continued, "should not continue pipeline");
+            Assert.IsEmpty(dispatcher.Dispatched);
+        }
 
-        var messageContext = new TestableIncomingPhysicalMessageContext();
-        messageContext.Message.Headers[OutboxTransactionalSession.RemainingCommitDurationHeaderName] = TimeSpan.FromSeconds(30).ToString("c");
-        messageContext.Message.Headers[OutboxTransactionalSession.CommitDelayIncrementHeaderName] = TimeSpan.FromSeconds(10).ToString("c");
-        messageContext.Message.Headers["custom-header-key"] = "custom-header-value";
-
-        bool continued = false;
-        Assert.ThrowsAsync<ConsumeMessageException>(async () => await behavior.Invoke(messageContext, _ =>
+        [Test]
+        public void Should_dispatch_new_control_message_and_throw_ConsumeMessageException()
         {
-            continued = true;
-            return Task.CompletedTask;
-        }));
+            const string queueAddress = "queue address";
 
-        Assert.IsFalse(continued, "should not continue pipeline");
-        Assert.IsNotEmpty(dispatcher.Dispatched);
+            var dispatcher = new FakeDispatcher();
+            var behavior = new TransactionalSessionDelayControlMessageBehavior(dispatcher, queueAddress);
 
-        var controlMessage = dispatcher.Dispatched.Single().outgoingMessages.UnicastTransportOperations.Single();
-        Assert.AreEqual(queueAddress, controlMessage.Destination);
-        Assert.AreEqual(DispatchConsistency.Isolated, controlMessage.RequiredDispatchConsistency);
-        Assert.AreEqual(TimeSpan.FromSeconds(20), controlMessage.Properties.DelayDeliveryWith.Delay);
-        Assert.AreEqual(messageContext.MessageId, controlMessage.Message.MessageId);
-        Assert.AreEqual(0, controlMessage.Message.Body.Length);
-        Assert.AreEqual("custom-header-value", controlMessage.Message.Headers["custom-header-key"]);
+            var messageContext = new TestableIncomingPhysicalMessageContext();
+            messageContext.Message.Headers[OutboxTransactionalSession.RemainingCommitDurationHeaderName] = TimeSpan.FromSeconds(30).ToString("c");
+            messageContext.Message.Headers[OutboxTransactionalSession.CommitDelayIncrementHeaderName] = TimeSpan.FromSeconds(10).ToString("c");
+            messageContext.Message.Headers["custom-header-key"] = "custom-header-value";
 
+            bool continued = false;
+            Assert.ThrowsAsync<ConsumeMessageException>(async () => await behavior.Invoke(messageContext, _ =>
+            {
+                continued = true;
+                return Task.CompletedTask;
+            }));
+
+            Assert.IsFalse(continued, "should not continue pipeline");
+            Assert.IsNotEmpty(dispatcher.Dispatched);
+
+            var controlMessage = dispatcher.Dispatched.Single().outgoingMessages.UnicastTransportOperations.Single();
+            Assert.AreEqual(queueAddress, controlMessage.Destination);
+            Assert.AreEqual(DispatchConsistency.Isolated, controlMessage.RequiredDispatchConsistency);
+            Assert.AreEqual(TimeSpan.FromSeconds(20), controlMessage.Properties.DelayDeliveryWith.Delay);
+            Assert.AreEqual(messageContext.MessageId, controlMessage.Message.MessageId);
+            Assert.AreEqual(0, controlMessage.Message.Body.Length);
+            Assert.AreEqual("custom-header-value", controlMessage.Message.Headers["custom-header-key"]);
+
+        }
     }
 }

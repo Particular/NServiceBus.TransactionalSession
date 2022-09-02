@@ -1,6 +1,7 @@
 namespace NServiceBus.TransactionalSession
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Extensibility;
@@ -12,11 +13,13 @@ namespace NServiceBus.TransactionalSession
         protected TransactionalSessionBase(
             ICompletableSynchronizedStorageSession synchronizedStorageSession,
             IMessageSession messageSession,
-            IMessageDispatcher dispatcher)
+            IMessageDispatcher dispatcher,
+            IEnumerable<IOpenSessionOptionsCustomization> customizations)
         {
             this.synchronizedStorageSession = synchronizedStorageSession;
             this.messageSession = messageSession;
             this.dispatcher = dispatcher;
+            this.customizations = customizations;
             pendingOperations = new PendingTransportOperations();
         }
 
@@ -64,7 +67,7 @@ namespace NServiceBus.TransactionalSession
 
         protected abstract Task CommitInternal(CancellationToken cancellationToken = default);
 
-        public virtual Task Open(OpenSessionOptions options = null, CancellationToken cancellationToken = default)
+        public virtual Task Open(OpenSessionOptions options, CancellationToken cancellationToken = default)
         {
             ThrowIfDisposed();
             ThrowIfCommitted();
@@ -74,11 +77,15 @@ namespace NServiceBus.TransactionalSession
                 throw new InvalidOperationException($"This session is already open. {nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)} should only be called once.");
             }
 
-            this.options = options ?? new OpenSessionOptions();
+            this.options = options;
+
+            foreach (var customization in customizations)
+            {
+                customization.Apply(this.options);
+            }
+
             return Task.CompletedTask;
         }
-
-        ContextBag ITransactionalSession.PersisterSpecificOptions { get; } = new ContextBag();
 
         public async Task Send(object message, SendOptions sendOptions, CancellationToken cancellationToken = default)
         {
@@ -158,16 +165,12 @@ namespace NServiceBus.TransactionalSession
                 return;
             }
 
-            if (disposing)
-            {
-                synchronizedStorageSession?.Dispose();
-            }
-
             disposed = true;
         }
 
         protected readonly ICompletableSynchronizedStorageSession synchronizedStorageSession;
         protected readonly IMessageDispatcher dispatcher;
+        readonly IEnumerable<IOpenSessionOptionsCustomization> customizations;
         protected readonly PendingTransportOperations pendingOperations;
         protected OpenSessionOptions options;
         readonly IMessageSession messageSession;

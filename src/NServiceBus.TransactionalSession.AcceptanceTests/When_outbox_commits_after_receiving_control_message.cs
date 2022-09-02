@@ -21,8 +21,11 @@
                         using var scope = context.ServiceProvider.CreateScope();
                         using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
-                        var options = new OpenSessionOptions();
-                        options.Extensions.Set(CustomTestingOutboxTransaction.TransactionCommitTCSKey, context.TxCommitTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously));
+                        var options = new CustomTestingPersistenceOpenSessionOptions
+                        {
+                            TransactionCommitTaskCompletionSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously)
+                        };
+                        context.TxCommitTcs = options.TransactionCommitTaskCompletionSource;
 
                         await transactionalSession.Open(options);
                         await transactionalSession.Send(new SomeMessage());

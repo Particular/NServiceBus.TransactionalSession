@@ -17,7 +17,7 @@
                 {
                     using var scope = ctx.ServiceProvider.CreateScope();
                     using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
-                    await transactionalSession.Open();
+                    await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions());
 
                     await transactionalSession.SendLocal(new SampleMessage(), CancellationToken.None);
 
@@ -36,7 +36,7 @@
                     using (var scope = ctx.ServiceProvider.CreateScope())
                     using (var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>())
                     {
-                        await transactionalSession.Open();
+                        await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions());
 
                         await transactionalSession.SendLocal(new SampleMessage());
                     }
@@ -60,7 +60,7 @@
                     using var scope = ctx.ServiceProvider.CreateScope();
                     using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
-                    await transactionalSession.Open();
+                    await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions());
 
                     var sendOptions = new SendOptions();
                     sendOptions.RequireImmediateDispatch();

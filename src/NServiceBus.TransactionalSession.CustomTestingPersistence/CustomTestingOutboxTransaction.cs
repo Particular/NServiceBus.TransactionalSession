@@ -8,15 +8,13 @@ namespace NServiceBus.AcceptanceTesting
 
     public class CustomTestingOutboxTransaction : IOutboxTransaction
     {
-        public const string TransactionCommitTCSKey = "TestingTransport.TxCommitTCS";
-
         public TaskCompletionSource<bool> CommitTaskCompletionSource { get; set; } = null;
 
         public CustomTestingOutboxTransaction(ContextBag contextBag)
         {
-            if (contextBag.TryGet(TransactionCommitTCSKey, out TaskCompletionSource<bool> tcs))
+            if (contextBag.TryGet(out CustomTestingPersistenceOpenSessionOptions options))
             {
-                CommitTaskCompletionSource = tcs;
+                CommitTaskCompletionSource = options.TransactionCommitTaskCompletionSource;
             }
 
             Transaction = new AcceptanceTestingTransaction();

@@ -1,5 +1,6 @@
 ﻿namespace NServiceBus.TransactionalSession
 {
+    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Persistence;
@@ -10,7 +11,8 @@
         public TransactionalSession(
             ICompletableSynchronizedStorageSession synchronizedStorageSession,
             IMessageSession messageSession,
-            IMessageDispatcher dispatcher) : base(synchronizedStorageSession, messageSession, dispatcher)
+            IMessageDispatcher dispatcher,
+            IEnumerable<IOpenSessionOptionsCustomization> customizations) : base(synchronizedStorageSession, messageSession, dispatcher, customizations)
         {
         }
 
@@ -21,7 +23,7 @@
             await dispatcher.Dispatch(new TransportOperations(pendingOperations.Operations), new TransportTransaction(), cancellationToken).ConfigureAwait(false);
         }
 
-        public override async Task Open(OpenSessionOptions options = null, CancellationToken cancellationToken = default)
+        public override async Task Open(OpenSessionOptions options, CancellationToken cancellationToken = default)
         {
             await base.Open(options, cancellationToken).ConfigureAwait(false);
 
