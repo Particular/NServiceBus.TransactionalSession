@@ -17,10 +17,10 @@ namespace NServiceBus.TransactionalSession
         System.Threading.Tasks.Task Send(object message, NServiceBus.SendOptions sendOptions, System.Threading.CancellationToken cancellationToken = default);
         System.Threading.Tasks.Task Send<T>(System.Action<T> messageConstructor, NServiceBus.SendOptions sendOptions, System.Threading.CancellationToken cancellationToken = default);
     }
-    public abstract class OpenSessionOptions : NServiceBus.Extensibility.IExtendable
+    public abstract class OpenSessionOptions
     {
         protected OpenSessionOptions() { }
-        public NServiceBus.Extensibility.ContextBag Extensions { get; }
+        protected NServiceBus.Extensibility.ContextBag Extensions { get; }
         public System.TimeSpan MaximumCommitDuration { get; set; }
         public System.Collections.Generic.IDictionary<string, string> Metadata { get; }
     }
