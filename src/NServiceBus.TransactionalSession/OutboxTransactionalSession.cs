@@ -18,7 +18,8 @@
             ICompletableSynchronizedStorageSession synchronizedStorageSession,
             IMessageSession messageSession,
             IMessageDispatcher dispatcher,
-            string physicalQueueAddress) : base(synchronizedStorageSession, messageSession, dispatcher)
+            string physicalQueueAddress,
+            IEnumerable<IOpenSessionOptionsCustomization> customizations) : base(synchronizedStorageSession, messageSession, dispatcher, customizations)
         {
             this.outboxStorage = outboxStorage;
             this.physicalQueueAddress = physicalQueueAddress;

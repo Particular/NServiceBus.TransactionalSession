@@ -37,7 +37,8 @@
                         sp.GetRequiredService<ICompletableSynchronizedStorageSession>(),
                         sessionCaptureTask.CapturedSession,
                         sp.GetRequiredService<IMessageDispatcher>(),
-                        physicalLocalQueueAddress
+                        physicalLocalQueueAddress,
+                        sp.GetServices<IOpenSessionOptionsCustomization>()
                         );
                 }
                 else
@@ -45,7 +46,8 @@
                     transactionalSession = new TransactionalSession(
                         sp.GetRequiredService<ICompletableSynchronizedStorageSession>(),
                         sessionCaptureTask.CapturedSession,
-                        sp.GetRequiredService<IMessageDispatcher>());
+                        sp.GetRequiredService<IMessageDispatcher>(),
+                        sp.GetServices<IOpenSessionOptionsCustomization>());
                 }
 
                 return transactionalSession;

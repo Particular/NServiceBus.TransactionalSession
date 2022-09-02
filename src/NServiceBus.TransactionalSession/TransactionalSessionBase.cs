@@ -1,6 +1,7 @@
 namespace NServiceBus.TransactionalSession
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Extensibility;
@@ -12,11 +13,13 @@ namespace NServiceBus.TransactionalSession
         protected TransactionalSessionBase(
             ICompletableSynchronizedStorageSession synchronizedStorageSession,
             IMessageSession messageSession,
-            IMessageDispatcher dispatcher)
+            IMessageDispatcher dispatcher,
+            IEnumerable<IOpenSessionOptionsCustomization> customizations)
         {
             this.synchronizedStorageSession = synchronizedStorageSession;
             this.messageSession = messageSession;
             this.dispatcher = dispatcher;
+            this.customizations = customizations;
             pendingOperations = new PendingTransportOperations();
         }
 
@@ -75,6 +78,12 @@ namespace NServiceBus.TransactionalSession
             }
 
             this.options = options;
+
+            foreach (var customization in customizations)
+            {
+                customization.Apply(this.options);
+            }
+
             return Task.CompletedTask;
         }
 
@@ -166,6 +175,7 @@ namespace NServiceBus.TransactionalSession
 
         protected readonly ICompletableSynchronizedStorageSession synchronizedStorageSession;
         protected readonly IMessageDispatcher dispatcher;
+        readonly IEnumerable<IOpenSessionOptionsCustomization> customizations;
         protected readonly PendingTransportOperations pendingOperations;
         protected OpenSessionOptions options;
         readonly IMessageSession messageSession;
