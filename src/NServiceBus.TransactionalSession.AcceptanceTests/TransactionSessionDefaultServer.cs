@@ -2,8 +2,9 @@
 {
     using System;
     using System.Threading.Tasks;
-    using NServiceBus.AcceptanceTesting;
-    using NServiceBus.AcceptanceTesting.Support;
+    using AcceptanceTesting;
+    using AcceptanceTesting.Support;
+    using NServiceBus.AcceptanceTests.EndpointTemplates;
 
     public class TransactionSessionDefaultServer : DefaultServer
     {

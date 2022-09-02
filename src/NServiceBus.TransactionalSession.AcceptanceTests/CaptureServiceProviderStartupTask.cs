@@ -5,7 +5,6 @@
     using System.Threading.Tasks;
     using AcceptanceTesting;
     using Features;
-    using NServiceBus;
 
     public class CaptureServiceProviderStartupTask : FeatureStartupTask
     {
