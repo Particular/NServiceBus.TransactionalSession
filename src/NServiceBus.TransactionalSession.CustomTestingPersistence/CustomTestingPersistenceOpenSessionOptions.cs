@@ -1,11 +1,12 @@
-﻿namespace NServiceBus.AcceptanceTesting;
-
-using System.Threading.Tasks;
-using TransactionalSession;
-
-public class CustomTestingPersistenceOpenSessionOptions : OpenSessionOptions
+﻿namespace NServiceBus.AcceptanceTesting
 {
-    public CustomTestingPersistenceOpenSessionOptions() => Extensions.Set(this);
+    using System.Threading.Tasks;
+    using TransactionalSession;
 
-    public TaskCompletionSource<bool> TransactionCommitTaskCompletionSource { get; set; }
+    public class CustomTestingPersistenceOpenSessionOptions : OpenSessionOptions
+    {
+        public CustomTestingPersistenceOpenSessionOptions() => Extensions.Set(this);
+
+        public TaskCompletionSource<bool> TransactionCommitTaskCompletionSource { get; set; }
+    }
 }

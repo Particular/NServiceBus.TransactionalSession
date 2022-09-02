@@ -1,18 +1,19 @@
-﻿namespace NServiceBus.TransactionalSession.Tests.Fakes;
-
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-using Transport;
-
-class FakeDispatcher : IMessageDispatcher
+﻿namespace NServiceBus.TransactionalSession.Tests.Fakes
 {
-    public List<(TransportOperations outgoingMessages, TransportTransaction transaction)> Dispatched = new();
+    using System.Collections.Generic;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Transport;
 
-    public Task Dispatch(TransportOperations outgoingMessages, TransportTransaction transaction,
-        CancellationToken cancellationToken = new CancellationToken())
+    class FakeDispatcher : IMessageDispatcher
     {
-        Dispatched.Add((outgoingMessages, transaction));
-        return Task.CompletedTask;
+        public List<(TransportOperations outgoingMessages, TransportTransaction transaction)> Dispatched = new();
+
+        public Task Dispatch(TransportOperations outgoingMessages, TransportTransaction transaction,
+            CancellationToken cancellationToken = new CancellationToken())
+        {
+            Dispatched.Add((outgoingMessages, transaction));
+            return Task.CompletedTask;
+        }
     }
 }
