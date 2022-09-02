@@ -3,7 +3,6 @@
     using System;
     using System.IO;
     using System.Threading.Tasks;
-    using Microsoft.Extensions.DependencyInjection;
     using AcceptanceTesting.Customization;
     using NServiceBus.AcceptanceTesting.Support;
     using NUnit.Framework;
@@ -33,25 +32,12 @@
                 StorageLocation = storageDir
             });
 
-            // TODO: won't be necessary with NSB.AcceptanceTesting > beta5!
-            builder.RegisterComponents(r => { RegisterInheritanceHierarchyOfContextOnContainer(runDescriptor, r); });
-
             await configurationBuilderCustomization(builder).ConfigureAwait(false);
 
             // scan types at the end so that all types used by the configuration have been loaded into the AppDomain
             builder.TypesToIncludeInScan(endpointConfiguration.GetTypesScopedByTestClass());
 
             return builder;
-        }
-
-        static void RegisterInheritanceHierarchyOfContextOnContainer(RunDescriptor runDescriptor, IServiceCollection r)
-        {
-            var type = runDescriptor.ScenarioContext.GetType();
-            while (type != typeof(object))
-            {
-                r.AddSingleton(type, runDescriptor.ScenarioContext);
-                type = type.BaseType;
-            }
         }
     }
 }
