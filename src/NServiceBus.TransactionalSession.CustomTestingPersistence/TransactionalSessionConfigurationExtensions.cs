@@ -1,5 +1,6 @@
-namespace NServiceBus.AcceptanceTesting
+namespace NServiceBus.TransactionalSession
 {
+    using AcceptanceTesting;
     using Configuration.AdvancedExtensibility;
     using Features;
 
@@ -13,6 +14,6 @@ namespace NServiceBus.AcceptanceTesting
         /// </summary>
         /// <param name="endpointConfiguration">Endpoint configuration.</param>
         public static void EnableTransactionalSession(this PersistenceExtensions<CustomTestingPersistence> persistence) =>
-            persistence.GetSettings().EnableFeatureByDefault<TransactionalSession.TransactionalSession>();
+            persistence.GetSettings().EnableFeatureByDefault<TransactionalSession>();
     }
 }

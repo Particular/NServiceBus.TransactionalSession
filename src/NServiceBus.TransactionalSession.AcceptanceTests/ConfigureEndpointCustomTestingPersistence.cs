@@ -3,6 +3,7 @@ using NServiceBus;
 using NServiceBus.AcceptanceTesting;
 using NServiceBus.AcceptanceTesting.Support;
 using NServiceBus.Configuration.AdvancedExtensibility;
+using NServiceBus.TransactionalSession;
 
 public class ConfigureEndpointCustomTestingPersistence : IConfigureEndpointTestExecution
 {
