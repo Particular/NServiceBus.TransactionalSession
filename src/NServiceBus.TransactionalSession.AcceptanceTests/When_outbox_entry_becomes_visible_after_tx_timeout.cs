@@ -4,9 +4,9 @@
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Extensions.DependencyInjection;
-    using NServiceBus.AcceptanceTesting;
-    using NServiceBus.AcceptanceTesting.Customization;
-    using NServiceBus.Outbox;
+    using AcceptanceTesting;
+    using AcceptanceTesting.Customization;
+    using Outbox;
     using NUnit.Framework;
     using Pipeline;
 
@@ -23,7 +23,7 @@
                         using var scope = ctx.ServiceProvider.CreateScope();
                         using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
-                        var options = new OpenSessionOptions { MaximumCommitDuration = TimeSpan.Zero };
+                        var options = new CustomPersistenceOpenSessionOptions { MaximumCommitDuration = TimeSpan.Zero };
                         await transactionalSession.Open(options);
 
                         await transactionalSession.Send(new SomeMessage());

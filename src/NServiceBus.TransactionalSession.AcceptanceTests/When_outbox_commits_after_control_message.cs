@@ -22,7 +22,7 @@
                     try
                     {
                         ctx.TransactionTaskCompletionSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-                        var options = new OpenSessionOptions
+                        var options = new CustomPersistenceOpenSessionOptions
                         {
                             CommitDelayIncrement = TimeSpan.FromSeconds(1),
                             MaximumCommitDuration = TimeSpan.FromSeconds(8)

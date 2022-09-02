@@ -15,7 +15,7 @@ public class TransactionalSessionTests
     {
         using var session = new TransactionalSession(new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher());
 
-        var openOptions = new OpenSessionOptions();
+        var openOptions = new FakeOpenSessionOptions();
         await session.Open(openOptions);
 
         Assert.AreEqual(openOptions.SessionId, session.SessionId);
@@ -40,7 +40,7 @@ public class TransactionalSessionTests
 
         using var session = new TransactionalSession(synchronizedStorageSession, new FakeMessageSession(), new FakeDispatcher());
 
-        var options = new OpenSessionOptions();
+        var options = new FakeOpenSessionOptions();
         await session.Open(options);
 
         Assert.IsEmpty(synchronizedStorageSession.OpenedOutboxTransactionSessions);

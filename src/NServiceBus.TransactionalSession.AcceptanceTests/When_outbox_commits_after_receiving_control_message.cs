@@ -21,7 +21,8 @@
                         using var scope = context.ServiceProvider.CreateScope();
                         using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
-                        var options = new OpenSessionOptions();
+                        var options = new CustomPersistenceOpenSessionOptions();
+                        // TODO: move extensions into the specific session options implementation
                         options.Extensions.Set(CustomTestingOutboxTransaction.TransactionCommitTCSKey, context.TxCommitTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously));
 
                         await transactionalSession.Open(options);

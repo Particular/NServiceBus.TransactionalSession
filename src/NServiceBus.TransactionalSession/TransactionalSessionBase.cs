@@ -64,7 +64,7 @@ namespace NServiceBus.TransactionalSession
 
         protected abstract Task CommitInternal(CancellationToken cancellationToken = default);
 
-        public virtual Task Open(OpenSessionOptions options = null, CancellationToken cancellationToken = default)
+        public virtual Task Open(OpenSessionOptions options, CancellationToken cancellationToken = default)
         {
             ThrowIfDisposed();
             ThrowIfCommitted();
@@ -74,11 +74,9 @@ namespace NServiceBus.TransactionalSession
                 throw new InvalidOperationException($"This session is already open. {nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)} should only be called once.");
             }
 
-            this.options = options ?? new OpenSessionOptions();
+            this.options = options;
             return Task.CompletedTask;
         }
-
-        ContextBag ITransactionalSession.PersisterSpecificOptions { get; } = new ContextBag();
 
         public async Task Send(object message, SendOptions sendOptions, CancellationToken cancellationToken = default)
         {

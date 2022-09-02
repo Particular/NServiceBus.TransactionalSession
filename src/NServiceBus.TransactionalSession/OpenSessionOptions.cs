@@ -10,7 +10,7 @@ namespace NServiceBus.TransactionalSession
     /// <remarks>
     /// The behavior of this class is exposed via extension methods.
     /// </remarks>
-    public class OpenSessionOptions : IExtendable
+    public abstract class OpenSessionOptions : IExtendable
     {
         /// <summary>
         /// Options extensions.
@@ -38,6 +38,5 @@ namespace NServiceBus.TransactionalSession
 
         Dictionary<string, string> metadata;
         ContextBag extensions;
-
     }
 }

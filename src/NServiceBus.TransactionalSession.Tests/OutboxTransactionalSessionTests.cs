@@ -15,7 +15,7 @@ public class OutboxTransactionalSessionTests
     {
         using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), "queue address");
 
-        var openOptions = new OpenSessionOptions();
+        var openOptions = new FakeOpenSessionOptions();
         await session.Open(openOptions);
 
         Assert.AreEqual(openOptions.SessionId, session.SessionId);
@@ -186,7 +186,7 @@ public class OutboxTransactionalSessionTests
         var outboxStorage = new FakeOutboxStorage();
         using var session = new OutboxTransactionalSession(outboxStorage, new FakeSynchronizableStorageSession(), messageSession, dispatcher, "queue address");
 
-        var options = new OpenSessionOptions();
+        var options = new FakeOpenSessionOptions();
         options.CommitDelayIncrement = expectedDelayIncrement;
         options.MaximumCommitDuration = expectedMaximumCommitDuration;
         options.Extensions.Set("extensions-key", expectedExtensionsValue);
@@ -211,7 +211,7 @@ public class OutboxTransactionalSessionTests
 
         session.Dispose();
 
-        Assert.ThrowsAsync<ObjectDisposedException>(async () => await session.Open());
+        Assert.ThrowsAsync<ObjectDisposedException>(async () => await session.Open(new FakeOpenSessionOptions()));
         Assert.ThrowsAsync<ObjectDisposedException>(async () => await session.Send(new object()));
         Assert.ThrowsAsync<ObjectDisposedException>(async () => await session.Publish(new object()));
         Assert.ThrowsAsync<ObjectDisposedException>(async () => await session.Commit());
@@ -224,10 +224,10 @@ public class OutboxTransactionalSessionTests
     {
         ITransactionalSession session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), "queue address");
 
-        await session.Open();
+        await session.Open(new FakeOpenSessionOptions());
         await session.Commit();
 
-        var openException = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Open());
+        var openException = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Open(new FakeOpenSessionOptions()));
         StringAssert.Contains("This session has already been committed. Complete all session operations before calling `Commit` or use a new session.", openException.Message);
         var sendException = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Send(new object()));
         StringAssert.Contains("This session has already been committed. Complete all session operations before calling `Commit` or use a new session.", sendException.Message);
