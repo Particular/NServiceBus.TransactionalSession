@@ -3,12 +3,9 @@
 using System.Threading.Tasks;
 using TransactionalSession;
 
-public class CustomPersistenceOpenSessionOptions : OpenSessionOptions
+public class CustomTestingPersistenceOpenSessionOptions : OpenSessionOptions
 {
-    public CustomPersistenceOpenSessionOptions()
-    {
-        Extensions.Set(this);
-    }
+    public CustomTestingPersistenceOpenSessionOptions() => Extensions.Set(this);
 
     public TaskCompletionSource<bool> TransactionCommitTaskCompletionSource { get; set; }
 }

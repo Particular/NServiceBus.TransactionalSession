@@ -12,7 +12,7 @@ namespace NServiceBus.AcceptanceTesting
 
         public CustomTestingOutboxTransaction(ContextBag contextBag)
         {
-            if (contextBag.TryGet(out CustomPersistenceOpenSessionOptions options))
+            if (contextBag.TryGet(out CustomTestingPersistenceOpenSessionOptions options))
             {
                 CommitTaskCompletionSource = options.TransactionCommitTaskCompletionSource;
             }

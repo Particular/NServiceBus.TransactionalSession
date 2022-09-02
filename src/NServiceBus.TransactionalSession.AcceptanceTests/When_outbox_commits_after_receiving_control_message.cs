@@ -21,7 +21,7 @@
                         using var scope = context.ServiceProvider.CreateScope();
                         using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
-                        var options = new CustomPersistenceOpenSessionOptions
+                        var options = new CustomTestingPersistenceOpenSessionOptions
                         {
                             TransactionCommitTaskCompletionSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously)
                         };

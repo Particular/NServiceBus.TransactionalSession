@@ -23,7 +23,7 @@
                         using var scope = ctx.ServiceProvider.CreateScope();
                         using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
-                        var options = new CustomPersistenceOpenSessionOptions { MaximumCommitDuration = TimeSpan.Zero };
+                        var options = new CustomTestingPersistenceOpenSessionOptions { MaximumCommitDuration = TimeSpan.Zero };
                         await transactionalSession.Open(options);
 
                         await transactionalSession.Send(new SomeMessage());
