@@ -3,9 +3,9 @@
     using System;
     using System.Threading.Tasks;
     using Microsoft.Extensions.DependencyInjection;
-    using NServiceBus.AcceptanceTesting;
-    using NServiceBus.AcceptanceTesting.Customization;
-    using NServiceBus.Pipeline;
+    using AcceptanceTesting;
+    using AcceptanceTesting.Customization;
+    using Pipeline;
     using NUnit.Framework;
 
     public class When_outbox_commits_after_control_message : NServiceBusAcceptanceTest
@@ -25,9 +25,9 @@
                         var options = new CustomPersistenceOpenSessionOptions
                         {
                             CommitDelayIncrement = TimeSpan.FromSeconds(1),
-                            MaximumCommitDuration = TimeSpan.FromSeconds(8)
+                            MaximumCommitDuration = TimeSpan.FromSeconds(8),
+                            TransactionCommitTaskCompletionSource = ctx.TransactionTaskCompletionSource
                         };
-                        options.Extensions.Set(CustomTestingOutboxTransaction.TransactionCommitTCSKey, ctx.TransactionTaskCompletionSource);
 
                         await transactionalSession.Open(options);
                         await transactionalSession.Send(new SomeMessage());
