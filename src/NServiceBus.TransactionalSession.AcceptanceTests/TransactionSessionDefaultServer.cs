@@ -16,7 +16,6 @@
             Func<EndpointConfiguration, Task> configurationBuilderCustomization) =>
             base.GetConfiguration(runDescriptor, endpointConfiguration, async configuration =>
             {
-                configuration.EnableTransactionalSession();
                 configuration.RegisterStartupTask(provider =>
                     new CaptureServiceProviderStartupTask(provider, runDescriptor.ScenarioContext));
 

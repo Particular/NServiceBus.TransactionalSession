@@ -13,7 +13,8 @@ public class ConfigureEndpointCustomTestingPersistence : IConfigureEndpointTestE
             return Task.CompletedTask;
         }
 
-        configuration.UsePersistence<CustomTestingPersistence>();
+        var persistence = configuration.UsePersistence<CustomTestingPersistence>();
+        persistence.EnableTransactionalSession();
 
         return Task.CompletedTask;
     }

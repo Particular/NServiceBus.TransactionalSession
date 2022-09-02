@@ -42,10 +42,3 @@ namespace NServiceBus.TransactionalSession
         public static System.Threading.Tasks.Task SendLocal<T>(this NServiceBus.TransactionalSession.ITransactionalSession session, System.Action<T> messageConstructor, System.Threading.CancellationToken cancellationToken = default) { }
     }
 }
-namespace NServiceBus
-{
-    public static class TransactionalSessionConfigurationExtensions
-    {
-        public static void EnableTransactionalSession(this NServiceBus.EndpointConfiguration endpointConfiguration) { }
-    }
-}
