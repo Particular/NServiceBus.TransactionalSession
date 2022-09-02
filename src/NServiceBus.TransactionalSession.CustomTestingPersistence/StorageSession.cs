@@ -9,16 +9,16 @@ namespace NServiceBus.AcceptanceTesting
     using Persistence;
     using Transport;
 
-    class CustomTestingSynchronizedStorageSession : ICompletableSynchronizedStorageSession
+    class StorageSession : ICompletableSynchronizedStorageSession
     {
-        public AcceptanceTestingTransaction Transaction { get; private set; }
+        public Transaction Transaction { get; private set; }
 
         public void Dispose() => Transaction = null;
 
         public ValueTask<bool> TryOpen(IOutboxTransaction transaction, ContextBag context,
             CancellationToken cancellationToken = default)
         {
-            if (transaction is CustomTestingOutboxTransaction inMemOutboxTransaction)
+            if (transaction is OutboxTransaction inMemOutboxTransaction)
             {
                 Transaction = inMemOutboxTransaction.Transaction;
                 ownsTransaction = false;
@@ -31,12 +31,12 @@ namespace NServiceBus.AcceptanceTesting
         public ValueTask<bool> TryOpen(TransportTransaction transportTransaction, ContextBag context,
             CancellationToken cancellationToken = default)
         {
-            if (!transportTransaction.TryGet(out Transaction ambientTransaction))
+            if (!transportTransaction.TryGet(out System.Transactions.Transaction ambientTransaction))
             {
                 return new ValueTask<bool>(false);
             }
 
-            Transaction = new AcceptanceTestingTransaction();
+            Transaction = new Transaction();
             ambientTransaction.EnlistVolatile(new EnlistmentNotification(Transaction), EnlistmentOptions.None);
             ownsTransaction = true;
             return new ValueTask<bool>(true);
@@ -45,7 +45,7 @@ namespace NServiceBus.AcceptanceTesting
         public Task Open(ContextBag contextBag, CancellationToken cancellationToken = default)
         {
             ownsTransaction = true;
-            Transaction = new AcceptanceTestingTransaction();
+            Transaction = new Transaction();
             return Task.CompletedTask;
         }
 
@@ -65,7 +65,7 @@ namespace NServiceBus.AcceptanceTesting
 
         sealed class EnlistmentNotification : IEnlistmentNotification
         {
-            public EnlistmentNotification(AcceptanceTestingTransaction transaction) => this.transaction = transaction;
+            public EnlistmentNotification(Transaction transaction) => this.transaction = transaction;
 
             public void Prepare(PreparingEnlistment preparingEnlistment)
             {
@@ -90,7 +90,7 @@ namespace NServiceBus.AcceptanceTesting
 
             public void InDoubt(Enlistment enlistment) => enlistment.Done();
 
-            readonly AcceptanceTestingTransaction transaction;
+            readonly Transaction transaction;
         }
     }
 }
