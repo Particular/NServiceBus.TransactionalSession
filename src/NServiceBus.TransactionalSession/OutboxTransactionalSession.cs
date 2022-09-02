@@ -13,13 +13,12 @@
 
     class OutboxTransactionalSession : TransactionalSessionBase
     {
-        public OutboxTransactionalSession(
-            IOutboxStorage outboxStorage,
-            ICompletableSynchronizedStorageSession synchronizedStorageSession,
-            IMessageSession messageSession,
-            IMessageDispatcher dispatcher,
-            string physicalQueueAddress,
-            IEnumerable<IOpenSessionOptionsCustomization> customizations) : base(synchronizedStorageSession, messageSession, dispatcher, customizations)
+        public OutboxTransactionalSession(IOutboxStorage outboxStorage,
+                                          ICompletableSynchronizedStorageSession synchronizedStorageSession,
+                                          IMessageSession messageSession,
+                                          IMessageDispatcher dispatcher,
+                                          IEnumerable<IOpenSessionOptionsCustomization> customizations,
+                                          string physicalQueueAddress) : base(synchronizedStorageSession, messageSession, dispatcher, customizations)
         {
             this.outboxStorage = outboxStorage;
             this.physicalQueueAddress = physicalQueueAddress;

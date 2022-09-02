@@ -13,7 +13,7 @@ public class OutboxTransactionalSessionTests
     [Test]
     public async Task Open_should_use_session_id_from_options()
     {
-        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), "queue address");
+        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
 
         var openOptions = new FakeOpenSessionOptions();
         await session.Open(openOptions);
@@ -24,7 +24,7 @@ public class OutboxTransactionalSessionTests
     [Test]
     public async Task Open_should_throw_if_session_already_open()
     {
-        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), "queue address");
+        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
 
         await session.Open();
 
@@ -39,7 +39,7 @@ public class OutboxTransactionalSessionTests
         var synchronizedStorageSession = new FakeSynchronizableStorageSession();
         var outboxStorage = new FakeOutboxStorage();
 
-        using var session = new OutboxTransactionalSession(outboxStorage, synchronizedStorageSession, new FakeMessageSession(), new FakeDispatcher(), "queue address");
+        using var session = new OutboxTransactionalSession(outboxStorage, synchronizedStorageSession, new FakeMessageSession(), new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
 
         await session.Open();
 
@@ -53,7 +53,7 @@ public class OutboxTransactionalSessionTests
         var synchronizedStorageSession = new FakeSynchronizableStorageSession();
         synchronizedStorageSession.TryOpenCallback = (_, _) => false;
 
-        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), synchronizedStorageSession, new FakeMessageSession(), new FakeDispatcher(), "queue address");
+        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), synchronizedStorageSession, new FakeMessageSession(), new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
 
         var exception = Assert.ThrowsAsync<Exception>(async () => await session.Open());
 
@@ -64,7 +64,7 @@ public class OutboxTransactionalSessionTests
     public async Task Send_should_set_PendingOperations_collection_on_context()
     {
         var messageSession = new FakeMessageSession();
-        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), "queue address");
+        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
 
         await session.Open();
         await session.Send(new object());
@@ -76,7 +76,7 @@ public class OutboxTransactionalSessionTests
     public async Task Publish_should_set_PendingOperations_collection_on_context()
     {
         var messageSession = new FakeMessageSession();
-        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), "queue address");
+        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
 
         await session.Open();
         await session.Publish(new object());
@@ -88,7 +88,7 @@ public class OutboxTransactionalSessionTests
     public void Send_should_throw_exeception_when_session_not_opened()
     {
         var messageSession = new FakeMessageSession();
-        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), "queue address");
+        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
 
         var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Send(new object()));
 
@@ -100,7 +100,7 @@ public class OutboxTransactionalSessionTests
     public void Publish_should_throw_exception_when_session_not_opened()
     {
         var messageSession = new FakeMessageSession();
-        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), "queue address");
+        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
 
         var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Publish(new object()));
 
@@ -117,7 +117,7 @@ public class OutboxTransactionalSessionTests
         var synchronizedSession = new FakeSynchronizableStorageSession();
         string queueAddress = "queue address";
 
-        using var session = new OutboxTransactionalSession(outboxStorage, synchronizedSession, messageSession, dispatcher, queueAddress);
+        using var session = new OutboxTransactionalSession(outboxStorage, synchronizedSession, messageSession, dispatcher, Enumerable.Empty<IOpenSessionOptionsCustomization>(), queueAddress);
 
         await session.Open();
         var sendOptions = new SendOptions();
@@ -155,7 +155,7 @@ public class OutboxTransactionalSessionTests
         var dispatcher = new FakeDispatcher();
         var outboxStorage = new FakeOutboxStorage { StoreCallback = (_, _, _) => throw new Exception("some error") };
         var completableSynchronizedStorageSession = new FakeSynchronizableStorageSession();
-        using var session = new OutboxTransactionalSession(outboxStorage, completableSynchronizedStorageSession, messageSession, dispatcher, "queue address");
+        using var session = new OutboxTransactionalSession(outboxStorage, completableSynchronizedStorageSession, messageSession, dispatcher, Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
 
         await session.Open();
         await session.Send(new object());
@@ -184,7 +184,7 @@ public class OutboxTransactionalSessionTests
         var messageSession = new FakeMessageSession();
         var dispatcher = new FakeDispatcher();
         var outboxStorage = new FakeOutboxStorage();
-        using var session = new OutboxTransactionalSession(outboxStorage, new FakeSynchronizableStorageSession(), messageSession, dispatcher, "queue address");
+        using var session = new OutboxTransactionalSession(outboxStorage, new FakeSynchronizableStorageSession(), messageSession, dispatcher, Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
 
         var options = new FakeOpenSessionOptions();
         options.CommitDelayIncrement = expectedDelayIncrement;
@@ -207,7 +207,7 @@ public class OutboxTransactionalSessionTests
     [Test]
     public void Operations_should_throw_when_already_disposed()
     {
-        ITransactionalSession session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), "queue address");
+        ITransactionalSession session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
 
         session.Dispose();
 
@@ -222,7 +222,7 @@ public class OutboxTransactionalSessionTests
     [Test]
     public async Task Operations_should_throw_when_already_committed()
     {
-        ITransactionalSession session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), "queue address");
+        ITransactionalSession session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
 
         await session.Open(new FakeOpenSessionOptions());
         await session.Commit();

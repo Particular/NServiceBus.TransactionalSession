@@ -37,9 +37,7 @@
                         sp.GetRequiredService<ICompletableSynchronizedStorageSession>(),
                         sessionCaptureTask.CapturedSession,
                         sp.GetRequiredService<IMessageDispatcher>(),
-                        physicalLocalQueueAddress,
-                        sp.GetServices<IOpenSessionOptionsCustomization>()
-                        );
+                        sp.GetServices<IOpenSessionOptionsCustomization>(), physicalLocalQueueAddress);
                 }
                 else
                 {
