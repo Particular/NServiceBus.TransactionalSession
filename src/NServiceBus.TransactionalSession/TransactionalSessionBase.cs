@@ -165,11 +165,6 @@ namespace NServiceBus.TransactionalSession
                 return;
             }
 
-            if (disposing)
-            {
-                synchronizedStorageSession?.Dispose();
-            }
-
             disposed = true;
         }
 
