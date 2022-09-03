@@ -2,8 +2,7 @@
 {
     using System;
 
-    [Serializable]
-    class ConsumeMessageException : Exception
+    sealed class ConsumeMessageException : Exception
     {
     }
 }
