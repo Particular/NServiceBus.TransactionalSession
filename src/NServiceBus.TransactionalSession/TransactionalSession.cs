@@ -14,6 +14,11 @@
     public class TransactionalSession : Feature
     {
         /// <summary>
+        /// Initializes a new instance of the <see cref="TransactionalSession"/> feature.
+        /// </summary>
+        public TransactionalSession() => DependsOnOptionally<Outbox>();
+
+        /// <summary>
         /// See <see cref="Feature.Setup" />.
         /// </summary>
         protected override void Setup(FeatureConfigurationContext context)
