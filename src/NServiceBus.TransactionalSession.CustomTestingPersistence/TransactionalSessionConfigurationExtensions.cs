@@ -13,6 +13,6 @@ namespace NServiceBus.TransactionalSession
         /// Enables the transactional session for this endpoint.
         /// </summary>
         public static void EnableTransactionalSession(this PersistenceExtensions<CustomTestingPersistence> persistence) =>
-            persistence.GetSettings().EnableFeatureByDefault<TransactionalSession>();
+            persistence.GetSettings().EnableFeatureByDefault<CustomTestingPersistenceTransactionalSession>();
     }
 }
