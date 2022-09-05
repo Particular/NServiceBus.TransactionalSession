@@ -15,6 +15,12 @@ namespace NServiceBus.TransactionalSession
         protected internal ContextBag Extensions { get; } = new();
 
         /// <summary>
+        /// The session id
+        /// </summary>
+        /// <remarks>By default it uses a new Guid</remarks>
+        protected internal string SessionId { get; } = Guid.NewGuid().ToString();
+
+        /// <summary>
         /// Session metadata that gets added during the session commit operation.
         /// </summary>
         public IDictionary<string, string> Metadata => metadata ??= new Dictionary<string, string>();
@@ -28,8 +34,6 @@ namespace NServiceBus.TransactionalSession
         public TimeSpan MaximumCommitDuration { get; set; } = TimeSpan.FromSeconds(15);
 
         internal TimeSpan CommitDelayIncrement { get; set; } = TimeSpan.FromSeconds(2);
-
-        internal string SessionId { get; } = Guid.NewGuid().ToString();
 
         Dictionary<string, string> metadata;
     }
