@@ -4,6 +4,7 @@
     using System.Threading.Tasks;
     using Microsoft.Extensions.DependencyInjection;
     using AcceptanceTesting;
+    using NServiceBus.AcceptanceTests;
     using NUnit.Framework;
 
     public class When_not_using_outbox : NServiceBusAcceptanceTest
@@ -24,8 +25,7 @@
                     await transactionalSession.Commit();
                 }))
                 .Done(c => c.MessageReceived)
-                .Run()
-                ;
+                .Run();
         }
 
         [Test]
@@ -46,8 +46,7 @@
                     await messageSession.SendLocal(new CompleteTestMessage());
                 }))
                 .Done(c => c.CompleteMessageReceived)
-                .Run()
-                ;
+                .Run();
 
             Assert.True(result.CompleteMessageReceived);
             Assert.False(result.MessageReceived);

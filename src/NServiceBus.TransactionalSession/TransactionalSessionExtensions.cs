@@ -5,7 +5,7 @@
     using System.Threading.Tasks;
 
     /// <summary>
-    /// Extensions for the <see cref="TransactionalSession"/>
+    /// Extensions for the <see cref="NonOutboxTransactionalSession"/>
     /// </summary>
     public static class TransactionalSessionExtensions
     {

@@ -9,18 +9,23 @@ namespace NServiceBus.TransactionalSession
     using Routing;
     using Transport;
 
-    class TransactionalSessionDelayControlMessageBehavior : IBehavior<IIncomingPhysicalMessageContext, IIncomingPhysicalMessageContext>
+    class TransactionalSessionDelayControlMessageBehavior : IBehavior<IIncomingPhysicalMessageContext,
+        IIncomingPhysicalMessageContext>
     {
-        public TransactionalSessionDelayControlMessageBehavior(IMessageDispatcher dispatcher, string physicalQueueAddress)
+        public TransactionalSessionDelayControlMessageBehavior(IMessageDispatcher dispatcher,
+            string physicalQueueAddress)
         {
             this.dispatcher = dispatcher;
             this.physicalQueueAddress = physicalQueueAddress;
         }
 
-        public async Task Invoke(IIncomingPhysicalMessageContext context, Func<IIncomingPhysicalMessageContext, Task> next)
+        public async Task Invoke(IIncomingPhysicalMessageContext context,
+            Func<IIncomingPhysicalMessageContext, Task> next)
         {
-            if (!context.Message.Headers.TryGetValue(OutboxTransactionalSession.RemainingCommitDurationHeaderName, out var remainingCommitDurationHeader)
-                || !context.Message.Headers.TryGetValue(OutboxTransactionalSession.CommitDelayIncrementHeaderName, out var commitDelayIncrementHeader))
+            if (!context.Message.Headers.TryGetValue(OutboxTransactionalSession.RemainingCommitDurationHeaderName,
+                    out var remainingCommitDurationHeader)
+                || !context.Message.Headers.TryGetValue(OutboxTransactionalSession.CommitDelayIncrementHeaderName,
+                    out var commitDelayIncrementHeader))
             {
                 await next(context).ConfigureAwait(false);
                 return;
@@ -34,8 +39,10 @@ namespace NServiceBus.TransactionalSession
             {
                 if (Log.IsInfoEnabled)
                 {
-                    Log.Info($"Consuming transaction commit control messages for messageId={messageId} to create the outbox tomb stone.");
+                    Log.Info(
+                        $"Consuming transaction commit control messages for messageId={messageId} to create the outbox tomb stone.");
                 }
+
                 return;
             }
 
@@ -49,17 +56,15 @@ namespace NServiceBus.TransactionalSession
 
             var headers = new Dictionary<string, string>(context.Message.Headers)
             {
-                [OutboxTransactionalSession.RemainingCommitDurationHeaderName] = (remainingCommitDuration - commitDelayIncrement).ToString(),
+                [OutboxTransactionalSession.RemainingCommitDurationHeaderName] =
+                    (remainingCommitDuration - commitDelayIncrement).ToString(),
                 [OutboxTransactionalSession.CommitDelayIncrementHeaderName] = commitDelayIncrement.ToString()
             };
             await dispatcher.Dispatch(new TransportOperations(
                     new TransportOperation(
                         new OutgoingMessage(messageId, headers, ReadOnlyMemory<byte>.Empty),
                         new UnicastAddressTag(physicalQueueAddress),
-                        new DispatchProperties
-                        {
-                            DelayDeliveryWith = new DelayDeliveryWith(commitDelayIncrement)
-                        },
+                        new DispatchProperties { DelayDeliveryWith = new DelayDeliveryWith(commitDelayIncrement) },
                         DispatchConsistency.Isolated
                     )
                 ), new TransportTransaction(), context.CancellationToken)

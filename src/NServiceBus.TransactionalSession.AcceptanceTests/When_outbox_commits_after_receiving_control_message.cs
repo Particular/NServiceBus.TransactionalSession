@@ -6,13 +6,15 @@
     using System.Threading.Tasks;
     using AcceptanceTesting;
     using Microsoft.Extensions.DependencyInjection;
+    using NServiceBus.AcceptanceTests;
+    using NServiceBus.AcceptanceTests.EndpointTemplates;
     using NUnit.Framework;
     using Pipeline;
 
     public class When_outbox_commits_after_receiving_control_message : NServiceBusAcceptanceTest
     {
         [Test]
-        public async Task Should_retry_till_outbox_transaction_commited()
+        public async Task Should_retry_till_outbox_transaction_committed()
         {
             await Scenario.Define<Context>()
                 .WithEndpoint<SenderEndpoint>(e => e

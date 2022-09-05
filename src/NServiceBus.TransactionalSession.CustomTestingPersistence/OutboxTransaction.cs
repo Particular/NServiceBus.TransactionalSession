@@ -6,21 +6,21 @@ namespace NServiceBus.AcceptanceTesting
     using Extensibility;
     using Outbox;
 
-    public class CustomTestingOutboxTransaction : IOutboxTransaction
+    class OutboxTransaction : IOutboxTransaction
     {
         public TaskCompletionSource<bool> CommitTaskCompletionSource { get; set; } = null;
 
-        public CustomTestingOutboxTransaction(ContextBag contextBag)
+        public OutboxTransaction(ContextBag contextBag)
         {
             if (contextBag.TryGet(out CustomTestingPersistenceOpenSessionOptions options))
             {
                 CommitTaskCompletionSource = options.TransactionCommitTaskCompletionSource;
             }
 
-            Transaction = new AcceptanceTestingTransaction();
+            Transaction = new Transaction();
         }
 
-        public AcceptanceTestingTransaction Transaction { get; private set; }
+        public Transaction Transaction { get; private set; }
 
         public void Dispose()
         {
