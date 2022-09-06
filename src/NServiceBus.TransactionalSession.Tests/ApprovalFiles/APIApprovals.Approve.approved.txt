@@ -28,8 +28,7 @@ namespace NServiceBus.TransactionalSession
     public abstract class TransactionalSession : NServiceBus.Features.Feature
     {
         protected TransactionalSession() { }
-        protected override sealed void Setup(NServiceBus.Features.FeatureConfigurationContext context) { }
-        protected virtual void SetupCore(NServiceBus.Features.FeatureConfigurationContext context) { }
+        protected override void Setup(NServiceBus.Features.FeatureConfigurationContext context) { }
     }
     public static class TransactionalSessionExtensions
     {

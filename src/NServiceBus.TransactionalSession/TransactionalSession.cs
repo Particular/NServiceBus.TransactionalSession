@@ -25,10 +25,8 @@
         /// <summary>
         /// See <see cref="Feature.Setup" />.
         /// </summary>
-        protected sealed override void Setup(FeatureConfigurationContext context)
+        protected override void Setup(FeatureConfigurationContext context)
         {
-            SetupCore(context);
-
             context.Services.AddTransient<SessionCaptureTask>();
             context.RegisterStartupTask(sp => sp.GetRequiredService<SessionCaptureTask>());
 
@@ -80,14 +78,6 @@
 
             context.Pipeline.Register(new TransactionalSessionControlMessageExceptionBehavior(),
                 "Transaction commit control message delay acknowledgement behavior");
-        }
-
-        /// <summary>
-        /// Sets up the necessary infrastructure.
-        /// </summary>
-        /// <param name="context">The feature configuration context.</param>
-        protected virtual void SetupCore(FeatureConfigurationContext context)
-        {
         }
 
         // This class is a bit of a weird mix of things that are set upfront and things that are set
