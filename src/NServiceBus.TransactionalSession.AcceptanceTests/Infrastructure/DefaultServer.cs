@@ -3,7 +3,6 @@ namespace NServiceBus.TransactionalSession.AcceptanceTests
     using System;
     using System.IO;
     using System.Threading.Tasks;
-    using AcceptanceTesting;
     using AcceptanceTesting.Customization;
     using AcceptanceTesting.Support;
     using NUnit.Framework;
@@ -27,8 +26,6 @@ namespace NServiceBus.TransactionalSession.AcceptanceTests
             {
                 StorageLocation = storageDir
             });
-
-            builder.RegisterStartupTask(sp => new CaptureServiceProviderStartupTask(sp, runDescriptor.ScenarioContext));
 
             await configurationBuilderCustomization(builder).ConfigureAwait(false);
 
