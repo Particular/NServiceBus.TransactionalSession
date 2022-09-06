@@ -25,10 +25,11 @@ namespace NServiceBus.TransactionalSession
         public System.Collections.Generic.IDictionary<string, string> Metadata { get; }
         protected string SessionId { get; }
     }
-    public class TransactionalSession : NServiceBus.Features.Feature
+    public abstract class TransactionalSession : NServiceBus.Features.Feature
     {
-        public TransactionalSession() { }
-        protected override void Setup(NServiceBus.Features.FeatureConfigurationContext context) { }
+        protected TransactionalSession() { }
+        protected override sealed void Setup(NServiceBus.Features.FeatureConfigurationContext context) { }
+        protected virtual void SetupCore(NServiceBus.Features.FeatureConfigurationContext context) { }
     }
     public static class TransactionalSessionExtensions
     {
