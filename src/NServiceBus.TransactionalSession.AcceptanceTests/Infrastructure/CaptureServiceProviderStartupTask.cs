@@ -1,10 +1,10 @@
-﻿namespace NServiceBus.TransactionalSession.AcceptanceTests
+namespace NServiceBus.TransactionalSession.AcceptanceTests
 {
     using System;
     using System.Threading;
     using System.Threading.Tasks;
-    using AcceptanceTesting;
-    using Features;
+    using NServiceBus.AcceptanceTesting;
+    using NServiceBus.Features;
 
     public class CaptureServiceProviderStartupTask : FeatureStartupTask
     {
@@ -19,10 +19,5 @@
         protected override Task OnStart(IMessageSession session, CancellationToken cancellationToken = default) => Task.CompletedTask;
 
         protected override Task OnStop(IMessageSession session, CancellationToken cancellationToken = default) => Task.CompletedTask;
-    }
-
-    public interface IInjectServiceProvider
-    {
-        IServiceProvider ServiceProvider { get; set; }
     }
 }

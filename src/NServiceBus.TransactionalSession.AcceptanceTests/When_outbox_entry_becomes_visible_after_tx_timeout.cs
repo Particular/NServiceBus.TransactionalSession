@@ -6,10 +6,8 @@
     using Microsoft.Extensions.DependencyInjection;
     using AcceptanceTesting;
     using AcceptanceTesting.Customization;
-    using NServiceBus.AcceptanceTests;
-    using NServiceBus.AcceptanceTests.EndpointTemplates;
-    using Outbox;
     using NUnit.Framework;
+    using Outbox;
     using Pipeline;
 
     public class When_outbox_entry_becomes_visible_after_tx_timeout : NServiceBusAcceptanceTest

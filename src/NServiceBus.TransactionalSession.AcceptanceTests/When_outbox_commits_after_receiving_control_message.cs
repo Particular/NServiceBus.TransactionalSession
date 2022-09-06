@@ -1,13 +1,11 @@
 ﻿namespace NServiceBus.TransactionalSession.AcceptanceTests
 {
-    using AcceptanceTesting.Customization;
     using System;
     using System.Threading;
     using System.Threading.Tasks;
     using AcceptanceTesting;
+    using AcceptanceTesting.Customization;
     using Microsoft.Extensions.DependencyInjection;
-    using NServiceBus.AcceptanceTests;
-    using NServiceBus.AcceptanceTests.EndpointTemplates;
     using NUnit.Framework;
     using Pipeline;
 
