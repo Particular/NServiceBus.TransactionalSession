@@ -3,10 +3,11 @@
     using System;
     using System.Linq;
     using System.Threading.Tasks;
-    using NServiceBus.AcceptanceTesting;
-    using NServiceBus.Outbox;
+    using Microsoft.Extensions.DependencyInjection;
+    using AcceptanceTesting;
+    using AcceptanceTesting.Customization;
     using NUnit.Framework;
-    using ObjectBuilder;
+    using Outbox;
     using Pipeline;
 
     public class When_outbox_entry_becomes_visible_after_tx_timeout : NServiceBusAcceptanceTest
@@ -19,10 +20,10 @@
                     .DoNotFailOnErrorMessages()
                     .When(async (_, ctx) =>
                     {
-                        using var scope = ctx.Builder.CreateChildBuilder();
-                        using var transactionalSession = scope.Build<ITransactionalSession>();
+                        using var scope = ctx.ServiceProvider.CreateScope();
+                        using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
-                        var options = new OpenSessionOptions { MaximumCommitDuration = TimeSpan.Zero };
+                        var options = new CustomTestingPersistenceOpenSessionOptions { MaximumCommitDuration = TimeSpan.Zero };
                         await transactionalSession.Open(options);
 
                         await transactionalSession.Send(new SomeMessage());
@@ -44,9 +45,9 @@
 
         }
 
-        class Context : ScenarioContext, IInjectBuilder
+        class Context : ScenarioContext, IInjectServiceProvider
         {
-            public IBuilder Builder { get; set; }
+            public IServiceProvider ServiceProvider { get; set; }
             public bool MessageReceived { get; set; }
             public string TransactionalSessionId { get; set; }
         }
@@ -56,8 +57,7 @@
             public SenderEndpoint() =>
                 EndpointSetup<TransactionSessionWithOutboxEndpoint>((c, r) =>
                 {
-                    var receiverEndpointName = AcceptanceTesting.Customization.Conventions.EndpointNamingConvention(typeof(ReceiverEndpoint));
-                    c.ConfigureRouting().RouteToEndpoint(typeof(SomeMessage), receiverEndpointName);
+                    c.ConfigureRouting().RouteToEndpoint(typeof(SomeMessage), typeof(ReceiverEndpoint));
                     c.Pipeline.Register(new StorageManipulationBehavior(), "configures the outbox to not see the commited values yet");
                 });
 

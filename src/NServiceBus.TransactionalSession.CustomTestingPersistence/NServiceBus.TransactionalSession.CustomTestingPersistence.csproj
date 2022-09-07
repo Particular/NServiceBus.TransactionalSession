@@ -3,20 +3,20 @@
   <PropertyGroup>
     <TargetFrameworks>net472;net6.0</TargetFrameworks>
     <SignAssembly>True</SignAssembly>
-    <AssemblyOriginatorKeyFile>..\NServiceBusTests.snk</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>..\NServiceBus.snk</AssemblyOriginatorKeyFile>
     <LangVersion>10.0</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NServiceBus.AcceptanceTesting" Version="7.8.0-storage-session.2" />
+    <PackageReference Include="NServiceBus.AcceptanceTesting" Version="8.0.0-rc.1" />
   </ItemGroup>
 
   <ItemGroup>
-    <EditorConfigFiles Remove="C:\git\p\NServiceBus.TransactionalSession\src\NServiceBus.TransactionalSession.CustomTestingPersistence\.editorconfig" />
+    <ProjectReference Include="..\NServiceBus.TransactionalSession\NServiceBus.TransactionalSession.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="C:\git\p\NServiceBus.TransactionalSession\src\NServiceBus.TransactionalSession.CustomTestingPersistence\.editorconfig" />
+    <InternalsVisibleTo Include="NServiceBus.TransactionalSession.AcceptanceTests" Key="$(NServiceBusTestsKey)" />
   </ItemGroup>
 
 </Project>

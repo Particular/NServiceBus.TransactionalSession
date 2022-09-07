@@ -1,10 +1,11 @@
 ﻿namespace NServiceBus.TransactionalSession
 {
     using System;
+    using System.Threading;
     using System.Threading.Tasks;
 
     /// <summary>
-    /// Extensions for the <see cref="TransactionalSession"/>
+    /// Extensions for the <see cref="NonOutboxTransactionalSession"/>
     /// </summary>
     public static class TransactionalSessionExtensions
     {
@@ -13,13 +14,13 @@
         /// </summary>
         /// <param name="session">The instance of <see cref="ITransactionalSession" /> to use for the action.</param>
         /// <param name="message">The message to send.</param>
-#pragma warning disable PS0018 // A task-returning method should have a CancellationToken parameter unless it has a parameter implementing ICancellableContext
-        public static Task Send(this ITransactionalSession session, object message)
+        /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe.</param>
+        public static Task Send(this ITransactionalSession session, object message, CancellationToken cancellationToken = default)
         {
             Guard.AgainstNull(nameof(session), session);
             Guard.AgainstNull(nameof(message), message);
 
-            return session.Send(message, new SendOptions());
+            return session.Send(message, new SendOptions(), cancellationToken);
         }
 
         /// <summary>
@@ -28,15 +29,16 @@
         /// <typeparam name="T">The type of message, usually an interface.</typeparam>
         /// <param name="session">The instance of <see cref="ITransactionalSession" /> to use for the action.</param>
         /// <param name="messageConstructor">An action which initializes properties of the message.</param>
+        /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe.</param>
         /// <remarks>
         /// The message will be sent to the destination configured for <typeparamref name="T" />.
         /// </remarks>
-        public static Task Send<T>(this ITransactionalSession session, Action<T> messageConstructor)
+        public static Task Send<T>(this ITransactionalSession session, Action<T> messageConstructor, CancellationToken cancellationToken = default)
         {
             Guard.AgainstNull(nameof(session), session);
             Guard.AgainstNull(nameof(messageConstructor), messageConstructor);
 
-            return session.Send(messageConstructor, new SendOptions());
+            return session.Send(messageConstructor, new SendOptions(), cancellationToken);
         }
 
         /// <summary>
@@ -45,7 +47,8 @@
         /// <param name="session">The instance of <see cref="ITransactionalSession" /> to use for the action.</param>
         /// <param name="destination">The address of the destination to which the message will be sent.</param>
         /// <param name="message">The message to send.</param>
-        public static Task Send(this ITransactionalSession session, string destination, object message)
+        /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe.</param>
+        public static Task Send(this ITransactionalSession session, string destination, object message, CancellationToken cancellationToken = default)
         {
             Guard.AgainstNull(nameof(session), session);
             Guard.AgainstNullAndEmpty(nameof(destination), destination);
@@ -55,7 +58,7 @@
 
             options.SetDestination(destination);
 
-            return session.Send(message, options);
+            return session.Send(message, options, cancellationToken);
         }
 
         /// <summary>
@@ -65,7 +68,8 @@
         /// <param name="session">The instance of <see cref="ITransactionalSession" /> to use for the action.</param>
         /// <param name="destination">The destination to which the message will be sent.</param>
         /// <param name="messageConstructor">An action which initializes properties of the message.</param>
-        public static Task Send<T>(this ITransactionalSession session, string destination, Action<T> messageConstructor)
+        /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe.</param>
+        public static Task Send<T>(this ITransactionalSession session, string destination, Action<T> messageConstructor, CancellationToken cancellationToken = default)
         {
             Guard.AgainstNull(nameof(session), session);
             Guard.AgainstNullAndEmpty(nameof(destination), destination);
@@ -75,7 +79,7 @@
 
             options.SetDestination(destination);
 
-            return session.Send(messageConstructor, options);
+            return session.Send(messageConstructor, options, cancellationToken);
         }
 
         /// <summary>
@@ -83,7 +87,8 @@
         /// </summary>
         /// <param name="session">Object being extended.</param>
         /// <param name="message">The message to send.</param>
-        public static Task SendLocal(this ITransactionalSession session, object message)
+        /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe.</param>
+        public static Task SendLocal(this ITransactionalSession session, object message, CancellationToken cancellationToken = default)
         {
             Guard.AgainstNull(nameof(session), session);
             Guard.AgainstNull(nameof(message), message);
@@ -92,7 +97,7 @@
 
             options.RouteToThisEndpoint();
 
-            return session.Send(message, options);
+            return session.Send(message, options, cancellationToken);
         }
 
         /// <summary>
@@ -101,7 +106,8 @@
         /// <typeparam name="T">The type of message, usually an interface.</typeparam>
         /// <param name="session">Object being extended.</param>
         /// <param name="messageConstructor">An action which initializes properties of the message.</param>
-        public static Task SendLocal<T>(this ITransactionalSession session, Action<T> messageConstructor)
+        /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe.</param>
+        public static Task SendLocal<T>(this ITransactionalSession session, Action<T> messageConstructor, CancellationToken cancellationToken = default)
         {
             Guard.AgainstNull(nameof(session), session);
             Guard.AgainstNull(nameof(messageConstructor), messageConstructor);
@@ -110,32 +116,34 @@
 
             options.RouteToThisEndpoint();
 
-            return session.Send(messageConstructor, options);
+            return session.Send(messageConstructor, options, cancellationToken);
         }
 
         /// <summary>
-        /// Publish the message to subscribers.
+        /// Publishes the message to subscribers.
         /// </summary>
         /// <param name="session">The instance of <see cref="ITransactionalSession" /> to use for the action.</param>
         /// <param name="message">The message to publish.</param>
-        public static Task Publish(this ITransactionalSession session, object message)
+        /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe.</param>
+        public static Task Publish(this ITransactionalSession session, object message, CancellationToken cancellationToken = default)
         {
             Guard.AgainstNull(nameof(session), session);
             Guard.AgainstNull(nameof(message), message);
 
-            return session.Publish(message, new PublishOptions());
+            return session.Publish(message, new PublishOptions(), cancellationToken);
         }
 
         /// <summary>
-        /// Publish the message to subscribers.
+        /// Publishes the message to subscribers.
         /// </summary>
         /// <param name="session">The instance of <see cref="ITransactionalSession" /> to use for the action.</param>
+        /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe.</param>
         /// <typeparam name="T">The message type.</typeparam>
-        public static Task Publish<T>(this ITransactionalSession session)
+        public static Task Publish<T>(this ITransactionalSession session, CancellationToken cancellationToken = default)
         {
             Guard.AgainstNull(nameof(session), session);
 
-            return session.Publish<T>(_ => { }, new PublishOptions());
+            return session.Publish<T>(_ => { }, new PublishOptions(), cancellationToken);
         }
 
         /// <summary>
@@ -144,13 +152,13 @@
         /// <typeparam name="T">The type of message, usually an interface.</typeparam>
         /// <param name="session">The instance of <see cref="ITransactionalSession" /> to use for the action.</param>
         /// <param name="messageConstructor">An action which initializes properties of the message.</param>
-        public static Task Publish<T>(this ITransactionalSession session, Action<T> messageConstructor)
-#pragma warning restore PS0018 // A task-returning method should have a CancellationToken parameter unless it has a parameter implementing ICancellableContext
+        /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe.</param>
+        public static Task Publish<T>(this ITransactionalSession session, Action<T> messageConstructor, CancellationToken cancellationToken = default)
         {
             Guard.AgainstNull(nameof(session), session);
             Guard.AgainstNull(nameof(messageConstructor), messageConstructor);
 
-            return session.Publish(messageConstructor, new PublishOptions());
+            return session.Publish(messageConstructor, new PublishOptions(), cancellationToken);
         }
     }
 }

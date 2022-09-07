@@ -1,9 +1,10 @@
 ﻿namespace NServiceBus.TransactionalSession.AcceptanceTests
 {
+    using System;
     using System.Threading.Tasks;
+    using Microsoft.Extensions.DependencyInjection;
     using AcceptanceTesting;
     using NUnit.Framework;
-    using ObjectBuilder;
 
     public class When_not_using_outbox : NServiceBusAcceptanceTest
     {
@@ -13,18 +14,17 @@
             await Scenario.Define<Context>()
                 .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
                 {
-                    using var scope = ctx.Builder.CreateChildBuilder();
-                    using var transactionalSession = scope.Build<ITransactionalSession>();
+                    using var scope = ctx.ServiceProvider.CreateScope();
+                    using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
-                    await transactionalSession.Open();
+                    await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions());
 
                     await transactionalSession.SendLocal(new SampleMessage());
 
                     await transactionalSession.Commit();
                 }))
                 .Done(c => c.MessageReceived)
-                .Run()
-                ;
+                .Run();
         }
 
         [Test]
@@ -33,10 +33,10 @@
             var result = await Scenario.Define<Context>()
                 .WithEndpoint<AnEndpoint>(s => s.When(async (messageSession, ctx) =>
                 {
-                    using (var scope = ctx.Builder.CreateChildBuilder())
-                    using (var transactionalSession = scope.Build<ITransactionalSession>())
+                    using (var scope = ctx.ServiceProvider.CreateScope())
+                    using (var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>())
                     {
-                        await transactionalSession.Open();
+                        await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions());
 
                         await transactionalSession.SendLocal(new SampleMessage());
                     }
@@ -45,26 +45,22 @@
                     await messageSession.SendLocal(new CompleteTestMessage());
                 }))
                 .Done(c => c.CompleteMessageReceived)
-                .Run()
-                ;
+                .Run();
 
             Assert.True(result.CompleteMessageReceived);
             Assert.False(result.MessageReceived);
         }
 
-        class Context : ScenarioContext, IInjectBuilder
+        class Context : ScenarioContext, IInjectServiceProvider
         {
             public bool MessageReceived { get; set; }
             public bool CompleteMessageReceived { get; set; }
-            public IBuilder Builder { get; set; }
+            public IServiceProvider ServiceProvider { get; set; }
         }
 
         class AnEndpoint : EndpointConfigurationBuilder
         {
-            public AnEndpoint() =>
-                EndpointSetup<TransactionSessionDefaultServer>((c, r) =>
-                {
-                });
+            public AnEndpoint() => EndpointSetup<TransactionSessionDefaultServer>();
 
             class SampleHandler : IHandleMessages<SampleMessage>
             {

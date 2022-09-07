@@ -1,12 +1,13 @@
 ﻿namespace NServiceBus.TransactionalSession.AcceptanceTests
 {
+    using System;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Extensions.DependencyInjection;
     using AcceptanceTesting;
     using NUnit.Framework;
-    using ObjectBuilder;
 
-    public partial class When_using_outbox : NServiceBusAcceptanceTest
+    public class When_using_outbox : NServiceBusAcceptanceTest
     {
         [Test]
         public async Task Should_send_messages_on_transactional_session_commit()
@@ -14,11 +15,11 @@
             await Scenario.Define<Context>()
                 .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
                 {
-                    using var scope = ctx.Builder.CreateChildBuilder();
-                    using var transactionalSession = scope.Build<ITransactionalSession>();
-                    await transactionalSession.Open();
+                    using var scope = ctx.ServiceProvider.CreateScope();
+                    using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+                    await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions());
 
-                    await transactionalSession.SendLocal(new SampleMessage());
+                    await transactionalSession.SendLocal(new SampleMessage(), CancellationToken.None);
 
                     await transactionalSession.Commit(CancellationToken.None).ConfigureAwait(false);
                 }))
@@ -32,10 +33,10 @@
             var result = await Scenario.Define<Context>()
                 .WithEndpoint<AnEndpoint>(s => s.When(async (statelessSession, ctx) =>
                 {
-                    using (var scope = ctx.Builder.CreateChildBuilder())
-                    using (var transactionalSession = scope.Build<ITransactionalSession>())
+                    using (var scope = ctx.ServiceProvider.CreateScope())
+                    using (var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>())
                     {
-                        await transactionalSession.Open();
+                        await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions());
 
                         await transactionalSession.SendLocal(new SampleMessage());
                     }
@@ -56,15 +57,15 @@
             var result = await Scenario.Define<Context>()
                 .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
                 {
-                    using var scope = ctx.Builder.CreateChildBuilder();
-                    using var transactionalSession = scope.Build<ITransactionalSession>();
+                    using var scope = ctx.ServiceProvider.CreateScope();
+                    using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
-                    await transactionalSession.Open();
+                    await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions());
 
                     var sendOptions = new SendOptions();
                     sendOptions.RequireImmediateDispatch();
                     sendOptions.RouteToThisEndpoint();
-                    await transactionalSession.Send(new SampleMessage(), sendOptions);
+                    await transactionalSession.Send(new SampleMessage(), sendOptions, CancellationToken.None);
                 }))
                 .Done(c => c.MessageReceived)
                 .Run()
@@ -73,11 +74,11 @@
             Assert.True(result.MessageReceived);
         }
 
-        class Context : ScenarioContext, IInjectBuilder
+        class Context : ScenarioContext, IInjectServiceProvider
         {
             public bool MessageReceived { get; set; }
             public bool CompleteMessageReceived { get; set; }
-            public IBuilder Builder { get; set; }
+            public IServiceProvider ServiceProvider { get; set; }
         }
 
         class AnEndpoint : EndpointConfigurationBuilder

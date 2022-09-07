@@ -1,6 +1,7 @@
-﻿namespace NServiceBus.TransactionalSession
+namespace NServiceBus.TransactionalSession
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Extensibility;
@@ -10,18 +11,19 @@
     abstract class TransactionalSessionBase : ITransactionalSession
     {
         protected TransactionalSessionBase(
-            CompletableSynchronizedStorageSession synchronizedStorageSession,
+            ICompletableSynchronizedStorageSession synchronizedStorageSession,
             IMessageSession messageSession,
-            IDispatchMessages dispatcher)
+            IMessageDispatcher dispatcher,
+            IEnumerable<IOpenSessionOptionsCustomization> customizations)
         {
             this.synchronizedStorageSession = synchronizedStorageSession;
             this.messageSession = messageSession;
             this.dispatcher = dispatcher;
+            this.customizations = customizations;
             pendingOperations = new PendingTransportOperations();
-            transportTransaction = new TransportTransaction();
         }
 
-        public SynchronizedStorageSession SynchronizedStorageSession
+        public ISynchronizedStorageSession SynchronizedStorageSession
         {
             get
             {
@@ -31,7 +33,7 @@
                         "The session has to be opened before accessing the SynchronizedStorageSession.");
                 }
 
-                return synchronizedStorageSession.GetAdaptedSession();
+                return synchronizedStorageSession;
             }
         }
 
@@ -65,7 +67,7 @@
 
         protected abstract Task CommitInternal(CancellationToken cancellationToken = default);
 
-        public virtual Task Open(OpenSessionOptions options = null, CancellationToken cancellationToken = default)
+        public virtual Task Open(OpenSessionOptions options, CancellationToken cancellationToken = default)
         {
             ThrowIfDisposed();
             ThrowIfCommitted();
@@ -75,50 +77,46 @@
                 throw new InvalidOperationException($"This session is already open. {nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)} should only be called once.");
             }
 
-            this.options = options ?? new OpenSessionOptions();
+            this.options = options;
+
+            foreach (var customization in customizations)
+            {
+                customization.Apply(this.options);
+            }
+
             return Task.CompletedTask;
         }
 
-        ContextBag ITransactionalSession.PersisterSpecificOptions { get; } = new ContextBag();
-
-#pragma warning disable PS0018 // A task-returning method should have a CancellationToken parameter unless it has a parameter implementing ICancellableContext
-        public async Task Send(object message, SendOptions sendOptions)
-#pragma warning restore PS0018 // A task-returning method should have a CancellationToken parameter unless it has a parameter implementing ICancellableContext
+        public async Task Send(object message, SendOptions sendOptions, CancellationToken cancellationToken = default)
         {
             ThrowIfInvalidState();
 
             sendOptions.GetExtensions().Set(pendingOperations);
-            await messageSession.Send(message, sendOptions).ConfigureAwait(false);
+            await messageSession.Send(message, sendOptions, cancellationToken).ConfigureAwait(false);
         }
 
-#pragma warning disable PS0018 // A task-returning method should have a CancellationToken parameter unless it has a parameter implementing ICancellableContext
-        public async Task Send<T>(Action<T> messageConstructor, SendOptions sendOptions)
-#pragma warning restore PS0018 // A task-returning method should have a CancellationToken parameter unless it has a parameter implementing ICancellableContext
+        public async Task Send<T>(Action<T> messageConstructor, SendOptions sendOptions, CancellationToken cancellationToken = default)
         {
             ThrowIfInvalidState();
 
             sendOptions.GetExtensions().Set(pendingOperations);
-            await messageSession.Send(messageConstructor, sendOptions).ConfigureAwait(false);
+            await messageSession.Send(messageConstructor, sendOptions, cancellationToken).ConfigureAwait(false);
         }
 
-#pragma warning disable PS0018 // A task-returning method should have a CancellationToken parameter unless it has a parameter implementing ICancellableContext
-        public async Task Publish(object message, PublishOptions publishOptions)
-#pragma warning restore PS0018 // A task-returning method should have a CancellationToken parameter unless it has a parameter implementing ICancellableContext
+        public async Task Publish(object message, PublishOptions publishOptions, CancellationToken cancellationToken = default)
         {
             ThrowIfInvalidState();
 
             publishOptions.GetExtensions().Set(pendingOperations);
-            await messageSession.Publish(message, publishOptions).ConfigureAwait(false);
+            await messageSession.Publish(message, publishOptions, cancellationToken).ConfigureAwait(false);
         }
 
-#pragma warning disable PS0018 // A task-returning method should have a CancellationToken parameter unless it has a parameter implementing ICancellableContext
-        public async Task Publish<T>(Action<T> messageConstructor, PublishOptions publishOptions)
-#pragma warning restore PS0018 // A task-returning method should have a CancellationToken parameter unless it has a parameter implementing ICancellableContext
+        public async Task Publish<T>(Action<T> messageConstructor, PublishOptions publishOptions, CancellationToken cancellationToken = default)
         {
             ThrowIfInvalidState();
 
             publishOptions.GetExtensions().Set(pendingOperations);
-            await messageSession.Publish(messageConstructor, publishOptions).ConfigureAwait(false);
+            await messageSession.Publish(messageConstructor, publishOptions, cancellationToken).ConfigureAwait(false);
         }
 
         void ThrowIfDisposed()
@@ -167,18 +165,13 @@
                 return;
             }
 
-            if (disposing)
-            {
-                synchronizedStorageSession?.Dispose();
-            }
-
             disposed = true;
         }
 
-        protected readonly CompletableSynchronizedStorageSession synchronizedStorageSession;
-        protected readonly IDispatchMessages dispatcher;
+        protected readonly ICompletableSynchronizedStorageSession synchronizedStorageSession;
+        protected readonly IMessageDispatcher dispatcher;
+        readonly IEnumerable<IOpenSessionOptionsCustomization> customizations;
         protected readonly PendingTransportOperations pendingOperations;
-        protected readonly TransportTransaction transportTransaction;
         protected OpenSessionOptions options;
         readonly IMessageSession messageSession;
         protected bool disposed;

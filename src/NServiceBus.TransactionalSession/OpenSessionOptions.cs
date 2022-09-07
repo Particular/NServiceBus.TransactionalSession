@@ -1,4 +1,4 @@
-﻿namespace NServiceBus.TransactionalSession
+namespace NServiceBus.TransactionalSession
 {
     using System;
     using System.Collections.Generic;
@@ -7,17 +7,18 @@
     /// <summary>
     /// Allows the users to control how the transaction session behaves.
     /// </summary>
-    /// <remarks>
-    /// The behavior of this class is exposed via extension methods.
-    /// </remarks>
-    public class OpenSessionOptions : IExtendable
+    public abstract class OpenSessionOptions
     {
         /// <summary>
         /// Options extensions.
         /// </summary>
-        public ContextBag Extensions => extensions ??= new ContextBag();
+        protected internal ContextBag Extensions { get; } = new();
 
-        internal bool HasExtensions => extensions != null;
+        /// <summary>
+        /// The session id
+        /// </summary>
+        /// <remarks>By default it uses a new Guid</remarks>
+        protected internal string SessionId { get; } = Guid.NewGuid().ToString();
 
         /// <summary>
         /// Session metadata that gets added during the session commit operation.
@@ -34,9 +35,6 @@
 
         internal TimeSpan CommitDelayIncrement { get; set; } = TimeSpan.FromSeconds(2);
 
-        internal string SessionId { get; } = Guid.NewGuid().ToString();
-
         Dictionary<string, string> metadata;
-        ContextBag extensions;
     }
 }

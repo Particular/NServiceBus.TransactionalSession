@@ -2,10 +2,11 @@
 {
     using System;
     using System.Threading.Tasks;
-    using NServiceBus.AcceptanceTesting;
-    using NServiceBus.Pipeline;
+    using Microsoft.Extensions.DependencyInjection;
+    using AcceptanceTesting;
+    using AcceptanceTesting.Customization;
+    using Pipeline;
     using NUnit.Framework;
-    using ObjectBuilder;
 
     public class When_outbox_commits_after_control_message : NServiceBusAcceptanceTest
     {
@@ -15,18 +16,18 @@
             var context = await Scenario.Define<Context>()
                 .WithEndpoint<SenderEndpoint>(e => e.When(async (_, ctx) =>
                 {
-                    using var scope = ctx.Builder.CreateChildBuilder();
-                    using var transactionalSession = scope.Build<ITransactionalSession>();
+                    using var scope = ctx.ServiceProvider.CreateScope();
+                    using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
                     try
                     {
                         ctx.TransactionTaskCompletionSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-                        var options = new OpenSessionOptions
+                        var options = new CustomTestingPersistenceOpenSessionOptions
                         {
                             CommitDelayIncrement = TimeSpan.FromSeconds(1),
-                            MaximumCommitDuration = TimeSpan.FromSeconds(8)
+                            MaximumCommitDuration = TimeSpan.FromSeconds(8),
+                            TransactionCommitTaskCompletionSource = ctx.TransactionTaskCompletionSource
                         };
-                        options.Extensions.Set(CustomTestingOutboxTransaction.TransactionCommitTCSKey, ctx.TransactionTaskCompletionSource);
 
                         await transactionalSession.Open(options);
                         await transactionalSession.Send(new SomeMessage());
@@ -45,9 +46,9 @@
 
         }
 
-        class Context : ScenarioContext, IInjectBuilder
+        class Context : ScenarioContext, IInjectServiceProvider
         {
-            public IBuilder Builder { get; set; }
+            public IServiceProvider ServiceProvider { get; set; }
             public bool MessageReceived { get; set; }
             public Exception TransactionalSessionException { get; set; }
             public TaskCompletionSource<bool> TransactionTaskCompletionSource { get; set; }
@@ -59,10 +60,7 @@
                 EndpointSetup<TransactionSessionWithOutboxEndpoint>((c, r) =>
                 {
                     c.Pipeline.Register(new UnblockCommitBehavior((Context)r.ScenarioContext), "unblocks the transactional session commit operation");
-
-                    var receiverEndpointName = AcceptanceTesting.Customization.Conventions.EndpointNamingConvention(typeof(ReceiverEndpoint));
-
-                    c.ConfigureRouting().RouteToEndpoint(typeof(SomeMessage), receiverEndpointName);
+                    c.ConfigureRouting().RouteToEndpoint(typeof(SomeMessage), typeof(ReceiverEndpoint));
                 });
 
             class UnblockCommitBehavior : Behavior<ITransportReceiveContext>
@@ -98,7 +96,6 @@
                 Context testContext;
 
                 public MessageHandler(Context testContext) => this.testContext = testContext;
-
 
                 public Task Handle(SomeMessage message, IMessageHandlerContext context)
                 {

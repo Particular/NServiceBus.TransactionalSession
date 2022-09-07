@@ -4,24 +4,28 @@
     using System.Threading;
     using System.Threading.Tasks;
     using AcceptanceTesting;
+    using AcceptanceTesting.Customization;
+    using Microsoft.Extensions.DependencyInjection;
     using NUnit.Framework;
-    using ObjectBuilder;
     using Pipeline;
 
     public class When_outbox_commits_after_receiving_control_message : NServiceBusAcceptanceTest
     {
         [Test]
-        public async Task Should_retry_till_outbox_transaction_commited()
+        public async Task Should_retry_till_outbox_transaction_committed()
         {
             await Scenario.Define<Context>()
                 .WithEndpoint<SenderEndpoint>(e => e
                     .When(async (_, context) =>
                     {
-                        using var scope = context.Builder.CreateChildBuilder();
-                        using var transactionalSession = scope.Build<ITransactionalSession>();
+                        using var scope = context.ServiceProvider.CreateScope();
+                        using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
-                        var options = new OpenSessionOptions();
-                        options.Extensions.Set(CustomTestingOutboxTransaction.TransactionCommitTCSKey, context.TxCommitTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously));
+                        var options = new CustomTestingPersistenceOpenSessionOptions
+                        {
+                            TransactionCommitTaskCompletionSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously)
+                        };
+                        context.TxCommitTcs = options.TransactionCommitTaskCompletionSource;
 
                         await transactionalSession.Open(options);
                         await transactionalSession.Send(new SomeMessage());
@@ -35,10 +39,10 @@
                 .Run(TimeSpan.FromSeconds(15));
         }
 
-        class Context : ScenarioContext, IInjectBuilder
+        class Context : ScenarioContext, IInjectServiceProvider
         {
             public int MessageReceiveCounter = 0;
-            public IBuilder Builder { get; set; }
+            public IServiceProvider ServiceProvider { get; set; }
             public TaskCompletionSource<bool> TxCommitTcs { get; set; }
         }
 
@@ -47,9 +51,7 @@
             public SenderEndpoint() =>
                 EndpointSetup<TransactionSessionWithOutboxEndpoint>((c, r) =>
                 {
-                    var receiverEndpointName = AcceptanceTesting.Customization.Conventions.EndpointNamingConvention(typeof(ReceiverEndpoint));
-
-                    c.ConfigureRouting().RouteToEndpoint(typeof(SomeMessage), receiverEndpointName);
+                    c.ConfigureRouting().RouteToEndpoint(typeof(SomeMessage), typeof(ReceiverEndpoint));
 
                     c.Pipeline.Register(new DelayedOutboxTransactionCommitBehavior((Context)r.ScenarioContext), "delays the outbox transaction commit");
                 });
