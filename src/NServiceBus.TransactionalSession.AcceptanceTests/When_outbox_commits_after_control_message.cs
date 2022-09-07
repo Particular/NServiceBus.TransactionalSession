@@ -5,8 +5,6 @@
     using Microsoft.Extensions.DependencyInjection;
     using AcceptanceTesting;
     using AcceptanceTesting.Customization;
-    using NServiceBus.AcceptanceTests;
-    using NServiceBus.AcceptanceTests.EndpointTemplates;
     using Pipeline;
     using NUnit.Framework;
 

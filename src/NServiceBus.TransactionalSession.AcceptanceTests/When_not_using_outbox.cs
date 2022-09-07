@@ -4,7 +4,6 @@
     using System.Threading.Tasks;
     using Microsoft.Extensions.DependencyInjection;
     using AcceptanceTesting;
-    using NServiceBus.AcceptanceTests;
     using NUnit.Framework;
 
     public class When_not_using_outbox : NServiceBusAcceptanceTest

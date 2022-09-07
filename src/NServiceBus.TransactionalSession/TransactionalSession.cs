@@ -9,14 +9,18 @@
     using Transport;
 
     /// <summary>
-    /// Provides <see cref="ITransactionalSession" />.
+    /// Provides <see cref="ITransactionalSession" /> integration feature.
     /// </summary>
-    public class TransactionalSession : Feature
+    public abstract class TransactionalSession : Feature
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="TransactionalSession"/> feature.
         /// </summary>
-        public TransactionalSession() => DependsOnOptionally<Outbox>();
+        protected TransactionalSession()
+        {
+            DependsOn<SynchronizedStorage>();
+            DependsOnOptionally<Outbox>();
+        }
 
         /// <summary>
         /// See <see cref="Feature.Setup" />.
