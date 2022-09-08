@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>net472;net6.0</TargetFrameworks>
     <SignAssembly>True</SignAssembly>
-    <AssemblyOriginatorKeyFile>..\NServiceBus.snk</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>..\NServiceBusTests.snk</AssemblyOriginatorKeyFile>
     <LangVersion>10.0</LangVersion>
   </PropertyGroup>
 
@@ -12,11 +12,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\NServiceBus.TransactionalSession\NServiceBus.TransactionalSession.csproj" />
+    <EditorConfigFiles Remove="C:\git\p\NServiceBus.TransactionalSession\src\NServiceBus.TransactionalSession.CustomTestingPersistence\.editorconfig" />
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="NServiceBus.TransactionalSession.AcceptanceTests" Key="$(NServiceBusTestsKey)" />
+    <None Include="C:\git\p\NServiceBus.TransactionalSession\src\NServiceBus.TransactionalSession.CustomTestingPersistence\.editorconfig" />
   </ItemGroup>
 
 </Project>

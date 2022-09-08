@@ -1,55 +1,43 @@
-namespace NServiceBus.AcceptanceTesting
+﻿namespace NServiceBus.AcceptanceTesting
 {
     using System;
-    using System.Threading;
     using System.Threading.Tasks;
     using System.Transactions;
-    using Extensibility;
-    using Outbox;
     using Persistence;
-    using Transport;
 
-    class StorageSession : ICompletableSynchronizedStorageSession
+    class CustomTestingSynchronizedStorageSession : CompletableSynchronizedStorageSession
     {
-        public Transaction Transaction { get; private set; }
+        public AcceptanceTestingTransaction Transaction { get; private set; }
 
         public void Dispose() => Transaction = null;
 
-        public ValueTask<bool> TryOpen(IOutboxTransaction transaction, ContextBag context,
-            CancellationToken cancellationToken = default)
+        public CustomTestingSynchronizedStorageSession()
         {
-            if (transaction is OutboxTransaction inMemOutboxTransaction)
-            {
-                Transaction = inMemOutboxTransaction.Transaction;
-                ownsTransaction = false;
-                return new ValueTask<bool>(true);
-            }
-
-            return new ValueTask<bool>(false);
+            Transaction = new AcceptanceTestingTransaction();
+            ownsTransaction = true;
         }
 
-        public ValueTask<bool> TryOpen(TransportTransaction transportTransaction, ContextBag context,
-            CancellationToken cancellationToken = default)
+        public CustomTestingSynchronizedStorageSession(CustomTestingOutboxTransaction outboxTransaction)
         {
-            if (!transportTransaction.TryGet(out System.Transactions.Transaction ambientTransaction))
-            {
-                return new ValueTask<bool>(false);
-            }
+            Transaction = outboxTransaction.Transaction;
+            ownsTransaction = false;
+        }
 
-            Transaction = new Transaction();
+        public CustomTestingSynchronizedStorageSession(Transaction ambientTransaction)
+        {
+            Transaction = new AcceptanceTestingTransaction();
             ambientTransaction.EnlistVolatile(new EnlistmentNotification(Transaction), EnlistmentOptions.None);
             ownsTransaction = true;
-            return new ValueTask<bool>(true);
         }
 
-        public Task Open(ContextBag contextBag, CancellationToken cancellationToken = default)
+        public Task Open()
         {
             ownsTransaction = true;
-            Transaction = new Transaction();
+            Transaction = new AcceptanceTestingTransaction();
             return Task.CompletedTask;
         }
 
-        public Task CompleteAsync(CancellationToken cancellationToken = default)
+        public Task CompleteAsync()
         {
             if (ownsTransaction)
             {
@@ -65,7 +53,7 @@ namespace NServiceBus.AcceptanceTesting
 
         sealed class EnlistmentNotification : IEnlistmentNotification
         {
-            public EnlistmentNotification(Transaction transaction) => this.transaction = transaction;
+            public EnlistmentNotification(AcceptanceTestingTransaction transaction) => this.transaction = transaction;
 
             public void Prepare(PreparingEnlistment preparingEnlistment)
             {
@@ -90,7 +78,7 @@ namespace NServiceBus.AcceptanceTesting
 
             public void InDoubt(Enlistment enlistment) => enlistment.Done();
 
-            readonly Transaction transaction;
+            readonly AcceptanceTestingTransaction transaction;
         }
     }
 }

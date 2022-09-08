@@ -10,7 +10,7 @@ namespace NServiceBus.TransactionalSession.AcceptanceTests
     public class DefaultServer : IEndpointSetupTemplate
     {
         public virtual async Task<EndpointConfiguration> GetConfiguration(RunDescriptor runDescriptor, EndpointCustomizationConfiguration endpointConfiguration,
-            Func<EndpointConfiguration, Task> configurationBuilderCustomization)
+            Action<EndpointConfiguration> configurationBuilderCustomization)
         {
             var builder = new EndpointConfiguration(endpointConfiguration.EndpointName);
             builder.EnableInstallers();
@@ -22,12 +22,10 @@ namespace NServiceBus.TransactionalSession.AcceptanceTests
 
             var storageDir = Path.Combine(Path.GetTempPath(), "learn", TestContext.CurrentContext.Test.ID);
 
-            builder.UseTransport(new AcceptanceTestingTransport
-            {
-                StorageLocation = storageDir
-            });
+            var transport = builder.UseTransport<AcceptanceTestingTransport>();
+            transport.StorageDirectory(storageDir);
 
-            await configurationBuilderCustomization(builder).ConfigureAwait(false);
+            configurationBuilderCustomization(builder);
 
             // scan types at the end so that all types used by the configuration have been loaded into the AppDomain
             builder.TypesToIncludeInScan(endpointConfiguration.GetTypesScopedByTestClass());

@@ -2,14 +2,13 @@ namespace NServiceBus.AcceptanceTesting
 {
     using System;
     using System.Collections.Concurrent;
-    using System.Threading;
     using System.Threading.Tasks;
     using Extensibility;
     using Outbox;
 
-    class OutboxPersister : IOutboxStorage
+    public class CustomTestingOutboxStorage : IOutboxStorage
     {
-        public Task<OutboxMessage> Get(string messageId, ContextBag context, CancellationToken cancellationToken = default)
+        public Task<OutboxMessage> Get(string messageId, ContextBag context)
         {
             if (context.TryGet("TestOutboxStorage.GetResult", out OutboxMessage customResult))
             {
@@ -24,14 +23,14 @@ namespace NServiceBus.AcceptanceTesting
             return NoOutboxMessageTask;
         }
 
-        public Task<IOutboxTransaction> BeginTransaction(ContextBag context, CancellationToken cancellationToken = default)
+        public Task<OutboxTransaction> BeginTransaction(ContextBag context)
         {
-            return Task.FromResult<IOutboxTransaction>(new OutboxTransaction(context));
+            return Task.FromResult<OutboxTransaction>(new CustomTestingOutboxTransaction(context));
         }
 
-        public Task Store(OutboxMessage message, IOutboxTransaction transaction, ContextBag context, CancellationToken cancellationToken = default)
+        public Task Store(OutboxMessage message, OutboxTransaction transaction, ContextBag context)
         {
-            var tx = (OutboxTransaction)transaction;
+            var tx = (CustomTestingOutboxTransaction)transaction;
             tx.Enlist(() =>
             {
                 if (!storage.TryAdd(message.MessageId, new StoredMessage(message.MessageId, message.TransportOperations)))
@@ -47,7 +46,7 @@ namespace NServiceBus.AcceptanceTesting
             return Task.CompletedTask;
         }
 
-        public Task SetAsDispatched(string messageId, ContextBag context, CancellationToken cancellationToken = default)
+        public Task SetAsDispatched(string messageId, ContextBag context)
         {
             if (!storage.TryGetValue(messageId, out var storedMessage))
             {

@@ -1,33 +1,34 @@
 namespace NServiceBus.AcceptanceTesting
 {
     using System;
-    using System.Threading;
     using System.Threading.Tasks;
     using Extensibility;
     using Outbox;
 
-    class OutboxTransaction : IOutboxTransaction
+    public class CustomTestingOutboxTransaction : OutboxTransaction
     {
+        public const string TransactionCommitTCSKey = "TestingTransport.TxCommitTCS";
+
         public TaskCompletionSource<bool> CommitTaskCompletionSource { get; set; } = null;
 
-        public OutboxTransaction(ContextBag contextBag)
+        public CustomTestingOutboxTransaction(ContextBag contextBag)
         {
-            if (contextBag.TryGet(out CustomTestingPersistenceOpenSessionOptions options))
+            if (contextBag.TryGet(TransactionCommitTCSKey, out TaskCompletionSource<bool> tcs))
             {
-                CommitTaskCompletionSource = options.TransactionCommitTaskCompletionSource;
+                CommitTaskCompletionSource = tcs;
             }
 
-            Transaction = new Transaction();
+            Transaction = new AcceptanceTestingTransaction();
         }
 
-        public Transaction Transaction { get; private set; }
+        public AcceptanceTestingTransaction Transaction { get; private set; }
 
         public void Dispose()
         {
             Transaction = null;
         }
 
-        public async Task Commit(CancellationToken cancellationToken = default)
+        public async Task Commit()
         {
             if (CommitTaskCompletionSource != null)
             {

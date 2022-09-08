@@ -3,9 +3,12 @@ namespace NServiceBus.AcceptanceTesting
     using System;
     using System.Collections.Generic;
 
-    class Transaction
+    public class AcceptanceTestingTransaction
     {
-        public void Enlist(Action action) => actions.Add(action);
+        public void Enlist(Action action)
+        {
+            actions.Add(action);
+        }
 
         public void Commit()
         {
@@ -16,7 +19,10 @@ namespace NServiceBus.AcceptanceTesting
             actions.Clear();
         }
 
-        public void Rollback() => actions.Clear();
+        public void Rollback()
+        {
+            actions.Clear();
+        }
 
         List<Action> actions = new List<Action>();
     }

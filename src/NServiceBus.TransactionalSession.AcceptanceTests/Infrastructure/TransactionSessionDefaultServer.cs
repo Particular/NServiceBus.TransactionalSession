@@ -4,19 +4,20 @@ namespace NServiceBus.TransactionalSession.AcceptanceTests
     using System.Threading.Tasks;
     using AcceptanceTesting;
     using AcceptanceTesting.Support;
+    using Infrastructure;
 
     public class TransactionSessionDefaultServer : DefaultServer
     {
         public override async Task<EndpointConfiguration> GetConfiguration(RunDescriptor runDescriptor, EndpointCustomizationConfiguration endpointConfiguration,
-            Func<EndpointConfiguration, Task> configurationBuilderCustomization) =>
-            await base.GetConfiguration(runDescriptor, endpointConfiguration, async configuration =>
+            Action<EndpointConfiguration> configurationBuilderCustomization) =>
+            await base.GetConfiguration(runDescriptor, endpointConfiguration, configuration =>
         {
             var persistence = configuration.UsePersistence<CustomTestingPersistence>();
             persistence.EnableTransactionalSession();
 
-            configuration.RegisterStartupTask(sp => new CaptureServiceProviderStartupTask(sp, runDescriptor.ScenarioContext));
+            configuration.EnableFeature<CaptureBuilderFeature>();
 
-            await configurationBuilderCustomization(configuration);
+            configurationBuilderCustomization(configuration);
         });
     }
 }
