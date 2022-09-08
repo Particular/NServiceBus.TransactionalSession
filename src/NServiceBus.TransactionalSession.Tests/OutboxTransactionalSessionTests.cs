@@ -6,6 +6,7 @@
     using Extensibility;
     using Fakes;
     using NUnit.Framework;
+    using Persistence;
 
     [TestFixture]
     public class OutboxTransactionalSessionTests
@@ -13,7 +14,8 @@
         [Test]
         public async Task Open_should_use_session_id_from_options()
         {
-            using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
+            var fakeSynchronizedStorage = new FakeSynchronizedStorage();
+            using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new CompletableSynchronizedStorageSessionAdapter(fakeSynchronizedStorage, fakeSynchronizedStorage), new FakeMessageSession(), new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
 
             var openOptions = new FakeOpenSessionOptions();
             await session.Open(openOptions);
@@ -24,7 +26,8 @@
         [Test]
         public async Task Open_should_throw_if_session_already_open()
         {
-            using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
+            var fakeSynchronizedStorage = new FakeSynchronizedStorage();
+            using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new CompletableSynchronizedStorageSessionAdapter(fakeSynchronizedStorage, fakeSynchronizedStorage), new FakeMessageSession(), new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
 
             await session.Open(new FakeOpenSessionOptions());
 
@@ -36,24 +39,26 @@
         [Test]
         public async Task Open_should_open_outbox_synchronized_storage_session()
         {
-            var synchronizedStorageSession = new FakeSynchronizableStorageSession();
+            var fakeSynchronizedStorage = new FakeSynchronizedStorage();
             var outboxStorage = new FakeOutboxStorage();
 
-            using var session = new OutboxTransactionalSession(outboxStorage, synchronizedStorageSession, new FakeMessageSession(), new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
+            using var session = new OutboxTransactionalSession(outboxStorage, new CompletableSynchronizedStorageSessionAdapter(fakeSynchronizedStorage, fakeSynchronizedStorage), new FakeMessageSession(), new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
 
             await session.Open(new FakeOpenSessionOptions());
 
-            Assert.AreSame(synchronizedStorageSession.OpenedOutboxTransactionSessions.Single().Item1, outboxStorage.StartedTransactions.Single());
-            Assert.AreEqual(synchronizedStorageSession, session.SynchronizedStorageSession);
+            Assert.AreSame(fakeSynchronizedStorage.OpenedOutboxTransactionSessions.Single().Item1, outboxStorage.StartedTransactions.Single());
+            Assert.AreEqual(fakeSynchronizedStorage.Session, session.SynchronizedStorageSession);
         }
 
         [Test]
         public void Open_should_throw_exception_when_storage_session_not_compatible_with_outbox()
         {
-            var synchronizedStorageSession = new FakeSynchronizableStorageSession();
-            synchronizedStorageSession.TryOpenCallback = (_, _) => false;
+            var fakeSynchronizedStorage = new FakeSynchronizedStorage
+            {
+                TryOpenCallback = (_, _) => null
+            };
 
-            using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), synchronizedStorageSession, new FakeMessageSession(), new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
+            using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new CompletableSynchronizedStorageSessionAdapter(fakeSynchronizedStorage, fakeSynchronizedStorage), new FakeMessageSession(), new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
 
             var exception = Assert.ThrowsAsync<Exception>(async () => await session.Open(new FakeOpenSessionOptions()));
 
@@ -63,8 +68,9 @@
         [Test]
         public async Task Send_should_set_PendingOperations_collection_on_context()
         {
+            var fakeSynchronizedStorage = new FakeSynchronizedStorage();
             var messageSession = new FakeMessageSession();
-            using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
+            using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new CompletableSynchronizedStorageSessionAdapter(fakeSynchronizedStorage, fakeSynchronizedStorage), messageSession, new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
 
             await session.Open(new FakeOpenSessionOptions());
             await session.Send(new object());
@@ -75,8 +81,9 @@
         [Test]
         public async Task Publish_should_set_PendingOperations_collection_on_context()
         {
+            var fakeSynchronizedStorage = new FakeSynchronizedStorage();
             var messageSession = new FakeMessageSession();
-            using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
+            using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new CompletableSynchronizedStorageSessionAdapter(fakeSynchronizedStorage, fakeSynchronizedStorage), messageSession, new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
 
             await session.Open(new FakeOpenSessionOptions());
             await session.Publish(new object());
@@ -87,8 +94,9 @@
         [Test]
         public void Send_should_throw_exeception_when_session_not_opened()
         {
+            var fakeSynchronizedStorage = new FakeSynchronizedStorage();
             var messageSession = new FakeMessageSession();
-            using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
+            using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new CompletableSynchronizedStorageSessionAdapter(fakeSynchronizedStorage, fakeSynchronizedStorage), messageSession, new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
 
             var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Send(new object()));
 
@@ -99,8 +107,9 @@
         [Test]
         public void Publish_should_throw_exception_when_session_not_opened()
         {
+            var fakeSynchronizedStorage = new FakeSynchronizedStorage();
             var messageSession = new FakeMessageSession();
-            using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
+            using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new CompletableSynchronizedStorageSessionAdapter(fakeSynchronizedStorage, fakeSynchronizedStorage), messageSession, new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
 
             var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Publish(new object()));
 
@@ -111,13 +120,13 @@
         [Test]
         public async Task Commit_should_send_control_message_and_store_outbox_data()
         {
+            var fakeSynchronizedStorage = new FakeSynchronizedStorage();
             var messageSession = new FakeMessageSession();
             var dispatcher = new FakeDispatcher();
             var outboxStorage = new FakeOutboxStorage();
-            var synchronizedSession = new FakeSynchronizableStorageSession();
             string queueAddress = "queue address";
 
-            using var session = new OutboxTransactionalSession(outboxStorage, synchronizedSession, messageSession, dispatcher, Enumerable.Empty<IOpenSessionOptionsCustomization>(), queueAddress);
+            using var session = new OutboxTransactionalSession(outboxStorage, new CompletableSynchronizedStorageSessionAdapter(fakeSynchronizedStorage, fakeSynchronizedStorage), messageSession, dispatcher, Enumerable.Empty<IOpenSessionOptionsCustomization>(), queueAddress);
 
             await session.Open(new FakeOpenSessionOptions());
             var sendOptions = new SendOptions();
@@ -132,7 +141,7 @@
             var controlMessage = dispatched.outgoingMessages.UnicastTransportOperations.Single();
             Assert.AreEqual(session.SessionId, controlMessage.Message.MessageId);
             Assert.AreEqual(bool.TrueString, controlMessage.Message.Headers[Headers.ControlMessageHeader]);
-            Assert.IsTrue(controlMessage.Message.Body.IsEmpty);
+            Assert.IsTrue(controlMessage.Message.Body.Length == 0);
             Assert.AreEqual(queueAddress, controlMessage.Destination);
 
             Assert.AreEqual(1, outboxStorage.Stored.Count);
@@ -144,18 +153,18 @@
             var outboxMessage = outboxRecord.outboxMessage.TransportOperations.Single();
             Assert.AreEqual(messageId, outboxMessage.MessageId);
 
-            Assert.IsTrue(synchronizedSession.Completed);
+            Assert.IsTrue(fakeSynchronizedStorage.Completed);
             Assert.IsTrue(outboxStorage.StartedTransactions.Single().Commited);
         }
 
         [Test]
         public async Task Commit_should_send_control_message_when_outbox_fails()
         {
+            var fakeSynchronizedStorage = new FakeSynchronizedStorage();
             var messageSession = new FakeMessageSession();
             var dispatcher = new FakeDispatcher();
             var outboxStorage = new FakeOutboxStorage { StoreCallback = (_, _, _) => throw new Exception("some error") };
-            var completableSynchronizedStorageSession = new FakeSynchronizableStorageSession();
-            using var session = new OutboxTransactionalSession(outboxStorage, completableSynchronizedStorageSession, messageSession, dispatcher, Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
+            using var session = new OutboxTransactionalSession(outboxStorage, new CompletableSynchronizedStorageSessionAdapter(fakeSynchronizedStorage, fakeSynchronizedStorage), messageSession, dispatcher, Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
 
             await session.Open(new FakeOpenSessionOptions());
             await session.Send(new object());
@@ -169,13 +178,14 @@
             Assert.AreEqual(bool.TrueString, controlMessage.Message.Headers[Headers.ControlMessageHeader]);
 
             var outboxTransaction = outboxStorage.StartedTransactions.Single();
-            Assert.IsFalse(completableSynchronizedStorageSession.Completed, "should not have completed synchronized storage session");
+            Assert.IsFalse(fakeSynchronizedStorage.Completed, "should not have completed synchronized storage session");
             Assert.IsFalse(outboxTransaction.Commited, "should not have commited outbox operations");
         }
 
         [Test]
         public async Task Commit_should_append_open_metadata_to_control_message()
         {
+            var fakeSynchronizedStorage = new FakeSynchronizedStorage();
             var expectedDelayIncrement = TimeSpan.FromSeconds(42);
             var expectedMaximumCommitDuration = TimeSpan.FromSeconds(1);
             const string expectedExtensionsValue = "extensions-value";
@@ -184,7 +194,7 @@
             var messageSession = new FakeMessageSession();
             var dispatcher = new FakeDispatcher();
             var outboxStorage = new FakeOutboxStorage();
-            using var session = new OutboxTransactionalSession(outboxStorage, new FakeSynchronizableStorageSession(), messageSession, dispatcher, Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
+            using var session = new OutboxTransactionalSession(outboxStorage, new CompletableSynchronizedStorageSessionAdapter(fakeSynchronizedStorage, fakeSynchronizedStorage), messageSession, dispatcher, Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
 
             var options = new FakeOpenSessionOptions();
             options.CommitDelayIncrement = expectedDelayIncrement;
@@ -207,7 +217,8 @@
         [Test]
         public void Operations_should_throw_when_already_disposed()
         {
-            ITransactionalSession session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
+            var fakeSynchronizedStorage = new FakeSynchronizedStorage();
+            ITransactionalSession session = new OutboxTransactionalSession(new FakeOutboxStorage(), new CompletableSynchronizedStorageSessionAdapter(fakeSynchronizedStorage, fakeSynchronizedStorage), new FakeMessageSession(), new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
 
             session.Dispose();
 
@@ -222,7 +233,8 @@
         [Test]
         public async Task Operations_should_throw_when_already_committed()
         {
-            ITransactionalSession session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
+            var fakeSynchronizedStorage = new FakeSynchronizedStorage();
+            ITransactionalSession session = new OutboxTransactionalSession(new FakeOutboxStorage(), new CompletableSynchronizedStorageSessionAdapter(fakeSynchronizedStorage, fakeSynchronizedStorage), new FakeMessageSession(), new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
 
             await session.Open(new FakeOpenSessionOptions());
             await session.Commit();

@@ -12,31 +12,28 @@
 
     class FakeMessageSession : TestableMessageSession
     {
-        public override Task Send(object message, SendOptions sendOptions, CancellationToken cancellationToken = new CancellationToken())
+        public override Task Send(object message, SendOptions sendOptions)
         {
             AddToPendingOperations(sendOptions);
-            return base.Send(message, sendOptions, cancellationToken);
+            return base.Send(message, sendOptions);
         }
 
-        public override Task Send<T>(Action<T> messageConstructor, SendOptions sendOptions,
-            CancellationToken cancellationToken = new CancellationToken())
+        public override Task Send<T>(Action<T> messageConstructor, SendOptions sendOptions)
         {
             AddToPendingOperations(sendOptions);
-            return base.Send(messageConstructor, sendOptions, cancellationToken);
+            return base.Send(messageConstructor, sendOptions);
         }
 
-        public override Task Publish(object message, PublishOptions publishOptions,
-            CancellationToken cancellationToken = new CancellationToken())
+        public override Task Publish(object message, PublishOptions publishOptions)
         {
             AddToPendingOperations(publishOptions);
-            return base.Publish(message, publishOptions, cancellationToken);
+            return base.Publish(message, publishOptions);
         }
 
-        public override Task Publish<T>(Action<T> messageConstructor, PublishOptions publishOptions,
-            CancellationToken cancellationToken = new CancellationToken())
+        public override Task Publish<T>(Action<T> messageConstructor, PublishOptions publishOptions)
         {
             AddToPendingOperations(publishOptions);
-            return base.Publish(messageConstructor, publishOptions, cancellationToken);
+            return base.Publish(messageConstructor, publishOptions);
         }
 
         static void AddToPendingOperations(ExtendableOptions sendOptions)

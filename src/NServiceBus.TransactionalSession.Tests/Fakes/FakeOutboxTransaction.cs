@@ -1,16 +1,15 @@
 ﻿namespace NServiceBus.TransactionalSession.Tests.Fakes
 {
-    using System.Threading;
     using System.Threading.Tasks;
     using Outbox;
 
-    class FakeOutboxTransaction : IOutboxTransaction
+    class FakeOutboxTransaction : OutboxTransaction
     {
         public bool Commited { get; private set; }
 
         public void Dispose() { }
 
-        public Task Commit(CancellationToken cancellationToken = new CancellationToken())
+        public Task Commit()
         {
             Commited = true;
             return Task.CompletedTask;

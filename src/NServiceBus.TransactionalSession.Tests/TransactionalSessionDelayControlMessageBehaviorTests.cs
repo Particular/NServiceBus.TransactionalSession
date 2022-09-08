@@ -3,6 +3,7 @@
     using System;
     using System.Linq;
     using System.Threading.Tasks;
+    using DelayedDelivery;
     using Fakes;
     using NUnit.Framework;
     using Testing;
@@ -75,7 +76,9 @@
             var controlMessage = dispatcher.Dispatched.Single().outgoingMessages.UnicastTransportOperations.Single();
             Assert.AreEqual(queueAddress, controlMessage.Destination);
             Assert.AreEqual(DispatchConsistency.Isolated, controlMessage.RequiredDispatchConsistency);
-            Assert.AreEqual(TimeSpan.FromSeconds(20), controlMessage.Properties.DelayDeliveryWith.Delay);
+
+            var delayDeliveryWith = controlMessage.DeliveryConstraints.OfType<DelayDeliveryWith>().First();
+            Assert.AreEqual(TimeSpan.FromSeconds(20), delayDeliveryWith.Delay);
             Assert.AreEqual(messageContext.MessageId, controlMessage.Message.MessageId);
             Assert.AreEqual(0, controlMessage.Message.Body.Length);
             Assert.AreEqual("custom-header-value", controlMessage.Message.Headers["custom-header-key"]);

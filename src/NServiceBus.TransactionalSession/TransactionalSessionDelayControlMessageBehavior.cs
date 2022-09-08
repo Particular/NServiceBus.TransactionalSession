@@ -4,6 +4,8 @@ namespace NServiceBus.TransactionalSession
     using System.Collections.Generic;
     using DelayedDelivery;
     using System.Threading.Tasks;
+    using DeliveryConstraints;
+    using Extensibility;
     using Logging;
     using Pipeline;
     using Routing;
@@ -12,7 +14,7 @@ namespace NServiceBus.TransactionalSession
     class TransactionalSessionDelayControlMessageBehavior : IBehavior<IIncomingPhysicalMessageContext,
         IIncomingPhysicalMessageContext>
     {
-        public TransactionalSessionDelayControlMessageBehavior(IMessageDispatcher dispatcher,
+        public TransactionalSessionDelayControlMessageBehavior(IDispatchMessages dispatcher,
             string physicalQueueAddress)
         {
             this.dispatcher = dispatcher;
@@ -62,18 +64,21 @@ namespace NServiceBus.TransactionalSession
             };
             await dispatcher.Dispatch(new TransportOperations(
                     new TransportOperation(
-                        new OutgoingMessage(messageId, headers, ReadOnlyMemory<byte>.Empty),
+                        new OutgoingMessage(messageId, headers, Array.Empty<byte>()),
                         new UnicastAddressTag(physicalQueueAddress),
-                        new DispatchProperties { DelayDeliveryWith = new DelayDeliveryWith(commitDelayIncrement) },
-                        DispatchConsistency.Isolated
+                        DispatchConsistency.Isolated,
+                        new List<DeliveryConstraint>
+                        {
+                            new DelayDeliveryWith(commitDelayIncrement)
+                        }
                     )
-                ), new TransportTransaction(), context.CancellationToken)
+                ), new TransportTransaction(), new ContextBag())
                 .ConfigureAwait(false);
 
             throw new ConsumeMessageException();
         }
 
-        readonly IMessageDispatcher dispatcher;
+        readonly IDispatchMessages dispatcher;
         readonly string physicalQueueAddress;
         static readonly ILog Log = LogManager.GetLogger<TransactionalSessionDelayControlMessageBehavior>();
     }

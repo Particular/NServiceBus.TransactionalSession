@@ -55,7 +55,7 @@
         /// Gets the synchronized storage session for processing the current message. NServiceBus makes sure the changes made
         /// via this session will be persisted before the message receive is acknowledged.
         /// </summary>
-        ISynchronizedStorageSession SynchronizedStorageSession { get; }
+        SynchronizedStorageSession SynchronizedStorageSession { get; }
 
         /// <summary>
         /// Transactional session globally unique identifier

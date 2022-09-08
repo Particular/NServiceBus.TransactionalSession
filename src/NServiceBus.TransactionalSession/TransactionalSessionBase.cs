@@ -11,9 +11,9 @@ namespace NServiceBus.TransactionalSession
     abstract class TransactionalSessionBase : ITransactionalSession
     {
         protected TransactionalSessionBase(
-            ICompletableSynchronizedStorageSession synchronizedStorageSession,
+            CompletableSynchronizedStorageSessionAdapter synchronizedStorageSession,
             IMessageSession messageSession,
-            IMessageDispatcher dispatcher,
+            IDispatchMessages dispatcher,
             IEnumerable<IOpenSessionOptionsCustomization> customizations)
         {
             this.synchronizedStorageSession = synchronizedStorageSession;
@@ -23,7 +23,7 @@ namespace NServiceBus.TransactionalSession
             pendingOperations = new PendingTransportOperations();
         }
 
-        public ISynchronizedStorageSession SynchronizedStorageSession
+        public SynchronizedStorageSession SynchronizedStorageSession
         {
             get
             {
@@ -33,7 +33,7 @@ namespace NServiceBus.TransactionalSession
                         "The session has to be opened before accessing the SynchronizedStorageSession.");
                 }
 
-                return synchronizedStorageSession;
+                return synchronizedStorageSession.AdaptedSession;
             }
         }
 
@@ -92,7 +92,7 @@ namespace NServiceBus.TransactionalSession
             ThrowIfInvalidState();
 
             sendOptions.GetExtensions().Set(pendingOperations);
-            await messageSession.Send(message, sendOptions, cancellationToken).ConfigureAwait(false);
+            await messageSession.Send(message, sendOptions).ConfigureAwait(false);
         }
 
         public async Task Send<T>(Action<T> messageConstructor, SendOptions sendOptions, CancellationToken cancellationToken = default)
@@ -100,7 +100,7 @@ namespace NServiceBus.TransactionalSession
             ThrowIfInvalidState();
 
             sendOptions.GetExtensions().Set(pendingOperations);
-            await messageSession.Send(messageConstructor, sendOptions, cancellationToken).ConfigureAwait(false);
+            await messageSession.Send(messageConstructor, sendOptions).ConfigureAwait(false);
         }
 
         public async Task Publish(object message, PublishOptions publishOptions, CancellationToken cancellationToken = default)
@@ -108,7 +108,7 @@ namespace NServiceBus.TransactionalSession
             ThrowIfInvalidState();
 
             publishOptions.GetExtensions().Set(pendingOperations);
-            await messageSession.Publish(message, publishOptions, cancellationToken).ConfigureAwait(false);
+            await messageSession.Publish(message, publishOptions).ConfigureAwait(false);
         }
 
         public async Task Publish<T>(Action<T> messageConstructor, PublishOptions publishOptions, CancellationToken cancellationToken = default)
@@ -116,7 +116,7 @@ namespace NServiceBus.TransactionalSession
             ThrowIfInvalidState();
 
             publishOptions.GetExtensions().Set(pendingOperations);
-            await messageSession.Publish(messageConstructor, publishOptions, cancellationToken).ConfigureAwait(false);
+            await messageSession.Publish(messageConstructor, publishOptions).ConfigureAwait(false);
         }
 
         void ThrowIfDisposed()
@@ -168,8 +168,8 @@ namespace NServiceBus.TransactionalSession
             disposed = true;
         }
 
-        protected readonly ICompletableSynchronizedStorageSession synchronizedStorageSession;
-        protected readonly IMessageDispatcher dispatcher;
+        protected readonly CompletableSynchronizedStorageSessionAdapter synchronizedStorageSession;
+        protected readonly IDispatchMessages dispatcher;
         readonly IEnumerable<IOpenSessionOptionsCustomization> customizations;
         protected readonly PendingTransportOperations pendingOperations;
         protected OpenSessionOptions options;

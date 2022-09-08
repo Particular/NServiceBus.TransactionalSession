@@ -1,9 +1,7 @@
 ﻿namespace NServiceBus.TransactionalSession
 {
-    using System.Threading;
     using System.Threading.Tasks;
     using Features;
-    using Microsoft.Extensions.DependencyInjection;
     using Outbox;
     using Persistence;
     using Transport;
@@ -27,43 +25,40 @@
         /// </summary>
         protected override void Setup(FeatureConfigurationContext context)
         {
-            context.Services.AddTransient<SessionCaptureTask>();
-            context.RegisterStartupTask(sp => sp.GetRequiredService<SessionCaptureTask>());
-
             var informationHolder = new InformationHolderToAvoidClosures
             {
-                LocalAddress = context.LocalQueueAddress(),
+                LocalAddress = context.Settings.LocalAddress(),
                 IsOutboxEnabled = context.Settings.IsFeatureActive(typeof(Outbox))
             };
-            context.Services.AddSingleton(informationHolder);
-            context.Services.AddScoped(static sp =>
+            context.RegisterStartupTask(b => new SessionCaptureTask(informationHolder));
+
+            context.Container.ConfigureComponent(static sp =>
             {
-                var informationHolder = sp.GetRequiredService<InformationHolderToAvoidClosures>();
-                var physicalLocalQueueAddress = sp.GetRequiredService<ITransportAddressResolver>().ToTransportAddress(informationHolder.LocalAddress);
+                var informationHolder = sp.Build<InformationHolderToAvoidClosures>();
 
                 ITransactionalSession transactionalSession;
 
                 if (informationHolder.IsOutboxEnabled)
                 {
                     transactionalSession = new OutboxTransactionalSession(
-                        sp.GetRequiredService<IOutboxStorage>(),
-                        sp.GetRequiredService<ICompletableSynchronizedStorageSession>(),
+                        sp.Build<IOutboxStorage>(),
+                        sp.Build<CompletableSynchronizedStorageSessionAdapter>(),
                         informationHolder.MessageSession,
-                        sp.GetRequiredService<IMessageDispatcher>(),
-                        sp.GetServices<IOpenSessionOptionsCustomization>(),
-                        physicalLocalQueueAddress);
+                        sp.Build<IDispatchMessages>(),
+                        sp.BuildAll<IOpenSessionOptionsCustomization>(),
+                        informationHolder.LocalAddress);
                 }
                 else
                 {
                     transactionalSession = new NonOutboxTransactionalSession(
-                        sp.GetRequiredService<ICompletableSynchronizedStorageSession>(),
+                        sp.Build<CompletableSynchronizedStorageSessionAdapter>(),
                         informationHolder.MessageSession,
-                        sp.GetRequiredService<IMessageDispatcher>(),
-                        sp.GetServices<IOpenSessionOptionsCustomization>());
+                        sp.Build<IDispatchMessages>(),
+                        sp.BuildAll<IOpenSessionOptionsCustomization>());
                 }
 
                 return transactionalSession;
-            });
+            }, DependencyLifecycle.InstancePerUnitOfWork);
 
             if (!informationHolder.IsOutboxEnabled)
             {
@@ -71,10 +66,10 @@
             }
 
             context.Pipeline.Register(static sp =>
-                new TransactionalSessionDelayControlMessageBehavior(
-            sp.GetRequiredService<IMessageDispatcher>(),
-                    sp.GetRequiredService<ITransportAddressResolver>().ToTransportAddress(sp.GetRequiredService<InformationHolderToAvoidClosures>().LocalAddress)
-                ), "Transaction commit control message delay behavior");
+                    new TransactionalSessionDelayControlMessageBehavior(
+                        sp.Build<IDispatchMessages>(),
+                        sp.Build<InformationHolderToAvoidClosures>().LocalAddress),
+                "Transaction commit control message delay behavior");
 
             context.Pipeline.Register(new TransactionalSessionControlMessageExceptionBehavior(),
                 "Transaction commit control message delay acknowledgement behavior");
@@ -85,7 +80,7 @@
         sealed class InformationHolderToAvoidClosures
         {
             public IMessageSession MessageSession { get; set; }
-            public QueueAddress LocalAddress { get; set; }
+            public string LocalAddress { get; set; }
             public bool IsOutboxEnabled { get; set; }
         }
 
@@ -93,13 +88,13 @@
         {
             public SessionCaptureTask(InformationHolderToAvoidClosures informationHolder) => this.informationHolder = informationHolder;
 
-            protected override Task OnStart(IMessageSession session, CancellationToken cancellationToken = default)
+            protected override Task OnStart(IMessageSession session)
             {
                 informationHolder.MessageSession = session;
                 return Task.CompletedTask;
             }
 
-            protected override Task OnStop(IMessageSession session, CancellationToken cancellationToken = default) =>
+            protected override Task OnStop(IMessageSession session) =>
                 Task.CompletedTask;
 
             readonly InformationHolderToAvoidClosures informationHolder;

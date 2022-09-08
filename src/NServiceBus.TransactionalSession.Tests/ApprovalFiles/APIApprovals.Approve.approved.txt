@@ -9,7 +9,7 @@ namespace NServiceBus.TransactionalSession
     public interface ITransactionalSession : System.IDisposable
     {
         string SessionId { get; }
-        NServiceBus.Persistence.ISynchronizedStorageSession SynchronizedStorageSession { get; }
+        NServiceBus.Persistence.SynchronizedStorageSession SynchronizedStorageSession { get; }
         System.Threading.Tasks.Task Commit(System.Threading.CancellationToken cancellationToken = default);
         System.Threading.Tasks.Task Open(NServiceBus.TransactionalSession.OpenSessionOptions options, System.Threading.CancellationToken cancellationToken = default);
         System.Threading.Tasks.Task Publish(object message, NServiceBus.PublishOptions publishOptions, System.Threading.CancellationToken cancellationToken = default);
