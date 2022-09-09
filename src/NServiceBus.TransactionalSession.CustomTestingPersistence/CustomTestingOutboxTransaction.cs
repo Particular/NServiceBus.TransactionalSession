@@ -5,22 +5,23 @@ namespace NServiceBus.AcceptanceTesting
     using System.Threading.Tasks;
     using Extensibility;
     using Outbox;
+    using TransactionalSession;
 
-    class OutboxTransaction : IOutboxTransaction
+    sealed class CustomTestingOutboxTransaction : IOutboxTransaction
     {
         public TaskCompletionSource<bool> CommitTaskCompletionSource { get; set; } = null;
 
-        public OutboxTransaction(ContextBag contextBag)
+        public CustomTestingOutboxTransaction(ContextBag contextBag)
         {
             if (contextBag.TryGet(out CustomTestingPersistenceOpenSessionOptions options))
             {
                 CommitTaskCompletionSource = options.TransactionCommitTaskCompletionSource;
             }
 
-            Transaction = new Transaction();
+            Transaction = new AcceptanceTestingTransaction();
         }
 
-        public Transaction Transaction { get; private set; }
+        public AcceptanceTestingTransaction Transaction { get; private set; }
 
         public void Dispose()
         {

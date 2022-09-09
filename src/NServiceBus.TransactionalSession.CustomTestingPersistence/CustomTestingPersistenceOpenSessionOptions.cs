@@ -1,7 +1,6 @@
-﻿namespace NServiceBus.AcceptanceTesting
+﻿namespace NServiceBus.TransactionalSession
 {
     using System.Threading.Tasks;
-    using TransactionalSession;
 
     public class CustomTestingPersistenceOpenSessionOptions : OpenSessionOptions
     {

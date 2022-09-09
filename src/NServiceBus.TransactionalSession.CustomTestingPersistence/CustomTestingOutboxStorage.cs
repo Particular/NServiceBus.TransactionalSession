@@ -7,7 +7,7 @@ namespace NServiceBus.AcceptanceTesting
     using Extensibility;
     using Outbox;
 
-    class OutboxPersister : IOutboxStorage
+    sealed class CustomTestingOutboxStorage : IOutboxStorage
     {
         public Task<OutboxMessage> Get(string messageId, ContextBag context, CancellationToken cancellationToken = default)
         {
@@ -26,12 +26,12 @@ namespace NServiceBus.AcceptanceTesting
 
         public Task<IOutboxTransaction> BeginTransaction(ContextBag context, CancellationToken cancellationToken = default)
         {
-            return Task.FromResult<IOutboxTransaction>(new OutboxTransaction(context));
+            return Task.FromResult<IOutboxTransaction>(new CustomTestingOutboxTransaction(context));
         }
 
         public Task Store(OutboxMessage message, IOutboxTransaction transaction, ContextBag context, CancellationToken cancellationToken = default)
         {
-            var tx = (OutboxTransaction)transaction;
+            var tx = (CustomTestingOutboxTransaction)transaction;
             tx.Enlist(() =>
             {
                 if (!storage.TryAdd(message.MessageId, new StoredMessage(message.MessageId, message.TransportOperations)))
