@@ -6,6 +6,7 @@ namespace NServiceBus.TransactionalSession.AcceptanceTests
     using System.Reflection;
     using NServiceBus.AcceptanceTesting.Support;
     using Hosting.Helpers;
+    using Infrastructure;
 
     public static class EndpointCustomizationConfigurationExtensions
     {
@@ -28,7 +29,11 @@ namespace NServiceBus.TransactionalSession.AcceptanceTests
 
             types = types.Union(endpointConfiguration.TypesToInclude);
 
-            return types.Where(t => !endpointConfiguration.TypesToExclude.Contains(t)).ToList();
+            var typeList = types.Where(t => !endpointConfiguration.TypesToExclude.Contains(t)).ToList();
+
+            typeList.Add(typeof(CaptureBuilderFeature));
+
+            return typeList;
         }
 
         static IEnumerable<Type> GetNestedTypeRecursive(Type rootType, Type builderType)

@@ -9,7 +9,7 @@ namespace NServiceBus.TransactionalSession.AcceptanceTests
 
     public class DefaultServer : IEndpointSetupTemplate
     {
-        public virtual async Task<EndpointConfiguration> GetConfiguration(RunDescriptor runDescriptor, EndpointCustomizationConfiguration endpointConfiguration,
+        public virtual Task<EndpointConfiguration> GetConfiguration(RunDescriptor runDescriptor, EndpointCustomizationConfiguration endpointConfiguration,
             Action<EndpointConfiguration> configurationBuilderCustomization)
         {
             var builder = new EndpointConfiguration(endpointConfiguration.EndpointName);
@@ -30,7 +30,7 @@ namespace NServiceBus.TransactionalSession.AcceptanceTests
             // scan types at the end so that all types used by the configuration have been loaded into the AppDomain
             builder.TypesToIncludeInScan(endpointConfiguration.GetTypesScopedByTestClass());
 
-            return builder;
+            return Task.FromResult(builder);
         }
     }
 }

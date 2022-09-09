@@ -30,6 +30,7 @@
                 LocalAddress = context.Settings.LocalAddress(),
                 IsOutboxEnabled = context.Settings.IsFeatureActive(typeof(Outbox))
             };
+            context.Container.RegisterSingleton(informationHolder);
             context.RegisterStartupTask(b => new SessionCaptureTask(informationHolder));
 
             context.Container.ConfigureComponent(static sp =>

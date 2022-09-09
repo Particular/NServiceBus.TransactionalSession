@@ -2,11 +2,12 @@
 {
     using System;
     using System.Threading.Tasks;
-    using Microsoft.Extensions.DependencyInjection;
     using AcceptanceTesting;
     using AcceptanceTesting.Customization;
+    using Infrastructure;
     using Pipeline;
     using NUnit.Framework;
+    using ObjectBuilder;
 
     public class When_outbox_commits_after_control_message : NServiceBusAcceptanceTest
     {
@@ -16,8 +17,8 @@
             var context = await Scenario.Define<Context>()
                 .WithEndpoint<SenderEndpoint>(e => e.When(async (_, ctx) =>
                 {
-                    using var scope = ctx.ServiceProvider.CreateScope();
-                    using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+                    using var scope = ctx.Builder.CreateChildBuilder();
+                    using var transactionalSession = scope.Build<ITransactionalSession>();
 
                     try
                     {
@@ -46,9 +47,9 @@
 
         }
 
-        class Context : ScenarioContext, IInjectServiceProvider
+        class Context : ScenarioContext, IInjectBuilder
         {
-            public IServiceProvider ServiceProvider { get; set; }
+            public IBuilder Builder { get; set; }
             public bool MessageReceived { get; set; }
             public Exception TransactionalSessionException { get; set; }
             public TaskCompletionSource<bool> TransactionTaskCompletionSource { get; set; }

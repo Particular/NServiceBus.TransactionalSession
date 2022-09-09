@@ -3,10 +3,11 @@
     using System;
     using System.Linq;
     using System.Threading.Tasks;
-    using Microsoft.Extensions.DependencyInjection;
     using AcceptanceTesting;
     using AcceptanceTesting.Customization;
+    using Infrastructure;
     using NUnit.Framework;
+    using ObjectBuilder;
     using Outbox;
     using Pipeline;
 
@@ -20,8 +21,8 @@
                     .DoNotFailOnErrorMessages()
                     .When(async (_, ctx) =>
                     {
-                        using var scope = ctx.ServiceProvider.CreateScope();
-                        using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+                        using var scope = ctx.Builder.CreateChildBuilder();
+                        using var transactionalSession = scope.Build<ITransactionalSession>();
 
                         var options = new CustomTestingPersistenceOpenSessionOptions { MaximumCommitDuration = TimeSpan.Zero };
                         await transactionalSession.Open(options);
@@ -45,9 +46,9 @@
 
         }
 
-        class Context : ScenarioContext, IInjectServiceProvider
+        class Context : ScenarioContext, IInjectBuilder
         {
-            public IServiceProvider ServiceProvider { get; set; }
+            public IBuilder Builder { get; set; }
             public bool MessageReceived { get; set; }
             public string TransactionalSessionId { get; set; }
         }
