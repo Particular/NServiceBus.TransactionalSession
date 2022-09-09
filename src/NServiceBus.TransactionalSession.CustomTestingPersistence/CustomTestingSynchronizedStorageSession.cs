@@ -5,7 +5,7 @@
     using System.Transactions;
     using Persistence;
 
-    class CustomTestingSynchronizedStorageSession : CompletableSynchronizedStorageSession
+    sealed class CustomTestingSynchronizedStorageSession : CompletableSynchronizedStorageSession
     {
         public AcceptanceTestingTransaction Transaction { get; private set; }
 

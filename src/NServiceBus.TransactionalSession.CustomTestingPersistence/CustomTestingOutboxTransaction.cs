@@ -4,8 +4,9 @@ namespace NServiceBus.AcceptanceTesting
     using System.Threading.Tasks;
     using Extensibility;
     using Outbox;
+    using TransactionalSession;
 
-    public class CustomTestingOutboxTransaction : OutboxTransaction
+    sealed class CustomTestingOutboxTransaction : OutboxTransaction
     {
         public TaskCompletionSource<bool> CommitTaskCompletionSource { get; set; } = null;
 

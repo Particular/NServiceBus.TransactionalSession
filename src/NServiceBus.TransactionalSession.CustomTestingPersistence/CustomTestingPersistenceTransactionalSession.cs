@@ -1,7 +1,6 @@
-namespace NServiceBus.AcceptanceTesting;
-
-using TransactionalSession;
-
-sealed class CustomTestingPersistenceTransactionalSession : TransactionalSession
+namespace NServiceBus.TransactionalSession
 {
+    sealed class CustomTestingPersistenceTransactionalSession : TransactionalSession
+    {
+    }
 }

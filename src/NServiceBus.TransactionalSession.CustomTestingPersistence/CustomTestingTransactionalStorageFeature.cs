@@ -2,7 +2,7 @@ namespace NServiceBus.AcceptanceTesting
 {
     using Features;
 
-    class CustomTestingTransactionalStorageFeature : Feature
+    sealed class CustomTestingTransactionalStorageFeature : Feature
     {
         protected override void Setup(FeatureConfigurationContext context)
         {

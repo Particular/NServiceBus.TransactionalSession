@@ -6,7 +6,7 @@ namespace NServiceBus.AcceptanceTesting
     using Extensibility;
     using Outbox;
 
-    public class CustomTestingOutboxStorage : IOutboxStorage
+    sealed class CustomTestingOutboxStorage : IOutboxStorage
     {
         public Task<OutboxMessage> Get(string messageId, ContextBag context)
         {

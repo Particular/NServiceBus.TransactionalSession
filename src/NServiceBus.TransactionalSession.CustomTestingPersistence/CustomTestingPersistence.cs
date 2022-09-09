@@ -10,7 +10,6 @@ namespace NServiceBus.AcceptanceTesting
             Supports<StorageType.Outbox>(s =>
             {
                 s.EnableFeatureByDefault<CustomTestingOutboxPersistence>();
-                s.EnableFeatureByDefault<CustomTestingTransactionalStorageFeature>();
             });
         }
     }
