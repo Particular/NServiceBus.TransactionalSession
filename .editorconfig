@@ -337,7 +337,3 @@ dotnet_naming_style.begins_with_i.required_prefix = I
 dotnet_naming_style.begins_with_i.required_suffix =
 dotnet_naming_style.begins_with_i.word_separator =
 dotnet_naming_style.begins_with_i.capitalization = pascal_case
-
-# Justification: We expose CancellationToken on the public API to be consistent with V8 but can't pass it down
-dotnet_diagnostic.PS0013.severity = suggestion
-dotnet_diagnostic.PS0018.severity = suggestion
