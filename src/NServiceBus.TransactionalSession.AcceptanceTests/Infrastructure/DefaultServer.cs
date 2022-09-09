@@ -6,6 +6,7 @@ namespace NServiceBus.TransactionalSession.AcceptanceTests
     using AcceptanceTesting.Customization;
     using AcceptanceTesting.Support;
     using NUnit.Framework;
+    using ObjectBuilder;
 
     public class DefaultServer : IEndpointSetupTemplate
     {
@@ -25,12 +26,24 @@ namespace NServiceBus.TransactionalSession.AcceptanceTests
             var transport = builder.UseTransport<AcceptanceTestingTransport>();
             transport.StorageDirectory(storageDir);
 
+            builder.RegisterComponents(r => { RegisterInheritanceHierarchyOfContextOnContainer(runDescriptor, r); });
+
             configurationBuilderCustomization(builder);
 
             // scan types at the end so that all types used by the configuration have been loaded into the AppDomain
             builder.TypesToIncludeInScan(endpointConfiguration.GetTypesScopedByTestClass());
 
             return Task.FromResult(builder);
+        }
+
+        static void RegisterInheritanceHierarchyOfContextOnContainer(RunDescriptor runDescriptor, IConfigureComponents r)
+        {
+            var type = runDescriptor.ScenarioContext.GetType();
+            while (type != typeof(object))
+            {
+                r.RegisterSingleton(type, runDescriptor.ScenarioContext);
+                type = type.BaseType;
+            }
         }
     }
 }

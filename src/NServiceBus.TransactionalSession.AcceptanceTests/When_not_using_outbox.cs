@@ -1,6 +1,5 @@
 ﻿namespace NServiceBus.TransactionalSession.AcceptanceTests
 {
-    using System;
     using System.Threading.Tasks;
     using AcceptanceTesting;
     using Infrastructure;
