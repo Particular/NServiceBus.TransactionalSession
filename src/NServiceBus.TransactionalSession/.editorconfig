@@ -1,0 +1,5 @@
+[*.cs]
+
+# Justification: We expose CancellationToken on the public API to be consistent with V8 but can't pass it down
+dotnet_diagnostic.PS0013.severity = suggestion  # Add a CancellationToken parameter type argument
+dotnet_diagnostic.PS0018.severity = suggestion  # Add a CancellationToken parameter
