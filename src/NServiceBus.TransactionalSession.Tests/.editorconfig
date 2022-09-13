@@ -9,3 +9,6 @@ dotnet_diagnostic.IDE0017.severity = suggestion
 # Justification: Tests don't support cancellation and don't need to forward IMessageHandlerContext.CancellationToken
 dotnet_diagnostic.NSB0002.severity = suggestion
 
+# Justification: We expose CancellationToken on the public API to be consistent with V8 but can't pass it down
+dotnet_diagnostic.PS0013.severity = suggestion  # Add a CancellationToken parameter type argument
+dotnet_diagnostic.PS0018.severity = suggestion  # Add a CancellationToken parameter
