@@ -10,6 +10,8 @@
     using Transport;
     using TransportTransportOperation = Transport.TransportOperation;
     using OutboxTransportOperation = Outbox.TransportOperation;
+    using NServiceBus.DelayedDelivery;
+    using NServiceBus.Extensibility;
 
     sealed class OutboxTransactionalSession : TransactionalSessionBase
     {
@@ -42,7 +44,7 @@
             }
             var message = new OutgoingMessage(SessionId, headers, ReadOnlyMemory<byte>.Empty);
 
-            var outgoingMessages = new TransportOperations(new TransportTransportOperation(message, new UnicastAddressTag(physicalQueueAddress)));
+            var outgoingMessages = new TransportOperations(new TransportTransportOperation(message, new UnicastAddressTag(physicalQueueAddress), new DispatchProperties { DelayDeliveryWith = new DelayDeliveryWith(TimeSpan.FromMinutes(1)) }));
             await dispatcher.Dispatch(outgoingMessages, new TransportTransaction(), cancellationToken).ConfigureAwait(false);
 
             var outboxMessage =
@@ -53,6 +55,15 @@
             await synchronizedStorageSession.CompleteAsync(cancellationToken).ConfigureAwait(false);
 
             await outboxTransaction.Commit(cancellationToken).ConfigureAwait(false);
+
+            DispatchAndComplete(outboxMessage, Context, cancellationToken);
+        }
+
+        async void DispatchAndComplete(OutboxMessage outboxMessage, ContextBag context, CancellationToken cancellationToken)
+        {
+            await dispatcher.Dispatch(new TransportOperations(pendingOperations.Operations), new TransportTransaction(), cancellationToken).ConfigureAwait(false);
+            await outboxStorage.SetAsDispatched(outboxMessage.MessageId, context, cancellationToken).ConfigureAwait(false);
+            // Ignore exceptions, better to log but no logger exists here (yet..)
         }
 
         protected override void Dispose(bool disposing)
