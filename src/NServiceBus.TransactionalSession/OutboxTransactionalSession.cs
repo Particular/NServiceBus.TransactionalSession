@@ -44,7 +44,13 @@
             }
             var message = new OutgoingMessage(SessionId, headers, ReadOnlyMemory<byte>.Empty);
 
-            var outgoingMessages = new TransportOperations(new TransportTransportOperation(message, new UnicastAddressTag(physicalQueueAddress), new DispatchProperties { DelayDeliveryWith = new DelayDeliveryWith(TimeSpan.FromMinutes(1)) }));
+            var transportMessage = new TransportTransportOperation(
+                message,
+                new UnicastAddressTag(physicalQueueAddress),
+                new DispatchProperties { DelayDeliveryWith = new DelayDeliveryWith(controlMessageDeliveryDelay) }
+                );
+
+            var outgoingMessages = new TransportOperations(transportMessage);
             await dispatcher.Dispatch(outgoingMessages, new TransportTransaction(), cancellationToken).ConfigureAwait(false);
 
             var outboxMessage =
@@ -127,6 +133,7 @@
 
         readonly string physicalQueueAddress;
         readonly IOutboxStorage outboxStorage;
+        readonly TimeSpan controlMessageDeliveryDelay = TimeSpan.FromSeconds(3);
         IOutboxTransaction outboxTransaction;
         public const string RemainingCommitDurationHeaderName = "NServiceBus.TransactionalSession.RemainingCommitDuration";
         public const string CommitDelayIncrementHeaderName = "NServiceBus.TransactionalSession.CommitDelayIncrement";
