@@ -12,7 +12,7 @@
 
     public class When_outbox_entry_becomes_visible_after_tx_timeout : NServiceBusAcceptanceTest
     {
-        [Test]
+        [Test, Ignore("No longer applicable if outbox is dispatch immediately")]
         public async Task Should_fail_to_process_control_message()
         {
             var context = await Scenario.Define<Context>()

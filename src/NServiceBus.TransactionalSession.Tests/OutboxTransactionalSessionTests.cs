@@ -126,8 +126,8 @@
             await session.Send(new object(), sendOptions);
             await session.Commit();
 
-            Assert.AreEqual(1, dispatcher.Dispatched.Count, "should have dispatched control message");
-            var dispatched = dispatcher.Dispatched.Single();
+            Assert.AreEqual(2, dispatcher.Dispatched.Count, "should have dispatched control message + outbox message");
+            var dispatched = dispatcher.Dispatched.First();
             Assert.AreEqual(1, dispatched.outgoingMessages.UnicastTransportOperations.Count);
             var controlMessage = dispatched.outgoingMessages.UnicastTransportOperations.Single();
             Assert.AreEqual(session.SessionId, controlMessage.Message.MessageId);
@@ -195,7 +195,7 @@
             await session.Open(options);
             await session.Commit();
 
-            var controlMessage = dispatcher.Dispatched.Single().outgoingMessages.UnicastTransportOperations.Single();
+            var controlMessage = dispatcher.Dispatched.First().outgoingMessages.UnicastTransportOperations.Single();
             Assert.AreEqual(session.SessionId, controlMessage.Message.MessageId);
             Assert.AreEqual(bool.TrueString, controlMessage.Message.Headers[Headers.ControlMessageHeader]);
             Assert.AreEqual(expectedDelayIncrement.ToString("c"), controlMessage.Message.Headers[OutboxTransactionalSession.CommitDelayIncrementHeaderName]);
