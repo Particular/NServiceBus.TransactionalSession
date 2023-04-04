@@ -50,7 +50,7 @@
                         sp.GetRequiredService<ICompletableSynchronizedStorageSession>(),
                         informationHolder.MessageSession,
                         sp.GetRequiredService<IMessageDispatcher>(),
-                        sp.GetServices<IOpenSessionOptionsCustomization>(),
+                        sp.GetServices<OpenSessionOptionCustomization>(),
                         physicalLocalQueueAddress);
                 }
                 else
@@ -59,7 +59,7 @@
                         sp.GetRequiredService<ICompletableSynchronizedStorageSession>(),
                         informationHolder.MessageSession,
                         sp.GetRequiredService<IMessageDispatcher>(),
-                        sp.GetServices<IOpenSessionOptionsCustomization>());
+                        sp.GetServices<OpenSessionOptionCustomization>());
                 }
 
                 return transactionalSession;

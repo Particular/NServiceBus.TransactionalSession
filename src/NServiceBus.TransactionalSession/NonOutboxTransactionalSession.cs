@@ -1,5 +1,6 @@
 ﻿namespace NServiceBus.TransactionalSession
 {
+    using System;
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
@@ -12,7 +13,7 @@
             ICompletableSynchronizedStorageSession synchronizedStorageSession,
             IMessageSession messageSession,
             IMessageDispatcher dispatcher,
-            IEnumerable<IOpenSessionOptionsCustomization> customizations) : base(synchronizedStorageSession, messageSession, dispatcher, customizations)
+            IEnumerable<OpenSessionOptionCustomization> customizations) : base(synchronizedStorageSession, messageSession, dispatcher, customizations)
         {
         }
 
@@ -25,9 +26,27 @@
 
         public override async Task Open(OpenSessionOptions options, CancellationToken cancellationToken = default)
         {
-            await base.Open(options, cancellationToken).ConfigureAwait(false);
+            ThrowIfDisposed();
+            ThrowIfCommitted();
+
+            if (IsOpen)
+            {
+                throw new InvalidOperationException($"This session is already open. {nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)} should only be called once.");
+            }
+
+            this.options = options;
+
+            foreach (var customization in customizations)
+            {
+                customization.ApplyBeforeOpen(this.options);
+            }
 
             await synchronizedStorageSession.Open(null, new TransportTransaction(), Context, cancellationToken).ConfigureAwait(false);
+
+            foreach (var customization in customizations)
+            {
+                customization.ApplyAfterOpen(this.options);
+            }
         }
     }
 }

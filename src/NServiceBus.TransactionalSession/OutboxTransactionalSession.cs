@@ -17,7 +17,7 @@
                                           ICompletableSynchronizedStorageSession synchronizedStorageSession,
                                           IMessageSession messageSession,
                                           IMessageDispatcher dispatcher,
-                                          IEnumerable<IOpenSessionOptionsCustomization> customizations,
+                                          IEnumerable<OpenSessionOptionCustomization> customizations,
                                           string physicalQueueAddress) : base(synchronizedStorageSession, messageSession, dispatcher, customizations)
         {
             this.outboxStorage = outboxStorage;
@@ -104,13 +104,31 @@
 
         public override async Task Open(OpenSessionOptions options, CancellationToken cancellationToken = default)
         {
-            await base.Open(options, cancellationToken).ConfigureAwait(false);
+            ThrowIfDisposed();
+            ThrowIfCommitted();
+
+            if (IsOpen)
+            {
+                throw new InvalidOperationException($"This session is already open. {nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)} should only be called once.");
+            }
+
+            this.options = options;
+
+            foreach (var customization in customizations)
+            {
+                customization.ApplyBeforeOpen(this.options);
+            }
 
             outboxTransaction = await outboxStorage.BeginTransaction(Context, cancellationToken).ConfigureAwait(false);
 
             if (!await synchronizedStorageSession.TryOpen(outboxTransaction, Context, cancellationToken).ConfigureAwait(false))
             {
                 throw new Exception("Outbox and synchronized storage persister are not compatible.");
+            }
+
+            foreach (var customization in customizations)
+            {
+                customization.ApplyAfterOpen(this.options);
             }
         }
 
