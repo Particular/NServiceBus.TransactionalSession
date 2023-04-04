@@ -3,6 +3,7 @@
     using System;
     using System.Threading;
     using System.Threading.Tasks;
+    using System.Transactions;
     using Microsoft.Extensions.DependencyInjection;
     using AcceptanceTesting;
     using NUnit.Framework;
@@ -74,10 +75,39 @@
             Assert.True(result.MessageReceived);
         }
 
+        [Test]
+        public async Task Should_make_it_possible_float_ambient_transactions()
+        {
+            var result = await Scenario.Define<Context>()
+                    .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
+                    {
+                        using var scope = ctx.ServiceProvider.CreateScope();
+                        using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+
+                        await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions
+                        {
+                            UseTransactionScope = true
+                        });
+
+                        ctx.AmbientTransactionFoundBeforeAwait = Transaction.Current != null;
+
+                        await Task.Yield();
+
+                        ctx.AmbientTransactionFoundAfterAwait = Transaction.Current != null;
+                    }))
+                    .Done(c => c.EndpointsStarted)
+                    .Run();
+
+            Assert.True(result.AmbientTransactionFoundBeforeAwait, "The ambient transaction was not visible before the await");
+            Assert.True(result.AmbientTransactionFoundAfterAwait, "The ambient transaction was not visible after the await");
+        }
+
         class Context : ScenarioContext, IInjectServiceProvider
         {
-            public bool MessageReceived { get; set; }
+            public bool AmbientTransactionFoundBeforeAwait { get; set; }
+            public bool AmbientTransactionFoundAfterAwait { get; set; }
             public bool CompleteMessageReceived { get; set; }
+            public bool MessageReceived { get; set; }
             public IServiceProvider ServiceProvider { get; set; }
         }
 
