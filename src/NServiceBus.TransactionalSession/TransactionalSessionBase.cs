@@ -64,28 +64,9 @@ namespace NServiceBus.TransactionalSession
             committed = true;
         }
 
+        public abstract Task Open(OpenSessionOptions options, CancellationToken cancellationToken = default);
 
         protected abstract Task CommitInternal(CancellationToken cancellationToken = default);
-
-        public virtual Task Open(OpenSessionOptions options, CancellationToken cancellationToken = default)
-        {
-            ThrowIfDisposed();
-            ThrowIfCommitted();
-
-            if (IsOpen)
-            {
-                throw new InvalidOperationException($"This session is already open. {nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)} should only be called once.");
-            }
-
-            this.options = options;
-
-            foreach (var customization in customizations)
-            {
-                customization.Apply(this.options);
-            }
-
-            return Task.CompletedTask;
-        }
 
         public async Task Send(object message, SendOptions sendOptions, CancellationToken cancellationToken = default)
         {
@@ -119,7 +100,7 @@ namespace NServiceBus.TransactionalSession
             await messageSession.Publish(messageConstructor, publishOptions, cancellationToken).ConfigureAwait(false);
         }
 
-        void ThrowIfDisposed()
+        protected void ThrowIfDisposed()
         {
             if (disposed)
             {
@@ -127,7 +108,7 @@ namespace NServiceBus.TransactionalSession
             }
         }
 
-        void ThrowIfCommitted()
+        protected void ThrowIfCommitted()
         {
             if (committed)
             {
@@ -170,7 +151,7 @@ namespace NServiceBus.TransactionalSession
 
         protected readonly ICompletableSynchronizedStorageSession synchronizedStorageSession;
         protected readonly IMessageDispatcher dispatcher;
-        readonly IEnumerable<IOpenSessionOptionsCustomization> customizations;
+        protected readonly IEnumerable<IOpenSessionOptionsCustomization> customizations;
         protected readonly PendingTransportOperations pendingOperations;
         protected OpenSessionOptions options;
         readonly IMessageSession messageSession;
