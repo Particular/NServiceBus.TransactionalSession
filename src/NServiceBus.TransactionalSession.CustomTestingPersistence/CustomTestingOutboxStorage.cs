@@ -3,8 +3,10 @@ namespace NServiceBus.AcceptanceTesting
     using System;
     using System.Collections.Concurrent;
     using System.Threading.Tasks;
+    using System.Transactions;
     using Extensibility;
     using Outbox;
+    using TransactionalSession;
 
     sealed class CustomTestingOutboxStorage : IOutboxStorage
     {
@@ -25,6 +27,11 @@ namespace NServiceBus.AcceptanceTesting
 
         public Task<OutboxTransaction> BeginTransaction(ContextBag context)
         {
+            if (context.TryGet(out CustomTestingPersistenceOpenSessionOptions options) && options.UseTransactionScope)
+            {
+                _ = new TransactionScope(TransactionScopeOption.RequiresNew, TransactionScopeAsyncFlowOption.Enabled);
+            }
+
             return Task.FromResult<OutboxTransaction>(new CustomTestingOutboxTransaction(context));
         }
 

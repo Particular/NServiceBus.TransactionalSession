@@ -1,5 +1,6 @@
 ﻿namespace NServiceBus.TransactionalSession
 {
+    using System;
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
@@ -26,7 +27,20 @@
 
         public override async Task Open(OpenSessionOptions options, CancellationToken cancellationToken = default)
         {
-            await base.Open(options, cancellationToken).ConfigureAwait(false);
+            ThrowIfDisposed();
+            ThrowIfCommitted();
+
+            if (IsOpen)
+            {
+                throw new InvalidOperationException($"This session is already open. {nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)} should only be called once.");
+            }
+
+            this.options = options;
+
+            foreach (var customization in customizations)
+            {
+                customization.Apply(this.options);
+            }
 
             await synchronizedStorageSession.Open(null, new TransportTransaction(), Context).ConfigureAwait(false);
         }
