@@ -141,11 +141,32 @@
             throw new Exception($"Unknown delivery constraint {constraint.GetType().FullName}");
         }
 
-        public override async Task Open(OpenSessionOptions options, CancellationToken cancellationToken = default)
+        public override Task Open(OpenSessionOptions options, CancellationToken cancellationToken = default)
         {
-            await base.Open(options, cancellationToken).ConfigureAwait(false);
+            ThrowIfDisposed();
+            ThrowIfCommitted();
 
-            outboxTransaction = await outboxStorage.BeginTransaction(Context).ConfigureAwait(false);
+            if (IsOpen)
+            {
+                throw new InvalidOperationException($"This session is already open. {nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)} should only be called once.");
+            }
+
+            this.options = options;
+
+            foreach (var customization in customizations)
+            {
+                customization.Apply(this.options);
+            }
+
+            // Unfortunately this is the only way to make it possible for Transaction.Current to float up to the caller
+            // to make sure SQLP and NHibernate work with the transaction scope
+            var outboxTransactionTask = outboxStorage.BeginTransaction(Context);
+            return OpenInternal(outboxTransactionTask, cancellationToken);
+        }
+
+        async Task OpenInternal(Task<OutboxTransaction> beginTransactionTask, CancellationToken cancellationToken)
+        {
+            outboxTransaction = await beginTransactionTask.ConfigureAwait(false);
 
             if (!await synchronizedStorageSession.TryOpen(outboxTransaction, Context).ConfigureAwait(false))
             {
