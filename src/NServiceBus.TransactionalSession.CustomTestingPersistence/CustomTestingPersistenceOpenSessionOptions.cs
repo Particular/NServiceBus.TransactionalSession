@@ -7,5 +7,7 @@
         public CustomTestingPersistenceOpenSessionOptions() => Extensions.Set(this);
 
         public TaskCompletionSource<bool> TransactionCommitTaskCompletionSource { get; set; }
+
+        public bool UseTransactionScope { get; set; }
     }
 }
