@@ -169,8 +169,25 @@
             Assert.AreEqual(bool.TrueString, controlMessage.Message.Headers[Headers.ControlMessageHeader]);
 
             var outboxTransaction = outboxStorage.StartedTransactions.Single();
-            Assert.IsFalse(completableSynchronizedStorageSession.Completed, "should not have completed synchronized storage session");
-            Assert.IsFalse(outboxTransaction.Commited, "should not have commited outbox operations");
+            Assert.IsFalse(outboxTransaction.Commited, "should not have committed outbox operations");
+        }
+
+        [Test]
+        public async Task Commit_should_complete_synchronized_storage_session_before_outbox_store()
+        {
+            var messageSession = new FakeMessageSession();
+            var dispatcher = new FakeDispatcher();
+            var outboxStorage = new FakeOutboxStorage { StoreCallback = (_, _, _) => throw new Exception("some error") };
+            var completableSynchronizedStorageSession = new FakeSynchronizableStorageSession();
+            using var session = new OutboxTransactionalSession(outboxStorage, completableSynchronizedStorageSession, messageSession, dispatcher, Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
+
+            await session.Open(new FakeOpenSessionOptions());
+            await session.Send(new object());
+            Assert.ThrowsAsync<Exception>(async () => await session.Commit());
+
+            var outboxTransaction = outboxStorage.StartedTransactions.Single();
+            Assert.IsTrue(completableSynchronizedStorageSession.Completed, "should have completed synchronized storage session to match the receive pipeline behavior");
+            Assert.IsFalse(outboxTransaction.Commited, "should not have committed outbox operations");
         }
 
         [Test]
