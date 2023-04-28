@@ -169,7 +169,7 @@
             Assert.AreEqual(bool.TrueString, controlMessage.Message.Headers[Headers.ControlMessageHeader]);
 
             var outboxTransaction = outboxStorage.StartedTransactions.Single();
-            Assert.IsFalse(outboxTransaction.Commited, "should not have commited outbox operations");
+            Assert.IsFalse(outboxTransaction.Commited, "should not have committed outbox operations");
         }
 
         [Test]
@@ -187,7 +187,7 @@
 
             var outboxTransaction = outboxStorage.StartedTransactions.Single();
             Assert.IsTrue(completableSynchronizedStorageSession.Completed, "should have completed synchronized storage session to match the receive pipeline behavior");
-            Assert.IsFalse(outboxTransaction.Commited, "should not have commited outbox operations");
+            Assert.IsFalse(outboxTransaction.Commited, "should not have committed outbox operations");
         }
 
         [Test]
