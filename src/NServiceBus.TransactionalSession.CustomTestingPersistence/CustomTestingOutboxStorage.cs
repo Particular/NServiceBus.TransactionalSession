@@ -6,6 +6,7 @@ namespace NServiceBus.AcceptanceTesting
     using System.Threading.Tasks;
     using System.Transactions;
     using Extensibility;
+    using Logging;
     using Outbox;
     using TransactionalSession;
 
@@ -13,6 +14,9 @@ namespace NServiceBus.AcceptanceTesting
     {
         public Task<OutboxMessage> Get(string messageId, ContextBag context, CancellationToken cancellationToken = default)
         {
+            context.TryGet<string>(CustomTestingPersistenceOpenSessionOptions.LoggerContextName, out var logContext);
+            Logger.InfoFormat("{0} - Outbox.Get", logContext ?? "Pipeline");
+
             if (context.TryGet("TestOutboxStorage.GetResult", out OutboxMessage customResult))
             {
                 return Task.FromResult(customResult);
@@ -28,6 +32,9 @@ namespace NServiceBus.AcceptanceTesting
 
         public Task<IOutboxTransaction> BeginTransaction(ContextBag context, CancellationToken cancellationToken = default)
         {
+            context.TryGet<string>(CustomTestingPersistenceOpenSessionOptions.LoggerContextName, out var logContext);
+            Logger.InfoFormat("{0} - Outbox.BeginTransaction", logContext ?? "Pipeline");
+
             if (context.TryGet(out CustomTestingPersistenceOpenSessionOptions options) && options.UseTransactionScope)
             {
                 _ = new TransactionScope(TransactionScopeOption.RequiresNew, TransactionScopeAsyncFlowOption.Enabled);
@@ -38,6 +45,9 @@ namespace NServiceBus.AcceptanceTesting
 
         public Task Store(OutboxMessage message, IOutboxTransaction transaction, ContextBag context, CancellationToken cancellationToken = default)
         {
+            context.TryGet<string>(CustomTestingPersistenceOpenSessionOptions.LoggerContextName, out var logContext);
+            Logger.InfoFormat("{0} - Outbox.Store", logContext ?? "Pipeline");
+
             var tx = (CustomTestingOutboxTransaction)transaction;
             tx.Enlist(() =>
             {
@@ -56,6 +66,9 @@ namespace NServiceBus.AcceptanceTesting
 
         public Task SetAsDispatched(string messageId, ContextBag context, CancellationToken cancellationToken = default)
         {
+            context.TryGet<string>(CustomTestingPersistenceOpenSessionOptions.LoggerContextName, out var logContext);
+            Logger.InfoFormat("{0} - Outbox.SetAsDispatched", logContext ?? "Pipeline");
+
             if (!storage.TryGetValue(messageId, out var storedMessage))
             {
                 return Task.CompletedTask;
@@ -134,5 +147,7 @@ namespace NServiceBus.AcceptanceTesting
                 }
             }
         }
+
+        static readonly ILog Logger = LogManager.GetLogger<CustomTestingOutboxStorage>();
     }
 }

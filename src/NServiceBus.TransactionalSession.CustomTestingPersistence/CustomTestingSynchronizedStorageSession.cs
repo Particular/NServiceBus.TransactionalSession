@@ -5,8 +5,10 @@ namespace NServiceBus.AcceptanceTesting
     using System.Threading.Tasks;
     using System.Transactions;
     using Extensibility;
+    using Logging;
     using Outbox;
     using Persistence;
+    using TransactionalSession;
     using Transport;
 
     sealed class CustomTestingSynchronizedStorageSession : ICompletableSynchronizedStorageSession
@@ -18,6 +20,9 @@ namespace NServiceBus.AcceptanceTesting
         public ValueTask<bool> TryOpen(IOutboxTransaction transaction, ContextBag context,
             CancellationToken cancellationToken = default)
         {
+            context.TryGet(CustomTestingPersistenceOpenSessionOptions.LoggerContextName, out logContext);
+            Logger.InfoFormat("{0} - StorageSession.TryOpen(OutboxTransaction)", logContext ?? "Pipeline");
+
             if (transaction is CustomTestingOutboxTransaction inMemOutboxTransaction)
             {
                 Transaction = inMemOutboxTransaction.Transaction;
@@ -31,7 +36,10 @@ namespace NServiceBus.AcceptanceTesting
         public ValueTask<bool> TryOpen(TransportTransaction transportTransaction, ContextBag context,
             CancellationToken cancellationToken = default)
         {
-            if (!transportTransaction.TryGet(out System.Transactions.Transaction ambientTransaction))
+            context.TryGet(CustomTestingPersistenceOpenSessionOptions.LoggerContextName, out logContext);
+            Logger.InfoFormat("{0} - StorageSession.TryOpen(TransportTransaction)", logContext ?? "Pipeline");
+
+            if (!transportTransaction.TryGet(out Transaction ambientTransaction))
             {
                 return new ValueTask<bool>(false);
             }
@@ -44,6 +52,9 @@ namespace NServiceBus.AcceptanceTesting
 
         public Task Open(ContextBag contextBag, CancellationToken cancellationToken = default)
         {
+            contextBag.TryGet(CustomTestingPersistenceOpenSessionOptions.LoggerContextName, out logContext);
+            Logger.InfoFormat("{0} - StorageSession.Open", logContext ?? "Pipeline");
+
             ownsTransaction = true;
             Transaction = new AcceptanceTestingTransaction();
             return Task.CompletedTask;
@@ -51,6 +62,8 @@ namespace NServiceBus.AcceptanceTesting
 
         public Task CompleteAsync(CancellationToken cancellationToken = default)
         {
+            Logger.InfoFormat("{0} - StorageSession.CompleteAsync", logContext ?? "Pipeline");
+
             if (ownsTransaction)
             {
                 Transaction.Commit();
@@ -92,5 +105,8 @@ namespace NServiceBus.AcceptanceTesting
 
             readonly AcceptanceTestingTransaction transaction;
         }
+
+        string logContext;
+        static readonly ILog Logger = LogManager.GetLogger<CustomTestingSynchronizedStorageSession>();
     }
 }
