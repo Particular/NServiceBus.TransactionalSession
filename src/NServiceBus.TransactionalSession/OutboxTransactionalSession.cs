@@ -45,12 +45,12 @@
             var outgoingMessages = new TransportOperations(new TransportTransportOperation(message, new UnicastAddressTag(physicalQueueAddress)));
             await dispatcher.Dispatch(outgoingMessages, new TransportTransaction(), cancellationToken).ConfigureAwait(false);
 
+            await synchronizedStorageSession.CompleteAsync(cancellationToken).ConfigureAwait(false);
+
             var outboxMessage =
                 new OutboxMessage(SessionId, ConvertToOutboxOperations(pendingOperations.Operations));
             await outboxStorage.Store(outboxMessage, outboxTransaction, Context, cancellationToken)
                 .ConfigureAwait(false);
-
-            await synchronizedStorageSession.CompleteAsync(cancellationToken).ConfigureAwait(false);
 
             await outboxTransaction.Commit(cancellationToken).ConfigureAwait(false);
         }
