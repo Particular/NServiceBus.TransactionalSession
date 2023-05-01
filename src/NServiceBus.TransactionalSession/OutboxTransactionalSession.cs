@@ -49,12 +49,12 @@
             var outgoingMessages = new TransportOperations(new TransportTransportOperation(message, new UnicastAddressTag(physicalQueueAddress)));
             await dispatcher.Dispatch(outgoingMessages, new TransportTransaction(), new ContextBag()).ConfigureAwait(false);
 
+            await synchronizedStorageSession.CompleteAsync().ConfigureAwait(false);
+
             var outboxMessage =
                 new OutboxMessage(SessionId, ConvertToOutboxOperations(pendingOperations.Operations));
             await outboxStorage.Store(outboxMessage, outboxTransaction, Context)
                 .ConfigureAwait(false);
-
-            await synchronizedStorageSession.CompleteAsync().ConfigureAwait(false);
 
             await outboxTransaction.Commit().ConfigureAwait(false);
         }
