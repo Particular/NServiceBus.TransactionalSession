@@ -85,7 +85,7 @@
         }
 
         [Test]
-        public void Send_should_throw_exeception_when_session_not_opened()
+        public void Send_should_throw_exception_when_session_not_opened()
         {
             var messageSession = new FakeMessageSession();
             using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
@@ -145,7 +145,8 @@
             Assert.AreEqual(messageId, outboxMessage.MessageId);
 
             Assert.IsTrue(synchronizedSession.Completed);
-            Assert.IsTrue(outboxStorage.StartedTransactions.Single().Commited);
+            Assert.IsTrue(synchronizedSession.Disposed);
+            Assert.IsTrue(outboxStorage.StartedTransactions.Single().Committed);
         }
 
         [Test]
@@ -169,7 +170,7 @@
             Assert.AreEqual(bool.TrueString, controlMessage.Message.Headers[Headers.ControlMessageHeader]);
 
             var outboxTransaction = outboxStorage.StartedTransactions.Single();
-            Assert.IsFalse(outboxTransaction.Commited, "should not have committed outbox operations");
+            Assert.IsFalse(outboxTransaction.Committed, "should not have committed outbox operations");
         }
 
         [Test]
@@ -187,7 +188,7 @@
 
             var outboxTransaction = outboxStorage.StartedTransactions.Single();
             Assert.IsTrue(completableSynchronizedStorageSession.Completed, "should have completed synchronized storage session to match the receive pipeline behavior");
-            Assert.IsFalse(outboxTransaction.Commited, "should not have committed outbox operations");
+            Assert.IsFalse(outboxTransaction.Committed, "should not have committed outbox operations");
         }
 
         [Test]
@@ -252,6 +253,21 @@
             StringAssert.Contains("This session has already been committed. Complete all session operations before calling `Commit` or use a new session.", publishException.Message);
             var commitException = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Commit());
             StringAssert.Contains("This session has already been committed. Complete all session operations before calling `Commit` or use a new session.", commitException.Message);
+        }
+
+        [Test]
+        public async Task Dispose_should_dispose_synchronized_storage_and_outbox_transaction()
+        {
+            var synchronizedStorageSession = new FakeSynchronizableStorageSession();
+            var outboxStorage = new FakeOutboxStorage();
+
+            var session = new OutboxTransactionalSession(outboxStorage, synchronizedStorageSession, new FakeMessageSession(), new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
+            await session.Open(new FakeOpenSessionOptions());
+
+            session.Dispose();
+
+            Assert.IsTrue(outboxStorage.StartedTransactions.Single().Disposed);
+            Assert.IsTrue(synchronizedStorageSession.Disposed);
         }
     }
 }

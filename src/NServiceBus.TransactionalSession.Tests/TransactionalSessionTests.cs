@@ -74,7 +74,7 @@
         }
 
         [Test]
-        public void Send_should_throw_exeception_when_session_not_opened()
+        public void Send_should_throw_exception_when_session_not_opened()
         {
             var messageSession = new FakeMessageSession();
             using var session = new NonOutboxTransactionalSession(new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>());
@@ -136,6 +136,20 @@
             Assert.ThrowsAsync<Exception>(async () => await session.Commit());
 
             Assert.IsEmpty(dispatcher.Dispatched, "should not have dispatched message");
+        }
+
+        [Test]
+        public async Task Dispose_should_dispose_synchronized_storage_session()
+        {
+            var synchronizedStorageSession = new FakeSynchronizableStorageSession();
+
+            var session = new NonOutboxTransactionalSession(synchronizedStorageSession, new FakeMessageSession(), new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>());
+            var options = new FakeOpenSessionOptions();
+            await session.Open(options);
+
+            session.Dispose();
+
+            Assert.IsTrue(synchronizedStorageSession.Disposed);
         }
     }
 }
