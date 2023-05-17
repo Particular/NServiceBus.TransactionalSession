@@ -40,7 +40,7 @@ namespace NServiceBus.TransactionalSession
                 if (Log.IsInfoEnabled)
                 {
                     Log.Info(
-                        $"Consuming transaction commit control messages for messageId={messageId} to create the outbox tomb stone.");
+                        $"Consuming transaction commit control message for the message ID '{messageId}' because the maximum commit duration has elapsed.");
                 }
 
                 return;
@@ -48,7 +48,7 @@ namespace NServiceBus.TransactionalSession
 
             if (Log.IsDebugEnabled)
             {
-                Log.Debug($"Delaying transaction commit control messages for messageId={messageId}");
+                Log.Debug($"Delaying transaction commit control message for the message ID '{messageId}'");
             }
 
             var newCommitDelay = commitDelayIncrement.Add(commitDelayIncrement);
