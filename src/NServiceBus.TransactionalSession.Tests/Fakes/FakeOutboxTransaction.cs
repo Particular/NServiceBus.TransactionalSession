@@ -6,13 +6,14 @@
 
     class FakeOutboxTransaction : IOutboxTransaction
     {
-        public bool Commited { get; private set; }
+        public bool Committed { get; private set; }
+        public bool Disposed { get; private set; }
 
-        public void Dispose() { }
+        public void Dispose() => Disposed = true;
 
         public Task Commit(CancellationToken cancellationToken = new CancellationToken())
         {
-            Commited = true;
+            Committed = true;
             return Task.CompletedTask;
         }
     }

@@ -43,5 +43,20 @@
 
             await synchronizedStorageSession.Open(null, new TransportTransaction(), Context, cancellationToken).ConfigureAwait(false);
         }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                synchronizedStorageSession.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
     }
 }

@@ -46,6 +46,10 @@
             await dispatcher.Dispatch(outgoingMessages, new TransportTransaction(), cancellationToken).ConfigureAwait(false);
 
             await synchronizedStorageSession.CompleteAsync(cancellationToken).ConfigureAwait(false);
+            // Disposing the session after complete to be compliant with the core behavior
+            // in case complete throws the synchronized storage session will get disposed by the dispose or the container
+            // disposing multiple times is safe
+            synchronizedStorageSession.Dispose();
 
             var outboxMessage =
                 new OutboxMessage(SessionId, ConvertToOutboxOperations(pendingOperations.Operations));
@@ -64,6 +68,7 @@
 
             if (disposing)
             {
+                synchronizedStorageSession.Dispose();
                 outboxTransaction?.Dispose();
             }
 

@@ -16,8 +16,9 @@
         public Func<IOutboxTransaction, ContextBag, bool> TryOpenCallback { get; set; } = null;
         public Action CompleteCallback { get; set; } = null;
         public bool Completed { get; private set; }
+        public bool Disposed { get; private set; }
 
-        public void Dispose() { }
+        public void Dispose() => Disposed = true;
 
         public ValueTask<bool> TryOpen(IOutboxTransaction transaction, ContextBag context,
             CancellationToken cancellationToken = new CancellationToken())
