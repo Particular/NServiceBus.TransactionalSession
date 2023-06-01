@@ -36,14 +36,20 @@
                 IsOutboxEnabled = context.Settings.IsFeatureActive(typeof(Outbox))
             };
             context.Services.AddSingleton(informationHolder);
+            context.Services.AddScoped<PipelineInformationHolder>();
             context.Services.AddScoped(static sp =>
             {
                 var informationHolder = sp.GetRequiredService<InformationHolderToAvoidClosures>();
+                var pipelineContextHolder = sp.GetRequiredService<PipelineInformationHolder>();
                 var physicalLocalQueueAddress = sp.GetRequiredService<ITransportAddressResolver>().ToTransportAddress(informationHolder.LocalAddress);
 
                 ITransactionalSession transactionalSession;
 
-                if (informationHolder.IsOutboxEnabled)
+                if (pipelineContextHolder.WithinPipeline)
+                {
+                    transactionalSession = new PipelineAwareTransactionalSession(pipelineContextHolder);
+                }
+                else if (informationHolder.IsOutboxEnabled)
                 {
                     transactionalSession = new OutboxTransactionalSession(
                         sp.GetRequiredService<IOutboxStorage>(),
@@ -64,6 +70,9 @@
 
                 return transactionalSession;
             });
+
+            context.Pipeline.Register(new PipelineIndicatorBehavior(), "Indicates that a pipeline is currently executing.");
+            context.Pipeline.Register(new AttachInvokeHandlerContextBehavior(), "Attaches the handler context to the transactional session to auto open it.");
 
             if (!informationHolder.IsOutboxEnabled)
             {

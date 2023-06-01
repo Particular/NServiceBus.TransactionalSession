@@ -104,7 +104,7 @@ namespace NServiceBus.TransactionalSession
         {
             if (disposed)
             {
-                throw new ObjectDisposedException(nameof(Dispose));
+                throw new ObjectDisposedException(GetType().Name);
             }
         }
 
