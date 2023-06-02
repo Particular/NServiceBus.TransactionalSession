@@ -3,6 +3,7 @@
 namespace NServiceBus.TransactionalSession
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Persistence;
@@ -10,8 +11,7 @@ namespace NServiceBus.TransactionalSession
 
     sealed class PipelineAwareTransactionalSession : ITransactionalSession
     {
-        public PipelineAwareTransactionalSession(PipelineInformationHolder pipelineInformationHolder)
-            => this.pipelineInformationHolder = pipelineInformationHolder;
+        public PipelineAwareTransactionalSession(IEnumerable<IOpenSessionOptionsCustomization> customizations) => this.customizations = customizations;
 
         public ISynchronizedStorageSession SynchronizedStorageSession
         {
@@ -23,7 +23,7 @@ namespace NServiceBus.TransactionalSession
                         "The session has to be opened before accessing the SynchronizedStorageSession.");
                 }
 
-                return HandlerContext!.SynchronizedStorageSession;
+                return pipelineContext!.SynchronizedStorageSession;
             }
         }
 
@@ -37,19 +37,30 @@ namespace NServiceBus.TransactionalSession
                         "The session has to be opened before accessing the SessionId.");
                 }
 
-                return HandlerContext!.MessageId;
+                return pipelineContext!.MessageId;
             }
         }
 
         // In the invoke handler context phase the synchronized storage is ready to use
-        bool IsOpen => HandlerContext is not null;
-
-        IInvokeHandlerContext? HandlerContext => pipelineInformationHolder.HandlerContext;
+        bool IsOpen => pipelineContext is not null;
 
         public Task Open(OpenSessionOptions options, CancellationToken cancellationToken = default)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            // TODO: Should this throw instead?
+            ThrowIfDisposed();
+            ThrowIfCommitted();
+
+            if (IsOpen)
+            {
+                throw new InvalidOperationException($"This session is already open. {nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)} should only be called once.");
+            }
+
+            pipelineContext = ((PipelineAwareSessionOptions)options).PipelineContext;
+
+            foreach (var customization in customizations)
+            {
+                customization.Apply(options);
+            }
+
             return Task.CompletedTask;
         }
 
@@ -59,7 +70,7 @@ namespace NServiceBus.TransactionalSession
 
             cancellationToken.ThrowIfCancellationRequested();
             // unfortunately there is no way to marry both tokens together
-            return HandlerContext!.Send(message, sendOptions);
+            return pipelineContext!.Send(message, sendOptions);
         }
 
         public Task Send<T>(Action<T> messageConstructor, SendOptions sendOptions, CancellationToken cancellationToken = default)
@@ -68,7 +79,7 @@ namespace NServiceBus.TransactionalSession
 
             cancellationToken.ThrowIfCancellationRequested();
             // unfortunately there is no way to marry both tokens together
-            return HandlerContext!.Send(messageConstructor, sendOptions);
+            return pipelineContext!.Send(messageConstructor, sendOptions);
         }
 
         public Task Publish(object message, PublishOptions publishOptions, CancellationToken cancellationToken = default)
@@ -77,7 +88,7 @@ namespace NServiceBus.TransactionalSession
 
             cancellationToken.ThrowIfCancellationRequested();
             // unfortunately there is no way to marry both tokens together
-            return HandlerContext!.Publish(message, publishOptions);
+            return pipelineContext!.Publish(message, publishOptions);
         }
 
         public Task Publish<T>(Action<T> messageConstructor, PublishOptions publishOptions,
@@ -87,13 +98,16 @@ namespace NServiceBus.TransactionalSession
 
             cancellationToken.ThrowIfCancellationRequested();
             // unfortunately there is no way to marry both tokens together
-            return HandlerContext!.Publish(messageConstructor, publishOptions);
+            return pipelineContext!.Publish(messageConstructor, publishOptions);
         }
 
         public Task Commit(CancellationToken cancellationToken = default)
         {
+            ThrowIfInvalidState();
+
             cancellationToken.ThrowIfCancellationRequested();
-            // TODO: Should this throw instead?
+
+            committed = true;
             return Task.CompletedTask;
         }
 
@@ -111,6 +125,7 @@ namespace NServiceBus.TransactionalSession
         {
             ThrowIfDisposed();
             ThrowIfNotOpened();
+            ThrowIfCommitted();
         }
 
         void ThrowIfNotOpened()
@@ -129,7 +144,17 @@ namespace NServiceBus.TransactionalSession
             }
         }
 
-        PipelineInformationHolder pipelineInformationHolder;
+        void ThrowIfCommitted()
+        {
+            if (committed)
+            {
+                throw new InvalidOperationException("This session has already been committed. Complete all session operations before calling `Commit` or use a new session.");
+            }
+        }
+
+        IInvokeHandlerContext? pipelineContext;
+        readonly IEnumerable<IOpenSessionOptionsCustomization> customizations;
         bool disposed;
+        bool committed;
     }
 }

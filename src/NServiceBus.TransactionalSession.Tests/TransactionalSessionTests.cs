@@ -139,6 +139,28 @@
         }
 
         [Test]
+        public void Commit_should_throw_if_session_is_not_open()
+        {
+            using var session = new NonOutboxTransactionalSession(new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>());
+
+            var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Commit());
+
+            StringAssert.Contains($"This session has not been opened yet.", exception.Message);
+        }
+
+        [Test]
+        public async Task Commit_should_throw_when_already_committed()
+        {
+            using var session = new NonOutboxTransactionalSession(new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>());
+            await session.Open(new FakeOpenSessionOptions());
+            await session.Commit();
+
+            var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Commit());
+
+            StringAssert.Contains($"This session has already been committed. Complete all session operations before calling `Commit` or use a new session.", exception.Message);
+        }
+
+        [Test]
         public async Task Dispose_should_dispose_synchronized_storage_session()
         {
             var synchronizedStorageSession = new FakeSynchronizableStorageSession();

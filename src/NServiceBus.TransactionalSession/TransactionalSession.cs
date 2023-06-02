@@ -47,7 +47,7 @@
 
                 if (pipelineContextHolder.WithinPipeline)
                 {
-                    transactionalSession = new PipelineAwareTransactionalSession(pipelineContextHolder);
+                    transactionalSession = new PipelineAwareTransactionalSession(sp.GetServices<IOpenSessionOptionsCustomization>());
                 }
                 else if (informationHolder.IsOutboxEnabled)
                 {
