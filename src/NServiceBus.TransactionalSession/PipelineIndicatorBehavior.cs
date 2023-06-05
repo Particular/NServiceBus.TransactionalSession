@@ -9,7 +9,7 @@ namespace NServiceBus.TransactionalSession
     {
         public Task Invoke(IIncomingPhysicalMessageContext context, Func<IIncomingPhysicalMessageContext, Task> next)
         {
-            var pipelineIndicator = context.Builder.GetRequiredService<PipelineInformationHolder>();
+            var pipelineIndicator = context.Builder.GetRequiredService<PipelineIndicator>();
             pipelineIndicator.WithinPipeline = true;
             return next(context);
         }
