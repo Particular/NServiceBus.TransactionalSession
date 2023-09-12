@@ -1,10 +1,15 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
-    <SignAssembly>True</SignAssembly>
+    <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\NServiceBusTests.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\NServiceBus.TransactionalSession.CustomTestingPersistence\NServiceBus.TransactionalSession.CustomTestingPersistence.csproj" />
+    <ProjectReference Include="..\NServiceBus.TransactionalSession\NServiceBus.TransactionalSession.csproj" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="GitHubActionsTestLogger" Version="2.3.3" />
@@ -14,9 +19,4 @@
     <PackageReference Include="NServiceBus.AcceptanceTesting" Version="9.0.0-alpha.2" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\NServiceBus.TransactionalSession.CustomTestingPersistence\NServiceBus.TransactionalSession.CustomTestingPersistence.csproj" />
-    <ProjectReference Include="..\NServiceBus.TransactionalSession\NServiceBus.TransactionalSession.csproj" />
-  </ItemGroup>
-  
 </Project>

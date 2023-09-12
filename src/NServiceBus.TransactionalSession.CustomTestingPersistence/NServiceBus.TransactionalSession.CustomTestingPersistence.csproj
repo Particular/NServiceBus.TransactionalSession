@@ -1,17 +1,17 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
-    <SignAssembly>True</SignAssembly>
+    <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\NServiceBus.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NServiceBus.AcceptanceTesting" Version="9.0.0-alpha.2" />
+    <ProjectReference Include="..\NServiceBus.TransactionalSession\NServiceBus.TransactionalSession.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\NServiceBus.TransactionalSession\NServiceBus.TransactionalSession.csproj" />
+    <PackageReference Include="NServiceBus.AcceptanceTesting" Version="9.0.0-alpha.2" />
   </ItemGroup>
 
   <ItemGroup>
