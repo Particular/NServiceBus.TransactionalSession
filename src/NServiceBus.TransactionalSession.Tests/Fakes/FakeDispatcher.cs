@@ -7,7 +7,7 @@
 
     class FakeDispatcher : IMessageDispatcher
     {
-        public List<(TransportOperations outgoingMessages, TransportTransaction transaction)> Dispatched = new();
+        public List<(TransportOperations outgoingMessages, TransportTransaction transaction)> Dispatched = [];
 
         public Task Dispatch(TransportOperations outgoingMessages, TransportTransaction transaction,
             CancellationToken cancellationToken = new CancellationToken())

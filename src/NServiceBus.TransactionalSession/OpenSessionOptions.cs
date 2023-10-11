@@ -23,7 +23,7 @@ namespace NServiceBus.TransactionalSession
         /// <summary>
         /// Session metadata that gets added during the session commit operation.
         /// </summary>
-        public IDictionary<string, string> Metadata => metadata ??= new Dictionary<string, string>();
+        public IDictionary<string, string> Metadata => metadata ??= [];
 
         internal bool HasMetadata => metadata != null;
 

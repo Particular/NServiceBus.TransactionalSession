@@ -11,8 +11,8 @@
 
     class FakeSynchronizableStorageSession : ICompletableSynchronizedStorageSession
     {
-        public List<(IOutboxTransaction, ContextBag)> OpenedOutboxTransactionSessions { get; } = new();
-        public List<ContextBag> OpenedTransactionSessions { get; set; } = new();
+        public List<(IOutboxTransaction, ContextBag)> OpenedOutboxTransactionSessions { get; } = [];
+        public List<ContextBag> OpenedTransactionSessions { get; set; } = [];
         public Func<IOutboxTransaction, ContextBag, bool> TryOpenCallback { get; set; } = null;
         public Action CompleteCallback { get; set; } = null;
         public bool Completed { get; private set; }

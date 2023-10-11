@@ -18,6 +18,6 @@ namespace NServiceBus.AcceptanceTesting
 
         public void Rollback() => actions.Clear();
 
-        List<Action> actions = new List<Action>();
+        List<Action> actions = [];
     }
 }
