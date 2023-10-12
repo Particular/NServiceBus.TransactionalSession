@@ -9,10 +9,10 @@
 
     class FakeOutboxStorage : IOutboxStorage
     {
-        public List<(OutboxMessage outboxMessage, IOutboxTransaction transaction, ContextBag context)> Stored { get; } = new();
+        public List<(OutboxMessage outboxMessage, IOutboxTransaction transaction, ContextBag context)> Stored { get; } = [];
         public Action<OutboxMessage, IOutboxTransaction, ContextBag> StoreCallback { get; set; } = null;
 
-        public List<FakeOutboxTransaction> StartedTransactions { get; } = new();
+        public List<FakeOutboxTransaction> StartedTransactions { get; } = [];
 
         public Task<OutboxMessage> Get(string messageId, ContextBag context, CancellationToken cancellationToken = new CancellationToken()) => throw new NotImplementedException();
 
