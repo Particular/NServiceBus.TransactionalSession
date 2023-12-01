@@ -9,12 +9,21 @@ namespace NServiceBus.TransactionalSession
     {
         public async Task Invoke(IInvokeHandlerContext context, Func<IInvokeHandlerContext, Task> next)
         {
+            var invocationState = context.Extensions.Get<TrackInvocationStateBehavior.InvocationState>();
             var transactionalSession = context.Builder.GetRequiredService<ITransactionalSession>();
-            await transactionalSession.Open(new PipelineAwareSessionOptions(context), context.CancellationToken).ConfigureAwait(false);
+            if (invocationState.ShouldOpen)
+            {
+                await transactionalSession.Open(new PipelineAwareSessionOptions(context), context.CancellationToken).ConfigureAwait(false);
+            }
 
             await next(context).ConfigureAwait(false);
 
-            await transactionalSession.Commit(context.CancellationToken).ConfigureAwait(false);
+            invocationState.Invoked();
+
+            if (invocationState.ShouldCommit)
+            {
+                await transactionalSession.Commit(context.CancellationToken).ConfigureAwait(false);
+            }
         }
     }
 }

@@ -7,6 +7,7 @@
     using Outbox;
     using Persistence;
     using Transport;
+    using Unicast;
 
     /// <summary>
     /// Provides <see cref="ITransactionalSession" /> integration feature.
@@ -73,6 +74,7 @@
 
             context.Pipeline.Register(new PipelineIndicatorBehavior(), "Indicates that a pipeline is currently executing.");
             context.Pipeline.Register(new AttachInvokeHandlerContextBehavior(), "Attaches the handler context to the transactional session to auto open it.");
+            context.Pipeline.Register(p => new TrackInvocationStateBehavior(p.GetRequiredService<MessageHandlerRegistry>()), "Attaches the handler context to the transactional session to auto open it.");
 
             if (!informationHolder.IsOutboxEnabled)
             {
