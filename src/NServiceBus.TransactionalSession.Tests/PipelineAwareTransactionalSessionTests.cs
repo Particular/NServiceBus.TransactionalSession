@@ -34,6 +34,20 @@
         }
 
         [Test]
+        public void Open_should_throw_if_attempted_to_open_manually()
+        {
+            using var session = new PipelineAwareTransactionalSession(Enumerable.Empty<IOpenSessionOptionsCustomization>());
+
+            var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Open(new CustomSessionOptions()));
+
+            StringAssert.Contains("This session lifetime is automatically managed by the pipeline and doesn't have to be opened manually.", exception.Message);
+        }
+
+        sealed class CustomSessionOptions : OpenSessionOptions
+        {
+        }
+
+        [Test]
         public async Task Send_should_send_via_context()
         {
             var testableHandlerContext = new TestableInvokeHandlerContext();
