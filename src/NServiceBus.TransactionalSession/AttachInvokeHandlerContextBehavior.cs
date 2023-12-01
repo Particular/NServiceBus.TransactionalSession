@@ -18,9 +18,7 @@ namespace NServiceBus.TransactionalSession
 
             await next(context).ConfigureAwait(false);
 
-            invocationState.Invoked();
-
-            if (invocationState.ShouldCommit)
+            if (invocationState.Invoked())
             {
                 await transactionalSession.Commit(context.CancellationToken).ConfigureAwait(false);
             }

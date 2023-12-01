@@ -21,12 +21,11 @@ namespace NServiceBus.TransactionalSession
         internal sealed class InvocationState(int numberOfHandlersCounter)
         {
             public bool ShouldOpen => NumberOfInvocations == NumberOfHandlersCounter;
-            public bool ShouldCommit => NumberOfInvocations == 0;
 
             int NumberOfHandlersCounter { get; } = numberOfHandlersCounter;
             int NumberOfInvocations { get; set; } = numberOfHandlersCounter;
 
-            public void Invoked() => NumberOfInvocations--;
+            public bool Invoked() => NumberOfInvocations-- == 0;
         }
     }
 }
