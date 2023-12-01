@@ -30,7 +30,7 @@
 
             var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Open(new PipelineAwareSessionOptions(testableHandlerContext)));
 
-            StringAssert.Contains($"This session is already open. {nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)} should only be called once.", exception.Message);
+            StringAssert.Contains($"This session is already open. `{nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)}` should only be called once.", exception.Message);
         }
 
         [Test]
@@ -133,7 +133,7 @@
 
             var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Commit());
 
-            StringAssert.Contains($"This session has already been committed. Complete all session operations before calling `Commit` or use a new session.", exception.Message);
+            StringAssert.Contains($"This session has already been committed. Complete all session operations before calling `ITransactionalSession.Commit` or use a new session.", exception.Message);
         }
 
         [Test]

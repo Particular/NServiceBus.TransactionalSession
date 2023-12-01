@@ -51,13 +51,13 @@ namespace NServiceBus.TransactionalSession
 
             if (IsOpen)
             {
-                throw new InvalidOperationException($"This session is already open. {nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)} should only be called once.");
+                throw new InvalidOperationException($"This session is already open. `{nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)}` should only be called once.");
             }
 
             if (options is not PipelineAwareSessionOptions pipelineAwareSessionOptions)
             {
                 throw new InvalidOperationException(
-                    $"This session lifetime is automatically managed by the pipeline and doesn't have to be opened manually. Remove any custom calls to '{nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)}'.");
+                    $"This session lifetime is automatically managed by the pipeline and doesn't have to be opened manually. Remove any custom calls to `{nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)}`.");
             }
 
             pipelineContext = pipelineAwareSessionOptions.PipelineContext;
@@ -154,7 +154,7 @@ namespace NServiceBus.TransactionalSession
         {
             if (committed)
             {
-                throw new InvalidOperationException("This session has already been committed. Complete all session operations before calling `Commit` or use a new session.");
+                throw new InvalidOperationException($"This session has already been committed. Complete all session operations before calling `{nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Commit)}` or use a new session.");
             }
         }
 
