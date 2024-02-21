@@ -7,13 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NServiceBus" Version="9.0.0-alpha.9" />
+    <PackageReference Include="NServiceBus" Version="[9.0.0, 10.0.0)" />
     <PackageReference Include="Particular.Packaging" Version="4.0.0" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="NServiceBus.TransactionalSession.Tests" Key="$(NServiceBusTestsKey)" />
     <InternalsVisibleTo Include="NServiceBus.TransactionalSession.AcceptanceTests" Key="$(NServiceBusTestsKey)" />
+    <InternalsVisibleTo Include="NServiceBus.TransactionalSession.Tests" Key="$(NServiceBusTestsKey)" />
   </ItemGroup>
 
 </Project>
