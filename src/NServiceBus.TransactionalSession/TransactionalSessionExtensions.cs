@@ -17,8 +17,8 @@
         /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe.</param>
         public static Task Send(this ITransactionalSession session, object message, CancellationToken cancellationToken = default)
         {
-            Guard.AgainstNull(nameof(session), session);
-            Guard.AgainstNull(nameof(message), message);
+            ArgumentNullException.ThrowIfNull(session);
+            ArgumentNullException.ThrowIfNull(message);
 
             return session.Send(message, new SendOptions(), cancellationToken);
         }
@@ -35,8 +35,8 @@
         /// </remarks>
         public static Task Send<T>(this ITransactionalSession session, Action<T> messageConstructor, CancellationToken cancellationToken = default)
         {
-            Guard.AgainstNull(nameof(session), session);
-            Guard.AgainstNull(nameof(messageConstructor), messageConstructor);
+            ArgumentNullException.ThrowIfNull(session);
+            ArgumentNullException.ThrowIfNull(messageConstructor);
 
             return session.Send(messageConstructor, new SendOptions(), cancellationToken);
         }
@@ -50,9 +50,9 @@
         /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe.</param>
         public static Task Send(this ITransactionalSession session, string destination, object message, CancellationToken cancellationToken = default)
         {
-            Guard.AgainstNull(nameof(session), session);
-            Guard.AgainstNullAndEmpty(nameof(destination), destination);
-            Guard.AgainstNull(nameof(message), message);
+            ArgumentNullException.ThrowIfNull(session);
+            ArgumentException.ThrowIfNullOrWhiteSpace(destination);
+            ArgumentNullException.ThrowIfNull(message);
 
             var options = new SendOptions();
 
@@ -71,9 +71,9 @@
         /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe.</param>
         public static Task Send<T>(this ITransactionalSession session, string destination, Action<T> messageConstructor, CancellationToken cancellationToken = default)
         {
-            Guard.AgainstNull(nameof(session), session);
-            Guard.AgainstNullAndEmpty(nameof(destination), destination);
-            Guard.AgainstNull(nameof(messageConstructor), messageConstructor);
+            ArgumentNullException.ThrowIfNull(session);
+            ArgumentException.ThrowIfNullOrWhiteSpace(destination);
+            ArgumentNullException.ThrowIfNull(messageConstructor);
 
             var options = new SendOptions();
 
@@ -90,8 +90,8 @@
         /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe.</param>
         public static Task SendLocal(this ITransactionalSession session, object message, CancellationToken cancellationToken = default)
         {
-            Guard.AgainstNull(nameof(session), session);
-            Guard.AgainstNull(nameof(message), message);
+            ArgumentNullException.ThrowIfNull(session);
+            ArgumentNullException.ThrowIfNull(message);
 
             var options = new SendOptions();
 
@@ -109,8 +109,8 @@
         /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe.</param>
         public static Task SendLocal<T>(this ITransactionalSession session, Action<T> messageConstructor, CancellationToken cancellationToken = default)
         {
-            Guard.AgainstNull(nameof(session), session);
-            Guard.AgainstNull(nameof(messageConstructor), messageConstructor);
+            ArgumentNullException.ThrowIfNull(session);
+            ArgumentNullException.ThrowIfNull(messageConstructor);
 
             var options = new SendOptions();
 
@@ -127,8 +127,8 @@
         /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe.</param>
         public static Task Publish(this ITransactionalSession session, object message, CancellationToken cancellationToken = default)
         {
-            Guard.AgainstNull(nameof(session), session);
-            Guard.AgainstNull(nameof(message), message);
+            ArgumentNullException.ThrowIfNull(session);
+            ArgumentNullException.ThrowIfNull(message);
 
             return session.Publish(message, new PublishOptions(), cancellationToken);
         }
@@ -141,7 +141,7 @@
         /// <typeparam name="T">The message type.</typeparam>
         public static Task Publish<T>(this ITransactionalSession session, CancellationToken cancellationToken = default)
         {
-            Guard.AgainstNull(nameof(session), session);
+            ArgumentNullException.ThrowIfNull(session);
 
             return session.Publish<T>(_ => { }, new PublishOptions(), cancellationToken);
         }
@@ -155,8 +155,8 @@
         /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe.</param>
         public static Task Publish<T>(this ITransactionalSession session, Action<T> messageConstructor, CancellationToken cancellationToken = default)
         {
-            Guard.AgainstNull(nameof(session), session);
-            Guard.AgainstNull(nameof(messageConstructor), messageConstructor);
+            ArgumentNullException.ThrowIfNull(session);
+            ArgumentNullException.ThrowIfNull(messageConstructor);
 
             return session.Publish(messageConstructor, new PublishOptions(), cancellationToken);
         }
