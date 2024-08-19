@@ -30,7 +30,7 @@
 
             var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Open(new FakeOpenSessionOptions()));
 
-            StringAssert.Contains($"This session is already open. {nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)} should only be called once.", exception.Message);
+            Assert.That(exception.Message, Does.Contain($"This session is already open. {nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)} should only be called once."));
         }
 
         [Test]
@@ -87,7 +87,7 @@
 
             var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Send(new object()));
 
-            StringAssert.Contains("This session has not been opened yet.", exception.Message);
+            Assert.That(exception.Message, Does.Contain("This session has not been opened yet."));
             Assert.That(messageSession.SentMessages, Is.Empty);
         }
 
@@ -99,7 +99,7 @@
 
             var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Publish(new object()));
 
-            StringAssert.Contains("This session has not been opened yet.", exception.Message);
+            Assert.That(exception.Message, Does.Contain("This session has not been opened yet."));
             Assert.That(messageSession.PublishedMessages, Is.Empty);
         }
 

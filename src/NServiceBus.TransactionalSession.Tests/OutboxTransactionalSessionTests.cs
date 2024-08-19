@@ -30,7 +30,7 @@
 
             var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Open(new FakeOpenSessionOptions()));
 
-            StringAssert.Contains($"This session is already open. {nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)} should only be called once.", exception.Message);
+            Assert.That(exception.Message, Does.Contain($"This session is already open. {nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)} should only be called once."));
         }
 
         [Test]
@@ -95,7 +95,7 @@
 
             var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Send(new object()));
 
-            StringAssert.Contains("This session has not been opened yet.", exception.Message);
+            Assert.That(exception.Message, Does.Contain("This session has not been opened yet."));
             Assert.That(messageSession.SentMessages, Is.Empty);
         }
 
@@ -107,7 +107,7 @@
 
             var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Publish(new object()));
 
-            StringAssert.Contains("This session has not been opened yet.", exception.Message);
+            Assert.That(exception.Message, Does.Contain("This session has not been opened yet."));
             Assert.That(messageSession.PublishedMessages, Is.Empty);
         }
 
@@ -267,13 +267,13 @@
             await session.Commit();
 
             var openException = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Open(new FakeOpenSessionOptions()));
-            StringAssert.Contains("This session has already been committed. Complete all session operations before calling `Commit` or use a new session.", openException.Message);
+            Assert.That(openException.Message, Does.Contain("This session has already been committed. Complete all session operations before calling `Commit` or use a new session."));
             var sendException = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Send(new object()));
-            StringAssert.Contains("This session has already been committed. Complete all session operations before calling `Commit` or use a new session.", sendException.Message);
+            Assert.That(sendException.Message, Does.Contain("This session has already been committed. Complete all session operations before calling `Commit` or use a new session."));
             var publishException = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Publish(new object()));
-            StringAssert.Contains("This session has already been committed. Complete all session operations before calling `Commit` or use a new session.", publishException.Message);
+            Assert.That(publishException.Message, Does.Contain("This session has already been committed. Complete all session operations before calling `Commit` or use a new session."));
             var commitException = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Commit());
-            StringAssert.Contains("This session has already been committed. Complete all session operations before calling `Commit` or use a new session.", commitException.Message);
+            Assert.That(commitException.Message, Does.Contain("This session has already been committed. Complete all session operations before calling `Commit` or use a new session."));
         }
 
         [Test]
