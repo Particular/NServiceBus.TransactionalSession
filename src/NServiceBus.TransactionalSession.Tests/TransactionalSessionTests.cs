@@ -43,10 +43,16 @@
             var options = new FakeOpenSessionOptions();
             await session.Open(options);
 
-            Assert.That(synchronizedStorageSession.OpenedOutboxTransactionSessions, Is.Empty);
-            Assert.That(synchronizedStorageSession.OpenedTransactionSessions.Count, Is.EqualTo(1));
-            Assert.That(synchronizedStorageSession.OpenedTransactionSessions.Single(), Is.EqualTo(options.Extensions));
-            Assert.That(session.SynchronizedStorageSession, Is.EqualTo(synchronizedStorageSession));
+            Assert.Multiple(() =>
+            {
+                Assert.That(synchronizedStorageSession.OpenedOutboxTransactionSessions, Is.Empty);
+                Assert.That(synchronizedStorageSession.OpenedTransactionSessions.Count, Is.EqualTo(1));
+            });
+            Assert.Multiple(() =>
+            {
+                Assert.That(synchronizedStorageSession.OpenedTransactionSessions.Single(), Is.EqualTo(options.Extensions));
+                Assert.That(session.SynchronizedStorageSession, Is.EqualTo(synchronizedStorageSession));
+            });
         }
 
         [Test]
@@ -116,10 +122,13 @@
             var dispatched = dispatcher.Dispatched.Single();
             Assert.That(dispatched.outgoingMessages.UnicastTransportOperations.Count, Is.EqualTo(1));
             var dispatchedMessage = dispatched.outgoingMessages.UnicastTransportOperations.Single();
-            Assert.That(dispatchedMessage.Message.MessageId, Is.EqualTo(messageId));
-            Assert.That(dispatchedMessage.Message.Headers.ContainsKey(Headers.ControlMessageHeader), Is.False);
+            Assert.Multiple(() =>
+            {
+                Assert.That(dispatchedMessage.Message.MessageId, Is.EqualTo(messageId));
+                Assert.That(dispatchedMessage.Message.Headers.ContainsKey(Headers.ControlMessageHeader), Is.False);
 
-            Assert.That(synchronizableSession.Completed, Is.True);
+                Assert.That(synchronizableSession.Completed, Is.True);
+            });
         }
 
         [Test]

@@ -38,10 +38,13 @@
 
             Assert.That(context.MessageReceived, Is.False, "message should never be dispatched");
             var failedMessage = context.FailedMessages.Single().Value.Single();
-            // message should fail because it can't create an outbox record for the control message since the sender has already created the record and this causes a concurrency exception
-            // once the failed control message retries, the outbox record should be correctly found by the storage and the contained messages will be dispatched.
-            Assert.That(failedMessage.Exception.Message, Is.EqualTo($"Outbox message with id '{context.TransactionalSessionId}' is already present in storage."));
-            Assert.That(failedMessage.MessageId, Is.EqualTo(context.TransactionalSessionId));
+            Assert.Multiple(() =>
+            {
+                // message should fail because it can't create an outbox record for the control message since the sender has already created the record and this causes a concurrency exception
+                // once the failed control message retries, the outbox record should be correctly found by the storage and the contained messages will be dispatched.
+                Assert.That(failedMessage.Exception.Message, Is.EqualTo($"Outbox message with id '{context.TransactionalSessionId}' is already present in storage."));
+                Assert.That(failedMessage.MessageId, Is.EqualTo(context.TransactionalSessionId));
+            });
 
         }
 

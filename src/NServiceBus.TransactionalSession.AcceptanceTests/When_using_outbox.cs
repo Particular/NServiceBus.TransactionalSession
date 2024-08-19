@@ -48,8 +48,11 @@
                 .Done(c => c.CompleteMessageReceived)
                 .Run();
 
-            Assert.That(result.CompleteMessageReceived, Is.True);
-            Assert.That(result.MessageReceived, Is.False);
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.CompleteMessageReceived, Is.True);
+                Assert.That(result.MessageReceived, Is.False);
+            });
         }
 
         [Test]
@@ -98,8 +101,11 @@
                     .Done(c => c.EndpointsStarted)
                     .Run();
 
-            Assert.That(result.AmbientTransactionFoundBeforeAwait, Is.True, "The ambient transaction was not visible before the await");
-            Assert.That(result.AmbientTransactionFoundAfterAwait, Is.True, "The ambient transaction was not visible after the await");
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.AmbientTransactionFoundBeforeAwait, Is.True, "The ambient transaction was not visible before the await");
+                Assert.That(result.AmbientTransactionFoundAfterAwait, Is.True, "The ambient transaction was not visible after the await");
+            });
         }
 
         class Context : ScenarioContext, IInjectServiceProvider

@@ -24,8 +24,11 @@
                 return Task.CompletedTask;
             });
 
-            Assert.That(continued, Is.True);
-            Assert.That(dispatcher.Dispatched, Is.Empty);
+            Assert.Multiple(() =>
+            {
+                Assert.That(continued, Is.True);
+                Assert.That(dispatcher.Dispatched, Is.Empty);
+            });
         }
 
         [Test]
@@ -45,8 +48,11 @@
                 return Task.CompletedTask;
             });
 
-            Assert.That(continued, Is.False, "should not continue pipeline");
-            Assert.That(dispatcher.Dispatched, Is.Empty);
+            Assert.Multiple(() =>
+            {
+                Assert.That(continued, Is.False, "should not continue pipeline");
+                Assert.That(dispatcher.Dispatched, Is.Empty);
+            });
         }
 
         [Test]
@@ -69,16 +75,22 @@
                 return Task.CompletedTask;
             }));
 
-            Assert.That(continued, Is.False, "should not continue pipeline");
-            Assert.That(dispatcher.Dispatched, Is.Not.Empty);
+            Assert.Multiple(() =>
+            {
+                Assert.That(continued, Is.False, "should not continue pipeline");
+                Assert.That(dispatcher.Dispatched, Is.Not.Empty);
+            });
 
             var controlMessage = dispatcher.Dispatched.Single().outgoingMessages.UnicastTransportOperations.Single();
-            Assert.That(controlMessage.Destination, Is.EqualTo(queueAddress));
-            Assert.That(controlMessage.RequiredDispatchConsistency, Is.EqualTo(DispatchConsistency.Isolated));
-            Assert.That(controlMessage.Properties.DelayDeliveryWith.Delay, Is.EqualTo(TimeSpan.FromSeconds(20)));
-            Assert.That(controlMessage.Message.MessageId, Is.EqualTo(messageContext.MessageId));
-            Assert.That(controlMessage.Message.Body.Length, Is.EqualTo(0));
-            Assert.That(controlMessage.Message.Headers["custom-header-key"], Is.EqualTo("custom-header-value"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(controlMessage.Destination, Is.EqualTo(queueAddress));
+                Assert.That(controlMessage.RequiredDispatchConsistency, Is.EqualTo(DispatchConsistency.Isolated));
+                Assert.That(controlMessage.Properties.DelayDeliveryWith.Delay, Is.EqualTo(TimeSpan.FromSeconds(20)));
+                Assert.That(controlMessage.Message.MessageId, Is.EqualTo(messageContext.MessageId));
+                Assert.That(controlMessage.Message.Body.Length, Is.EqualTo(0));
+                Assert.That(controlMessage.Message.Headers["custom-header-key"], Is.EqualTo("custom-header-value"));
+            });
 
         }
     }

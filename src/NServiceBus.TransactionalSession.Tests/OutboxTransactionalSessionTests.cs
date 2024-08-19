@@ -43,8 +43,11 @@
 
             await session.Open(new FakeOpenSessionOptions());
 
-            Assert.That(outboxStorage.StartedTransactions.Single(), Is.SameAs(synchronizedStorageSession.OpenedOutboxTransactionSessions.Single().Item1));
-            Assert.That(session.SynchronizedStorageSession, Is.EqualTo(synchronizedStorageSession));
+            Assert.Multiple(() =>
+            {
+                Assert.That(outboxStorage.StartedTransactions.Single(), Is.SameAs(synchronizedStorageSession.OpenedOutboxTransactionSessions.Single().Item1));
+                Assert.That(session.SynchronizedStorageSession, Is.EqualTo(synchronizedStorageSession));
+            });
         }
 
         [Test]
@@ -130,23 +133,32 @@
             var dispatched = dispatcher.Dispatched.Single();
             Assert.That(dispatched.outgoingMessages.UnicastTransportOperations.Count, Is.EqualTo(1));
             var controlMessage = dispatched.outgoingMessages.UnicastTransportOperations.Single();
-            Assert.That(controlMessage.Message.MessageId, Is.EqualTo(session.SessionId));
-            Assert.That(controlMessage.Message.Headers[Headers.ControlMessageHeader], Is.EqualTo(bool.TrueString));
-            Assert.That(controlMessage.Message.Body.IsEmpty, Is.True);
-            Assert.That(controlMessage.Destination, Is.EqualTo(queueAddress));
+            Assert.Multiple(() =>
+            {
+                Assert.That(controlMessage.Message.MessageId, Is.EqualTo(session.SessionId));
+                Assert.That(controlMessage.Message.Headers[Headers.ControlMessageHeader], Is.EqualTo(bool.TrueString));
+                Assert.That(controlMessage.Message.Body.IsEmpty, Is.True);
+                Assert.That(controlMessage.Destination, Is.EqualTo(queueAddress));
 
-            Assert.That(outboxStorage.Stored.Count, Is.EqualTo(1));
+                Assert.That(outboxStorage.Stored.Count, Is.EqualTo(1));
+            });
             var outboxRecord = outboxStorage.Stored.Single();
-            Assert.That(outboxRecord.outboxMessage.MessageId, Is.EqualTo(session.SessionId));
-            Assert.That(outboxRecord.transaction, Is.EqualTo(outboxStorage.StartedTransactions.Single()));
+            Assert.Multiple(() =>
+            {
+                Assert.That(outboxRecord.outboxMessage.MessageId, Is.EqualTo(session.SessionId));
+                Assert.That(outboxRecord.transaction, Is.EqualTo(outboxStorage.StartedTransactions.Single()));
 
-            Assert.That(outboxRecord.outboxMessage.TransportOperations.Length, Is.EqualTo(1));
+                Assert.That(outboxRecord.outboxMessage.TransportOperations.Length, Is.EqualTo(1));
+            });
             var outboxMessage = outboxRecord.outboxMessage.TransportOperations.Single();
-            Assert.That(outboxMessage.MessageId, Is.EqualTo(messageId));
+            Assert.Multiple(() =>
+            {
+                Assert.That(outboxMessage.MessageId, Is.EqualTo(messageId));
 
-            Assert.That(synchronizedSession.Completed, Is.True);
-            Assert.That(synchronizedSession.Disposed, Is.True);
-            Assert.That(outboxStorage.StartedTransactions.Single().Committed, Is.True);
+                Assert.That(synchronizedSession.Completed, Is.True);
+                Assert.That(synchronizedSession.Disposed, Is.True);
+                Assert.That(outboxStorage.StartedTransactions.Single().Committed, Is.True);
+            });
         }
 
         [Test]
@@ -166,8 +178,11 @@
             var dispatched = dispatcher.Dispatched.Single();
             Assert.That(dispatched.outgoingMessages.UnicastTransportOperations.Count, Is.EqualTo(1));
             var controlMessage = dispatched.outgoingMessages.UnicastTransportOperations.Single();
-            Assert.That(controlMessage.Message.MessageId, Is.EqualTo(session.SessionId));
-            Assert.That(controlMessage.Message.Headers[Headers.ControlMessageHeader], Is.EqualTo(bool.TrueString));
+            Assert.Multiple(() =>
+            {
+                Assert.That(controlMessage.Message.MessageId, Is.EqualTo(session.SessionId));
+                Assert.That(controlMessage.Message.Headers[Headers.ControlMessageHeader], Is.EqualTo(bool.TrueString));
+            });
 
             var outboxTransaction = outboxStorage.StartedTransactions.Single();
             Assert.That(outboxTransaction.Committed, Is.False, "should not have committed outbox operations");
@@ -187,8 +202,11 @@
             Assert.ThrowsAsync<Exception>(async () => await session.Commit());
 
             var outboxTransaction = outboxStorage.StartedTransactions.Single();
-            Assert.That(completableSynchronizedStorageSession.Completed, Is.True, "should have completed synchronized storage session to match the receive pipeline behavior");
-            Assert.That(outboxTransaction.Committed, Is.False, "should not have committed outbox operations");
+            Assert.Multiple(() =>
+            {
+                Assert.That(completableSynchronizedStorageSession.Completed, Is.True, "should have completed synchronized storage session to match the receive pipeline behavior");
+                Assert.That(outboxTransaction.Committed, Is.False, "should not have committed outbox operations");
+            });
         }
 
         [Test]
@@ -214,12 +232,15 @@
             await session.Commit();
 
             var controlMessage = dispatcher.Dispatched.Single().outgoingMessages.UnicastTransportOperations.Single();
-            Assert.That(controlMessage.Message.MessageId, Is.EqualTo(session.SessionId));
-            Assert.That(controlMessage.Message.Headers[Headers.ControlMessageHeader], Is.EqualTo(bool.TrueString));
-            Assert.That(controlMessage.Message.Headers[OutboxTransactionalSession.CommitDelayIncrementHeaderName], Is.EqualTo(expectedDelayIncrement.ToString("c")));
-            Assert.That(controlMessage.Message.Headers[OutboxTransactionalSession.RemainingCommitDurationHeaderName], Is.EqualTo(expectedMaximumCommitDuration.ToString("c")));
-            Assert.That(controlMessage.Message.Headers["metadata-key"], Is.EqualTo(expectedMetadataValue), "metadata should be propagated to headers");
-            Assert.That(controlMessage.Message.Headers.ContainsKey("extensions-key"), Is.False, "extensions should not be propagated to headers");
+            Assert.Multiple(() =>
+            {
+                Assert.That(controlMessage.Message.MessageId, Is.EqualTo(session.SessionId));
+                Assert.That(controlMessage.Message.Headers[Headers.ControlMessageHeader], Is.EqualTo(bool.TrueString));
+                Assert.That(controlMessage.Message.Headers[OutboxTransactionalSession.CommitDelayIncrementHeaderName], Is.EqualTo(expectedDelayIncrement.ToString("c")));
+                Assert.That(controlMessage.Message.Headers[OutboxTransactionalSession.RemainingCommitDurationHeaderName], Is.EqualTo(expectedMaximumCommitDuration.ToString("c")));
+                Assert.That(controlMessage.Message.Headers["metadata-key"], Is.EqualTo(expectedMetadataValue), "metadata should be propagated to headers");
+                Assert.That(controlMessage.Message.Headers.ContainsKey("extensions-key"), Is.False, "extensions should not be propagated to headers");
+            });
         }
 
         [Test]
@@ -266,8 +287,11 @@
 
             session.Dispose();
 
-            Assert.That(outboxStorage.StartedTransactions.Single().Disposed, Is.True);
-            Assert.That(synchronizedStorageSession.Disposed, Is.True);
+            Assert.Multiple(() =>
+            {
+                Assert.That(outboxStorage.StartedTransactions.Single().Disposed, Is.True);
+                Assert.That(synchronizedStorageSession.Disposed, Is.True);
+            });
         }
     }
 }
