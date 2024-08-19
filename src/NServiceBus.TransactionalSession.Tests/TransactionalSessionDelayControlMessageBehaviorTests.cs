@@ -73,12 +73,12 @@
             Assert.IsNotEmpty(dispatcher.Dispatched);
 
             var controlMessage = dispatcher.Dispatched.Single().outgoingMessages.UnicastTransportOperations.Single();
-            Assert.AreEqual(queueAddress, controlMessage.Destination);
-            Assert.AreEqual(DispatchConsistency.Isolated, controlMessage.RequiredDispatchConsistency);
-            Assert.AreEqual(TimeSpan.FromSeconds(20), controlMessage.Properties.DelayDeliveryWith.Delay);
-            Assert.AreEqual(messageContext.MessageId, controlMessage.Message.MessageId);
-            Assert.AreEqual(0, controlMessage.Message.Body.Length);
-            Assert.AreEqual("custom-header-value", controlMessage.Message.Headers["custom-header-key"]);
+            Assert.That(controlMessage.Destination, Is.EqualTo(queueAddress));
+            Assert.That(controlMessage.RequiredDispatchConsistency, Is.EqualTo(DispatchConsistency.Isolated));
+            Assert.That(controlMessage.Properties.DelayDeliveryWith.Delay, Is.EqualTo(TimeSpan.FromSeconds(20)));
+            Assert.That(controlMessage.Message.MessageId, Is.EqualTo(messageContext.MessageId));
+            Assert.That(controlMessage.Message.Body.Length, Is.EqualTo(0));
+            Assert.That(controlMessage.Message.Headers["custom-header-key"], Is.EqualTo("custom-header-value"));
 
         }
     }

@@ -18,7 +18,7 @@
             var openOptions = new FakeOpenSessionOptions();
             await session.Open(openOptions);
 
-            Assert.AreEqual(openOptions.SessionId, session.SessionId);
+            Assert.That(session.SessionId, Is.EqualTo(openOptions.SessionId));
         }
 
         [Test]
@@ -44,7 +44,7 @@
             await session.Open(new FakeOpenSessionOptions());
 
             Assert.AreSame(synchronizedStorageSession.OpenedOutboxTransactionSessions.Single().Item1, outboxStorage.StartedTransactions.Single());
-            Assert.AreEqual(synchronizedStorageSession, session.SynchronizedStorageSession);
+            Assert.That(session.SynchronizedStorageSession, Is.EqualTo(synchronizedStorageSession));
         }
 
         [Test]
@@ -57,7 +57,7 @@
 
             var exception = Assert.ThrowsAsync<Exception>(async () => await session.Open(new FakeOpenSessionOptions()));
 
-            Assert.AreEqual("Outbox and synchronized storage persister are not compatible.", exception.Message);
+            Assert.That(exception.Message, Is.EqualTo("Outbox and synchronized storage persister are not compatible."));
         }
 
         [Test]
@@ -126,23 +126,23 @@
             await session.Send(new object(), sendOptions);
             await session.Commit();
 
-            Assert.AreEqual(1, dispatcher.Dispatched.Count, "should have dispatched control message");
+            Assert.That(dispatcher.Dispatched.Count, Is.EqualTo(1), "should have dispatched control message");
             var dispatched = dispatcher.Dispatched.Single();
-            Assert.AreEqual(1, dispatched.outgoingMessages.UnicastTransportOperations.Count);
+            Assert.That(dispatched.outgoingMessages.UnicastTransportOperations.Count, Is.EqualTo(1));
             var controlMessage = dispatched.outgoingMessages.UnicastTransportOperations.Single();
-            Assert.AreEqual(session.SessionId, controlMessage.Message.MessageId);
-            Assert.AreEqual(bool.TrueString, controlMessage.Message.Headers[Headers.ControlMessageHeader]);
+            Assert.That(controlMessage.Message.MessageId, Is.EqualTo(session.SessionId));
+            Assert.That(controlMessage.Message.Headers[Headers.ControlMessageHeader], Is.EqualTo(bool.TrueString));
             Assert.That(controlMessage.Message.Body.IsEmpty, Is.True);
-            Assert.AreEqual(queueAddress, controlMessage.Destination);
+            Assert.That(controlMessage.Destination, Is.EqualTo(queueAddress));
 
-            Assert.AreEqual(1, outboxStorage.Stored.Count);
+            Assert.That(outboxStorage.Stored.Count, Is.EqualTo(1));
             var outboxRecord = outboxStorage.Stored.Single();
-            Assert.AreEqual(session.SessionId, outboxRecord.outboxMessage.MessageId);
-            Assert.AreEqual(outboxStorage.StartedTransactions.Single(), outboxRecord.transaction);
+            Assert.That(outboxRecord.outboxMessage.MessageId, Is.EqualTo(session.SessionId));
+            Assert.That(outboxRecord.transaction, Is.EqualTo(outboxStorage.StartedTransactions.Single()));
 
-            Assert.AreEqual(1, outboxRecord.outboxMessage.TransportOperations.Length);
+            Assert.That(outboxRecord.outboxMessage.TransportOperations.Length, Is.EqualTo(1));
             var outboxMessage = outboxRecord.outboxMessage.TransportOperations.Single();
-            Assert.AreEqual(messageId, outboxMessage.MessageId);
+            Assert.That(outboxMessage.MessageId, Is.EqualTo(messageId));
 
             Assert.That(synchronizedSession.Completed, Is.True);
             Assert.That(synchronizedSession.Disposed, Is.True);
@@ -162,12 +162,12 @@
             await session.Send(new object());
             Assert.ThrowsAsync<Exception>(async () => await session.Commit());
 
-            Assert.AreEqual(1, dispatcher.Dispatched.Count, "should have dispatched control message");
+            Assert.That(dispatcher.Dispatched.Count, Is.EqualTo(1), "should have dispatched control message");
             var dispatched = dispatcher.Dispatched.Single();
-            Assert.AreEqual(1, dispatched.outgoingMessages.UnicastTransportOperations.Count);
+            Assert.That(dispatched.outgoingMessages.UnicastTransportOperations.Count, Is.EqualTo(1));
             var controlMessage = dispatched.outgoingMessages.UnicastTransportOperations.Single();
-            Assert.AreEqual(session.SessionId, controlMessage.Message.MessageId);
-            Assert.AreEqual(bool.TrueString, controlMessage.Message.Headers[Headers.ControlMessageHeader]);
+            Assert.That(controlMessage.Message.MessageId, Is.EqualTo(session.SessionId));
+            Assert.That(controlMessage.Message.Headers[Headers.ControlMessageHeader], Is.EqualTo(bool.TrueString));
 
             var outboxTransaction = outboxStorage.StartedTransactions.Single();
             Assert.That(outboxTransaction.Committed, Is.False, "should not have committed outbox operations");
@@ -214,11 +214,11 @@
             await session.Commit();
 
             var controlMessage = dispatcher.Dispatched.Single().outgoingMessages.UnicastTransportOperations.Single();
-            Assert.AreEqual(session.SessionId, controlMessage.Message.MessageId);
-            Assert.AreEqual(bool.TrueString, controlMessage.Message.Headers[Headers.ControlMessageHeader]);
-            Assert.AreEqual(expectedDelayIncrement.ToString("c"), controlMessage.Message.Headers[OutboxTransactionalSession.CommitDelayIncrementHeaderName]);
-            Assert.AreEqual(expectedMaximumCommitDuration.ToString("c"), controlMessage.Message.Headers[OutboxTransactionalSession.RemainingCommitDurationHeaderName]);
-            Assert.AreEqual(expectedMetadataValue, controlMessage.Message.Headers["metadata-key"], "metadata should be propagated to headers");
+            Assert.That(controlMessage.Message.MessageId, Is.EqualTo(session.SessionId));
+            Assert.That(controlMessage.Message.Headers[Headers.ControlMessageHeader], Is.EqualTo(bool.TrueString));
+            Assert.That(controlMessage.Message.Headers[OutboxTransactionalSession.CommitDelayIncrementHeaderName], Is.EqualTo(expectedDelayIncrement.ToString("c")));
+            Assert.That(controlMessage.Message.Headers[OutboxTransactionalSession.RemainingCommitDurationHeaderName], Is.EqualTo(expectedMaximumCommitDuration.ToString("c")));
+            Assert.That(controlMessage.Message.Headers["metadata-key"], Is.EqualTo(expectedMetadataValue), "metadata should be propagated to headers");
             Assert.That(controlMessage.Message.Headers.ContainsKey("extensions-key"), Is.False, "extensions should not be propagated to headers");
         }
 

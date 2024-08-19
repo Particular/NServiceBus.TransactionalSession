@@ -18,7 +18,7 @@
             var openOptions = new FakeOpenSessionOptions();
             await session.Open(openOptions);
 
-            Assert.AreEqual(openOptions.SessionId, session.SessionId);
+            Assert.That(session.SessionId, Is.EqualTo(openOptions.SessionId));
         }
 
         [Test]
@@ -44,9 +44,9 @@
             await session.Open(options);
 
             Assert.IsEmpty(synchronizedStorageSession.OpenedOutboxTransactionSessions);
-            Assert.AreEqual(1, synchronizedStorageSession.OpenedTransactionSessions.Count);
-            Assert.AreEqual(options.Extensions, synchronizedStorageSession.OpenedTransactionSessions.Single());
-            Assert.AreEqual(synchronizedStorageSession, session.SynchronizedStorageSession);
+            Assert.That(synchronizedStorageSession.OpenedTransactionSessions.Count, Is.EqualTo(1));
+            Assert.That(synchronizedStorageSession.OpenedTransactionSessions.Single(), Is.EqualTo(options.Extensions));
+            Assert.That(session.SynchronizedStorageSession, Is.EqualTo(synchronizedStorageSession));
         }
 
         [Test]
@@ -112,11 +112,11 @@
             await session.Send(messageObj, sendOptions);
             await session.Commit();
 
-            Assert.AreEqual(1, dispatcher.Dispatched.Count, "should have dispatched message");
+            Assert.That(dispatcher.Dispatched.Count, Is.EqualTo(1), "should have dispatched message");
             var dispatched = dispatcher.Dispatched.Single();
-            Assert.AreEqual(1, dispatched.outgoingMessages.UnicastTransportOperations.Count);
+            Assert.That(dispatched.outgoingMessages.UnicastTransportOperations.Count, Is.EqualTo(1));
             var dispatchedMessage = dispatched.outgoingMessages.UnicastTransportOperations.Single();
-            Assert.AreEqual(messageId, dispatchedMessage.Message.MessageId);
+            Assert.That(dispatchedMessage.Message.MessageId, Is.EqualTo(messageId));
             Assert.That(dispatchedMessage.Message.Headers.ContainsKey(Headers.ControlMessageHeader), Is.False);
 
             Assert.That(synchronizableSession.Completed, Is.True);
