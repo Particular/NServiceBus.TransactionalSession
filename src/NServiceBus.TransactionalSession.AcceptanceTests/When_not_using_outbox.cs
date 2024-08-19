@@ -48,7 +48,7 @@
                 .Run();
 
             Assert.True(result.CompleteMessageReceived);
-            Assert.False(result.MessageReceived);
+            Assert.That(result.MessageReceived, Is.False);
         }
 
         class Context : ScenarioContext, IInjectServiceProvider
