@@ -46,7 +46,7 @@
             Assert.Multiple(() =>
             {
                 Assert.That(synchronizedStorageSession.OpenedOutboxTransactionSessions, Is.Empty);
-                Assert.That(synchronizedStorageSession.OpenedTransactionSessions.Count, Is.EqualTo(1));
+                Assert.That(synchronizedStorageSession.OpenedTransactionSessions, Has.Count.EqualTo(1));
             });
             Assert.Multiple(() =>
             {
@@ -118,9 +118,9 @@
             await session.Send(messageObj, sendOptions);
             await session.Commit();
 
-            Assert.That(dispatcher.Dispatched.Count, Is.EqualTo(1), "should have dispatched message");
+            Assert.That(dispatcher.Dispatched, Has.Count.EqualTo(1), "should have dispatched message");
             var dispatched = dispatcher.Dispatched.Single();
-            Assert.That(dispatched.outgoingMessages.UnicastTransportOperations.Count, Is.EqualTo(1));
+            Assert.That(dispatched.outgoingMessages.UnicastTransportOperations, Has.Count.EqualTo(1));
             var dispatchedMessage = dispatched.outgoingMessages.UnicastTransportOperations.Single();
             Assert.Multiple(() =>
             {

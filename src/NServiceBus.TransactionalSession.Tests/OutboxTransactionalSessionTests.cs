@@ -129,9 +129,9 @@
             await session.Send(new object(), sendOptions);
             await session.Commit();
 
-            Assert.That(dispatcher.Dispatched.Count, Is.EqualTo(1), "should have dispatched control message");
+            Assert.That(dispatcher.Dispatched, Has.Count.EqualTo(1), "should have dispatched control message");
             var dispatched = dispatcher.Dispatched.Single();
-            Assert.That(dispatched.outgoingMessages.UnicastTransportOperations.Count, Is.EqualTo(1));
+            Assert.That(dispatched.outgoingMessages.UnicastTransportOperations, Has.Count.EqualTo(1));
             var controlMessage = dispatched.outgoingMessages.UnicastTransportOperations.Single();
             Assert.Multiple(() =>
             {
@@ -140,7 +140,7 @@
                 Assert.That(controlMessage.Message.Body.IsEmpty, Is.True);
                 Assert.That(controlMessage.Destination, Is.EqualTo(queueAddress));
 
-                Assert.That(outboxStorage.Stored.Count, Is.EqualTo(1));
+                Assert.That(outboxStorage.Stored, Has.Count.EqualTo(1));
             });
             var outboxRecord = outboxStorage.Stored.Single();
             Assert.Multiple(() =>
@@ -174,9 +174,9 @@
             await session.Send(new object());
             Assert.ThrowsAsync<Exception>(async () => await session.Commit());
 
-            Assert.That(dispatcher.Dispatched.Count, Is.EqualTo(1), "should have dispatched control message");
+            Assert.That(dispatcher.Dispatched, Has.Count.EqualTo(1), "should have dispatched control message");
             var dispatched = dispatcher.Dispatched.Single();
-            Assert.That(dispatched.outgoingMessages.UnicastTransportOperations.Count, Is.EqualTo(1));
+            Assert.That(dispatched.outgoingMessages.UnicastTransportOperations, Has.Count.EqualTo(1));
             var controlMessage = dispatched.outgoingMessages.UnicastTransportOperations.Single();
             Assert.Multiple(() =>
             {
