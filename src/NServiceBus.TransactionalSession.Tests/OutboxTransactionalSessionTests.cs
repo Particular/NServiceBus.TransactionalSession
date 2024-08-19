@@ -69,7 +69,7 @@
             await session.Open(new FakeOpenSessionOptions());
             await session.Send(new object());
 
-            Assert.IsTrue(messageSession.SentMessages.Single().Options.GetExtensions().TryGet(out PendingTransportOperations pendingTransportOperations));
+            Assert.That(messageSession.SentMessages.Single().Options.GetExtensions().TryGet(out PendingTransportOperations pendingTransportOperations), Is.True);
         }
 
         [Test]
@@ -81,7 +81,7 @@
             await session.Open(new FakeOpenSessionOptions());
             await session.Publish(new object());
 
-            Assert.IsTrue(messageSession.PublishedMessages.Single().Options.GetExtensions().TryGet(out PendingTransportOperations pendingTransportOperations));
+            Assert.That(messageSession.PublishedMessages.Single().Options.GetExtensions().TryGet(out PendingTransportOperations pendingTransportOperations), Is.True);
         }
 
         [Test]
@@ -132,7 +132,7 @@
             var controlMessage = dispatched.outgoingMessages.UnicastTransportOperations.Single();
             Assert.AreEqual(session.SessionId, controlMessage.Message.MessageId);
             Assert.AreEqual(bool.TrueString, controlMessage.Message.Headers[Headers.ControlMessageHeader]);
-            Assert.IsTrue(controlMessage.Message.Body.IsEmpty);
+            Assert.That(controlMessage.Message.Body.IsEmpty, Is.True);
             Assert.AreEqual(queueAddress, controlMessage.Destination);
 
             Assert.AreEqual(1, outboxStorage.Stored.Count);
@@ -144,9 +144,9 @@
             var outboxMessage = outboxRecord.outboxMessage.TransportOperations.Single();
             Assert.AreEqual(messageId, outboxMessage.MessageId);
 
-            Assert.IsTrue(synchronizedSession.Completed);
-            Assert.IsTrue(synchronizedSession.Disposed);
-            Assert.IsTrue(outboxStorage.StartedTransactions.Single().Committed);
+            Assert.That(synchronizedSession.Completed, Is.True);
+            Assert.That(synchronizedSession.Disposed, Is.True);
+            Assert.That(outboxStorage.StartedTransactions.Single().Committed, Is.True);
         }
 
         [Test]
@@ -187,7 +187,7 @@
             Assert.ThrowsAsync<Exception>(async () => await session.Commit());
 
             var outboxTransaction = outboxStorage.StartedTransactions.Single();
-            Assert.IsTrue(completableSynchronizedStorageSession.Completed, "should have completed synchronized storage session to match the receive pipeline behavior");
+            Assert.That(completableSynchronizedStorageSession.Completed, Is.True, "should have completed synchronized storage session to match the receive pipeline behavior");
             Assert.That(outboxTransaction.Committed, Is.False, "should not have committed outbox operations");
         }
 
@@ -266,8 +266,8 @@
 
             session.Dispose();
 
-            Assert.IsTrue(outboxStorage.StartedTransactions.Single().Disposed);
-            Assert.IsTrue(synchronizedStorageSession.Disposed);
+            Assert.That(outboxStorage.StartedTransactions.Single().Disposed, Is.True);
+            Assert.That(synchronizedStorageSession.Disposed, Is.True);
         }
     }
 }

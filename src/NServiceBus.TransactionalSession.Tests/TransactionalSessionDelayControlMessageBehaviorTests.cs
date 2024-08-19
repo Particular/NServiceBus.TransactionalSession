@@ -24,7 +24,7 @@
                 return Task.CompletedTask;
             });
 
-            Assert.IsTrue(continued);
+            Assert.That(continued, Is.True);
             Assert.IsEmpty(dispatcher.Dispatched);
         }
 

@@ -58,7 +58,7 @@
             await session.Open(new FakeOpenSessionOptions());
             await session.Send(new object());
 
-            Assert.IsTrue(messageSession.SentMessages.Single().Options.GetExtensions().TryGet(out PendingTransportOperations pendingTransportOperations));
+            Assert.That(messageSession.SentMessages.Single().Options.GetExtensions().TryGet(out PendingTransportOperations pendingTransportOperations), Is.True);
         }
 
         [Test]
@@ -70,7 +70,7 @@
             await session.Open(new FakeOpenSessionOptions());
             await session.Publish(new object());
 
-            Assert.IsTrue(messageSession.PublishedMessages.Single().Options.GetExtensions().TryGet(out PendingTransportOperations pendingTransportOperations));
+            Assert.That(messageSession.PublishedMessages.Single().Options.GetExtensions().TryGet(out PendingTransportOperations pendingTransportOperations), Is.True);
         }
 
         [Test]
@@ -119,7 +119,7 @@
             Assert.AreEqual(messageId, dispatchedMessage.Message.MessageId);
             Assert.That(dispatchedMessage.Message.Headers.ContainsKey(Headers.ControlMessageHeader), Is.False);
 
-            Assert.IsTrue(synchronizableSession.Completed);
+            Assert.That(synchronizableSession.Completed, Is.True);
         }
 
         [Test]
@@ -149,7 +149,7 @@
 
             session.Dispose();
 
-            Assert.IsTrue(synchronizedStorageSession.Disposed);
+            Assert.That(synchronizedStorageSession.Disposed, Is.True);
         }
     }
 }
