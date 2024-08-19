@@ -43,7 +43,7 @@
 
             await session.Open(new FakeOpenSessionOptions());
 
-            Assert.AreSame(synchronizedStorageSession.OpenedOutboxTransactionSessions.Single().Item1, outboxStorage.StartedTransactions.Single());
+            Assert.That(outboxStorage.StartedTransactions.Single(), Is.SameAs(synchronizedStorageSession.OpenedOutboxTransactionSessions.Single().Item1));
             Assert.That(session.SynchronizedStorageSession, Is.EqualTo(synchronizedStorageSession));
         }
 
