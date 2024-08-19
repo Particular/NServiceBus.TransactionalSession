@@ -47,7 +47,7 @@
                 .Done(c => c.CompleteMessageReceived)
                 .Run();
 
-            Assert.True(result.CompleteMessageReceived);
+            Assert.That(result.CompleteMessageReceived, Is.True);
             Assert.That(result.MessageReceived, Is.False);
         }
 
