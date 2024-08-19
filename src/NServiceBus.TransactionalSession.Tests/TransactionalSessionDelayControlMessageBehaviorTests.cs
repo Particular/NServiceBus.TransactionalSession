@@ -70,7 +70,7 @@
             }));
 
             Assert.That(continued, Is.False, "should not continue pipeline");
-            Assert.IsNotEmpty(dispatcher.Dispatched);
+            Assert.That(dispatcher.Dispatched, Is.Not.Empty);
 
             var controlMessage = dispatcher.Dispatched.Single().outgoingMessages.UnicastTransportOperations.Single();
             Assert.That(controlMessage.Destination, Is.EqualTo(queueAddress));
