@@ -43,7 +43,7 @@
             var options = new FakeOpenSessionOptions();
             await session.Open(options);
 
-            Assert.IsEmpty(synchronizedStorageSession.OpenedOutboxTransactionSessions);
+            Assert.That(synchronizedStorageSession.OpenedOutboxTransactionSessions, Is.Empty);
             Assert.That(synchronizedStorageSession.OpenedTransactionSessions.Count, Is.EqualTo(1));
             Assert.That(synchronizedStorageSession.OpenedTransactionSessions.Single(), Is.EqualTo(options.Extensions));
             Assert.That(session.SynchronizedStorageSession, Is.EqualTo(synchronizedStorageSession));
@@ -82,7 +82,7 @@
             var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Send(new object()));
 
             StringAssert.Contains("This session has not been opened yet.", exception.Message);
-            Assert.IsEmpty(messageSession.SentMessages);
+            Assert.That(messageSession.SentMessages, Is.Empty);
         }
 
         [Test]
@@ -94,7 +94,7 @@
             var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Publish(new object()));
 
             StringAssert.Contains("This session has not been opened yet.", exception.Message);
-            Assert.IsEmpty(messageSession.PublishedMessages);
+            Assert.That(messageSession.PublishedMessages, Is.Empty);
         }
 
         [Test]
@@ -135,7 +135,7 @@
             await session.Send(new object());
             Assert.ThrowsAsync<Exception>(async () => await session.Commit());
 
-            Assert.IsEmpty(dispatcher.Dispatched, "should not have dispatched message");
+            Assert.That(dispatcher.Dispatched, Is.Empty, "should not have dispatched message");
         }
 
         [Test]

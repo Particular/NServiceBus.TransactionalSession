@@ -93,7 +93,7 @@
             var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Send(new object()));
 
             StringAssert.Contains("This session has not been opened yet.", exception.Message);
-            Assert.IsEmpty(messageSession.SentMessages);
+            Assert.That(messageSession.SentMessages, Is.Empty);
         }
 
         [Test]
@@ -105,7 +105,7 @@
             var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Publish(new object()));
 
             StringAssert.Contains("This session has not been opened yet.", exception.Message);
-            Assert.IsEmpty(messageSession.PublishedMessages);
+            Assert.That(messageSession.PublishedMessages, Is.Empty);
         }
 
         [Test]

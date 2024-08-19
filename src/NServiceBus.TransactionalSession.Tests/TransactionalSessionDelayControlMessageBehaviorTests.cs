@@ -25,7 +25,7 @@
             });
 
             Assert.That(continued, Is.True);
-            Assert.IsEmpty(dispatcher.Dispatched);
+            Assert.That(dispatcher.Dispatched, Is.Empty);
         }
 
         [Test]
@@ -46,7 +46,7 @@
             });
 
             Assert.That(continued, Is.False, "should not continue pipeline");
-            Assert.IsEmpty(dispatcher.Dispatched);
+            Assert.That(dispatcher.Dispatched, Is.Empty);
         }
 
         [Test]
