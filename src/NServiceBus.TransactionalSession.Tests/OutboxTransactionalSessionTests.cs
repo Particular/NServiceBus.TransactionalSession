@@ -170,7 +170,7 @@
             Assert.AreEqual(bool.TrueString, controlMessage.Message.Headers[Headers.ControlMessageHeader]);
 
             var outboxTransaction = outboxStorage.StartedTransactions.Single();
-            Assert.IsFalse(outboxTransaction.Committed, "should not have committed outbox operations");
+            Assert.That(outboxTransaction.Committed, Is.False, "should not have committed outbox operations");
         }
 
         [Test]
@@ -188,7 +188,7 @@
 
             var outboxTransaction = outboxStorage.StartedTransactions.Single();
             Assert.IsTrue(completableSynchronizedStorageSession.Completed, "should have completed synchronized storage session to match the receive pipeline behavior");
-            Assert.IsFalse(outboxTransaction.Committed, "should not have committed outbox operations");
+            Assert.That(outboxTransaction.Committed, Is.False, "should not have committed outbox operations");
         }
 
         [Test]
@@ -219,7 +219,7 @@
             Assert.AreEqual(expectedDelayIncrement.ToString("c"), controlMessage.Message.Headers[OutboxTransactionalSession.CommitDelayIncrementHeaderName]);
             Assert.AreEqual(expectedMaximumCommitDuration.ToString("c"), controlMessage.Message.Headers[OutboxTransactionalSession.RemainingCommitDurationHeaderName]);
             Assert.AreEqual(expectedMetadataValue, controlMessage.Message.Headers["metadata-key"], "metadata should be propagated to headers");
-            Assert.IsFalse(controlMessage.Message.Headers.ContainsKey("extensions-key"), "extensions should not be propagated to headers");
+            Assert.That(controlMessage.Message.Headers.ContainsKey("extensions-key"), Is.False, "extensions should not be propagated to headers");
         }
 
         [Test]

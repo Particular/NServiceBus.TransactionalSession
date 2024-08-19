@@ -117,7 +117,7 @@
             Assert.AreEqual(1, dispatched.outgoingMessages.UnicastTransportOperations.Count);
             var dispatchedMessage = dispatched.outgoingMessages.UnicastTransportOperations.Single();
             Assert.AreEqual(messageId, dispatchedMessage.Message.MessageId);
-            Assert.IsFalse(dispatchedMessage.Message.Headers.ContainsKey(Headers.ControlMessageHeader));
+            Assert.That(dispatchedMessage.Message.Headers.ContainsKey(Headers.ControlMessageHeader), Is.False);
 
             Assert.IsTrue(synchronizableSession.Completed);
         }

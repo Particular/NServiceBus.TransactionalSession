@@ -45,7 +45,7 @@
                 return Task.CompletedTask;
             });
 
-            Assert.IsFalse(continued, "should not continue pipeline");
+            Assert.That(continued, Is.False, "should not continue pipeline");
             Assert.IsEmpty(dispatcher.Dispatched);
         }
 
@@ -69,7 +69,7 @@
                 return Task.CompletedTask;
             }));
 
-            Assert.IsFalse(continued, "should not continue pipeline");
+            Assert.That(continued, Is.False, "should not continue pipeline");
             Assert.IsNotEmpty(dispatcher.Dispatched);
 
             var controlMessage = dispatcher.Dispatched.Single().outgoingMessages.UnicastTransportOperations.Single();
