@@ -42,7 +42,7 @@
                 .Done(c => c.TransactionalSessionException != null)
                 .Run();
 
-            Assert.IsFalse(context.MessageReceived);
+            Assert.That(context.MessageReceived, Is.False);
 
         }
 

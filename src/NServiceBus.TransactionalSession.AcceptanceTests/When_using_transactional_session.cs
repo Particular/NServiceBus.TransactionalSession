@@ -49,7 +49,7 @@
             var transactionalSessionOrder = string.Join(Environment.NewLine, FilterLogs(transactionalContext, "TransactionalSession - "));
             var pipelineOrder = string.Join(Environment.NewLine, FilterLogs(pipelineContext, "Pipeline - "));
 
-            Assert.AreEqual(pipelineOrder, transactionalSessionOrder, "The transactional session order of operation is different from the core order");
+            Assert.That(transactionalSessionOrder, Is.EqualTo(pipelineOrder), "The transactional session order of operation is different from the core order");
         }
 
         static IReadOnlyCollection<string> FilterLogs(ScenarioContext scenarioContext, string filter) =>

@@ -18,7 +18,7 @@
             var openOptions = new FakeOpenSessionOptions();
             await session.Open(openOptions);
 
-            Assert.AreEqual(openOptions.SessionId, session.SessionId);
+            Assert.That(session.SessionId, Is.EqualTo(openOptions.SessionId));
         }
 
         [Test]
@@ -30,7 +30,7 @@
 
             var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Open(new FakeOpenSessionOptions()));
 
-            StringAssert.Contains($"This session is already open. {nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)} should only be called once.", exception.Message);
+            Assert.That(exception.Message, Does.Contain($"This session is already open. {nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)} should only be called once."));
         }
 
         [Test]
@@ -43,10 +43,16 @@
             var options = new FakeOpenSessionOptions();
             await session.Open(options);
 
-            Assert.IsEmpty(synchronizedStorageSession.OpenedOutboxTransactionSessions);
-            Assert.AreEqual(1, synchronizedStorageSession.OpenedTransactionSessions.Count);
-            Assert.AreEqual(options.Extensions, synchronizedStorageSession.OpenedTransactionSessions.Single());
-            Assert.AreEqual(synchronizedStorageSession, session.SynchronizedStorageSession);
+            Assert.Multiple(() =>
+            {
+                Assert.That(synchronizedStorageSession.OpenedOutboxTransactionSessions, Is.Empty);
+                Assert.That(synchronizedStorageSession.OpenedTransactionSessions, Has.Count.EqualTo(1));
+            });
+            Assert.Multiple(() =>
+            {
+                Assert.That(synchronizedStorageSession.OpenedTransactionSessions.Single(), Is.EqualTo(options.Extensions));
+                Assert.That(session.SynchronizedStorageSession, Is.EqualTo(synchronizedStorageSession));
+            });
         }
 
         [Test]
@@ -58,7 +64,7 @@
             await session.Open(new FakeOpenSessionOptions());
             await session.Send(new object());
 
-            Assert.IsTrue(messageSession.SentMessages.Single().Options.GetExtensions().TryGet(out PendingTransportOperations pendingTransportOperations));
+            Assert.That(messageSession.SentMessages.Single().Options.GetExtensions().TryGet(out PendingTransportOperations pendingTransportOperations), Is.True);
         }
 
         [Test]
@@ -70,7 +76,7 @@
             await session.Open(new FakeOpenSessionOptions());
             await session.Publish(new object());
 
-            Assert.IsTrue(messageSession.PublishedMessages.Single().Options.GetExtensions().TryGet(out PendingTransportOperations pendingTransportOperations));
+            Assert.That(messageSession.PublishedMessages.Single().Options.GetExtensions().TryGet(out PendingTransportOperations pendingTransportOperations), Is.True);
         }
 
         [Test]
@@ -81,8 +87,8 @@
 
             var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Send(new object()));
 
-            StringAssert.Contains("This session has not been opened yet.", exception.Message);
-            Assert.IsEmpty(messageSession.SentMessages);
+            Assert.That(exception.Message, Does.Contain("This session has not been opened yet."));
+            Assert.That(messageSession.SentMessages, Is.Empty);
         }
 
         [Test]
@@ -93,8 +99,8 @@
 
             var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Publish(new object()));
 
-            StringAssert.Contains("This session has not been opened yet.", exception.Message);
-            Assert.IsEmpty(messageSession.PublishedMessages);
+            Assert.That(exception.Message, Does.Contain("This session has not been opened yet."));
+            Assert.That(messageSession.PublishedMessages, Is.Empty);
         }
 
         [Test]
@@ -112,14 +118,17 @@
             await session.Send(messageObj, sendOptions);
             await session.Commit();
 
-            Assert.AreEqual(1, dispatcher.Dispatched.Count, "should have dispatched message");
+            Assert.That(dispatcher.Dispatched, Has.Count.EqualTo(1), "should have dispatched message");
             var dispatched = dispatcher.Dispatched.Single();
-            Assert.AreEqual(1, dispatched.outgoingMessages.UnicastTransportOperations.Count);
+            Assert.That(dispatched.outgoingMessages.UnicastTransportOperations, Has.Count.EqualTo(1));
             var dispatchedMessage = dispatched.outgoingMessages.UnicastTransportOperations.Single();
-            Assert.AreEqual(messageId, dispatchedMessage.Message.MessageId);
-            Assert.IsFalse(dispatchedMessage.Message.Headers.ContainsKey(Headers.ControlMessageHeader));
+            Assert.Multiple(() =>
+            {
+                Assert.That(dispatchedMessage.Message.MessageId, Is.EqualTo(messageId));
+                Assert.That(dispatchedMessage.Message.Headers.ContainsKey(Headers.ControlMessageHeader), Is.False);
 
-            Assert.IsTrue(synchronizableSession.Completed);
+                Assert.That(synchronizableSession.Completed, Is.True);
+            });
         }
 
         [Test]
@@ -135,7 +144,7 @@
             await session.Send(new object());
             Assert.ThrowsAsync<Exception>(async () => await session.Commit());
 
-            Assert.IsEmpty(dispatcher.Dispatched, "should not have dispatched message");
+            Assert.That(dispatcher.Dispatched, Is.Empty, "should not have dispatched message");
         }
 
         [Test]
@@ -149,7 +158,7 @@
 
             session.Dispose();
 
-            Assert.IsTrue(synchronizedStorageSession.Disposed);
+            Assert.That(synchronizedStorageSession.Disposed, Is.True);
         }
     }
 }

@@ -47,8 +47,11 @@
                 .Done(c => c.CompleteMessageReceived)
                 .Run();
 
-            Assert.True(result.CompleteMessageReceived);
-            Assert.False(result.MessageReceived);
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.CompleteMessageReceived, Is.True);
+                Assert.That(result.MessageReceived, Is.False);
+            });
         }
 
         class Context : ScenarioContext, IInjectServiceProvider
