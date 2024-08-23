@@ -195,6 +195,32 @@
         }
 
         [Test]
+        public async Task Commit_should_not_send_control_message_when_there_are_no_outgoing_operations()
+        {
+            var messageSession = new FakeMessageSession();
+            var dispatcher = new FakeDispatcher();
+            var outboxStorage = new FakeOutboxStorage();
+            var synchronizedSession = new FakeSynchronizableStorageSession();
+            string queueAddress = "queue address";
+
+            using var session = new OutboxTransactionalSession(outboxStorage, synchronizedSession, messageSession, dispatcher, Enumerable.Empty<IOpenSessionOptionsCustomization>(), queueAddress);
+
+            await session.Open(new FakeOpenSessionOptions { OmitOutboxRecordWhenThereAreNoOutgoingOperations = true });
+            // no outgoing operations
+            await session.Commit();
+
+            Assert.That(dispatcher.Dispatched, Is.Empty, "should not have dispatched control message");
+            Assert.That(outboxStorage.Stored, Is.Empty);
+            Assert.Multiple(() =>
+            {
+                Assert.That(synchronizedSession.Completed, Is.True);
+                Assert.That(synchronizedSession.Disposed, Is.True);
+                Assert.That(outboxStorage.StartedTransactions.Single().Committed, Is.True);
+                Assert.That(outboxStorage.Dispatched, Is.Empty);
+            });
+        }
+
+        [Test]
         public async Task Commit_should_send_control_message_when_outbox_fails()
         {
             var messageSession = new FakeMessageSession();

@@ -40,6 +40,13 @@ namespace NServiceBus.TransactionalSession
         /// <remarks>Defaults to <code>TimeSpan.FromSeconds(2)</code></remarks>
         public TimeSpan CommitDelayIncrement { get; set; } = TimeSpan.FromSeconds(2);
 
+        /// <summary>
+        /// When there are no outgoing operations the outbox record will be omitted. This can be useful to tweak the
+        /// number of outbox storage operations in cases the outbox record is not needed as a track record of the transaction.
+        /// </summary>
+        /// <remarks>Defaults to <code>false</code></remarks>
+        public bool OmitOutboxRecordWhenThereAreNoOutgoingOperations { get; set; } = false;
+
         Dictionary<string, string> metadata;
     }
 }

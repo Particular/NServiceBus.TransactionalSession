@@ -37,14 +37,15 @@
             // disposing multiple times is safe
             synchronizedStorageSession.Dispose();
 
-            var outboxMessage =
-                new OutboxMessage(SessionId, ConvertToOutboxOperations(pendingOperations.Operations));
-            await outboxStorage.Store(outboxMessage, outboxTransaction, Context, cancellationToken)
-                .ConfigureAwait(false);
+            if (pendingOperations.HasOperations || (!pendingOperations.HasOperations && !options.OmitOutboxRecordWhenThereAreNoOutgoingOperations))
+            {
+                var outboxMessage = new OutboxMessage(SessionId, ConvertToOutboxOperations(pendingOperations.Operations));
+                await outboxStorage.Store(outboxMessage, outboxTransaction, Context, cancellationToken).ConfigureAwait(false);
+            }
 
             await outboxTransaction.Commit(cancellationToken).ConfigureAwait(false);
 
-            if (!pendingOperations.HasOperations)
+            if (!pendingOperations.HasOperations && !options.OmitOutboxRecordWhenThereAreNoOutgoingOperations)
             {
                 await outboxStorage.SetAsDispatched(SessionId, Context, cancellationToken).ConfigureAwait(false);
             }

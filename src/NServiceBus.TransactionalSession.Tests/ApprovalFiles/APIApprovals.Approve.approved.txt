@@ -24,6 +24,7 @@ namespace NServiceBus.TransactionalSession
         protected NServiceBus.Extensibility.ContextBag Extensions { get; }
         public System.TimeSpan MaximumCommitDuration { get; set; }
         public System.Collections.Generic.IDictionary<string, string> Metadata { get; }
+        public bool OmitOutboxRecordWhenThereAreNoOutgoingOperations { get; set; }
         protected string SessionId { get; }
     }
     public abstract class TransactionalSession : NServiceBus.Features.Feature
