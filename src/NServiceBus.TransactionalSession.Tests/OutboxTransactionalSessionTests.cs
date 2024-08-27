@@ -162,7 +162,7 @@
         }
 
         [Test]
-        public async Task Commit_should_not_send_control_message_when_there_are_no_outgoing_operations_but_store_and_dispatch_outbox_data()
+        public async Task Commit_should_not_send_control_message_when_there_are_no_outgoing_operations_and_not_store_the_outbox_record()
         {
             var messageSession = new FakeMessageSession();
             var dispatcher = new FakeDispatcher();
@@ -177,20 +177,13 @@
             await session.Commit();
 
             Assert.That(dispatcher.Dispatched, Is.Empty, "should not have dispatched control message");
-            Assert.That(outboxStorage.Stored, Has.Count.EqualTo(1));
-            var outboxRecord = outboxStorage.Stored.Single();
-            Assert.Multiple(() =>
-            {
-                Assert.That(outboxRecord.outboxMessage.MessageId, Is.EqualTo(session.SessionId));
-                Assert.That(outboxRecord.transaction, Is.EqualTo(outboxStorage.StartedTransactions.Single()));
-                Assert.That(outboxRecord.outboxMessage.TransportOperations, Is.Empty);
-            });
+            Assert.That(outboxStorage.Stored, Is.Empty, "should not have stored outbox record");
             Assert.Multiple(() =>
             {
                 Assert.That(synchronizedSession.Completed, Is.True);
                 Assert.That(synchronizedSession.Disposed, Is.True);
                 Assert.That(outboxStorage.StartedTransactions.Single().Committed, Is.True);
-                Assert.That(outboxStorage.Dispatched.Single().messageId, Is.EqualTo(session.SessionId));
+                Assert.That(outboxStorage.Dispatched, Is.Empty, "should not have marked it as dispatched");
             });
         }
 
