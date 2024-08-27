@@ -7,6 +7,7 @@
     using Microsoft.Extensions.DependencyInjection;
     using AcceptanceTesting;
     using NUnit.Framework;
+    using Pipeline;
 
     public class When_using_outbox : NServiceBusAcceptanceTest
     {
@@ -56,6 +57,34 @@
         }
 
         [Test]
+        public async Task Should_not_send_control_message_when_nothing_was_sent()
+        {
+            var result = await Scenario.Define<Context>()
+                .WithEndpoint<AnEndpoint>(s => s.When(async (statelessSession, ctx) =>
+                {
+                    using (var scope = ctx.ServiceProvider.CreateScope())
+                    using (var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>())
+                    {
+                        await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions());
+                        // No messages sent
+                        await transactionalSession.Commit(CancellationToken.None).ConfigureAwait(false);
+                    }
+
+                    //Send immediately dispatched message to finish the test
+                    await statelessSession.SendLocal(new CompleteTestMessage());
+                }))
+                .Done(c => c.CompleteMessageReceived)
+                .Run();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.CompleteMessageReceived, Is.True);
+                Assert.That(result.MessageReceived, Is.False);
+                Assert.That(result.ControlMessageReceived, Is.False);
+            });
+        }
+
+        [Test]
         public async Task Should_send_immediate_dispatch_messages_even_if_session_is_not_committed()
         {
             var result = await Scenario.Define<Context>()
@@ -72,10 +101,10 @@
                     await transactionalSession.Send(new SampleMessage(), sendOptions, CancellationToken.None);
                 }))
                 .Done(c => c.MessageReceived)
-                .Run()
-                ;
+                .Run();
 
             Assert.That(result.MessageReceived, Is.True);
+            Assert.That(result.ControlMessageReceived, Is.False);
         }
 
         [Test]
@@ -114,13 +143,17 @@
             public bool AmbientTransactionFoundAfterAwait { get; set; }
             public bool CompleteMessageReceived { get; set; }
             public bool MessageReceived { get; set; }
+
+            public bool ControlMessageReceived { get; set; }
+
             public IServiceProvider ServiceProvider { get; set; }
         }
 
         class AnEndpoint : EndpointConfigurationBuilder
         {
             public AnEndpoint() =>
-                EndpointSetup<TransactionSessionWithOutboxEndpoint>();
+                EndpointSetup<TransactionSessionWithOutboxEndpoint>(
+                    c => c.Pipeline.Register(typeof(DiscoverControlMessagesBehavior), "Discovers control messages"));
 
             class SampleHandler : IHandleMessages<SampleMessage>
             {
@@ -145,6 +178,23 @@
                     testContext.CompleteMessageReceived = true;
 
                     return Task.CompletedTask;
+                }
+
+                readonly Context testContext;
+            }
+
+            class DiscoverControlMessagesBehavior : Behavior<ITransportReceiveContext>
+            {
+                public DiscoverControlMessagesBehavior(Context testContext) => this.testContext = testContext;
+
+                public override async Task Invoke(ITransportReceiveContext context, Func<Task> next)
+                {
+                    if (context.Message.Headers.ContainsKey(OutboxTransactionalSession.CommitDelayIncrementHeaderName))
+                    {
+                        testContext.ControlMessageReceived = true;
+                    }
+
+                    await next();
                 }
 
                 readonly Context testContext;

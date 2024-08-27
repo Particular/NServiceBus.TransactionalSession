@@ -26,7 +26,33 @@
 
         protected override async Task CommitInternal(CancellationToken cancellationToken = default)
         {
-            var headers = new Dictionary<string, string>
+            if (pendingOperations.HasOperations)
+            {
+                await DispatchControlMessage(cancellationToken).ConfigureAwait(false);
+            }
+
+            await synchronizedStorageSession.CompleteAsync(cancellationToken).ConfigureAwait(false);
+            // Disposing the session after complete to be compliant with the core behavior
+            // in case complete throws the synchronized storage session will get disposed by the dispose or the container
+            // disposing multiple times is safe
+            synchronizedStorageSession.Dispose();
+
+            var outboxMessage =
+                new OutboxMessage(SessionId, ConvertToOutboxOperations(pendingOperations.Operations));
+            await outboxStorage.Store(outboxMessage, outboxTransaction, Context, cancellationToken)
+                .ConfigureAwait(false);
+
+            await outboxTransaction.Commit(cancellationToken).ConfigureAwait(false);
+
+            if (!pendingOperations.HasOperations)
+            {
+                await outboxStorage.SetAsDispatched(SessionId, Context, cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        async Task DispatchControlMessage(CancellationToken cancellationToken)
+        {
+            var headers = new Dictionary<string, string>()
             {
                 { Headers.MessageId, SessionId },
                 { Headers.ControlMessageHeader, bool.TrueString },
@@ -41,22 +67,8 @@
                 }
             }
             var message = new OutgoingMessage(SessionId, headers, ReadOnlyMemory<byte>.Empty);
-
             var outgoingMessages = new TransportOperations(new TransportTransportOperation(message, new UnicastAddressTag(physicalQueueAddress)));
             await dispatcher.Dispatch(outgoingMessages, new TransportTransaction(), cancellationToken).ConfigureAwait(false);
-
-            await synchronizedStorageSession.CompleteAsync(cancellationToken).ConfigureAwait(false);
-            // Disposing the session after complete to be compliant with the core behavior
-            // in case complete throws the synchronized storage session will get disposed by the dispose or the container
-            // disposing multiple times is safe
-            synchronizedStorageSession.Dispose();
-
-            var outboxMessage =
-                new OutboxMessage(SessionId, ConvertToOutboxOperations(pendingOperations.Operations));
-            await outboxStorage.Store(outboxMessage, outboxTransaction, Context, cancellationToken)
-                .ConfigureAwait(false);
-
-            await outboxTransaction.Commit(cancellationToken).ConfigureAwait(false);
         }
 
         protected override void Dispose(bool disposing)

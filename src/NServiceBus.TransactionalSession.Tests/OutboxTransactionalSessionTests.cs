@@ -162,6 +162,39 @@
         }
 
         [Test]
+        public async Task Commit_should_not_send_control_message_when_there_are_no_outgoing_operations_but_store_and_dispatch_outbox_data()
+        {
+            var messageSession = new FakeMessageSession();
+            var dispatcher = new FakeDispatcher();
+            var outboxStorage = new FakeOutboxStorage();
+            var synchronizedSession = new FakeSynchronizableStorageSession();
+            string queueAddress = "queue address";
+
+            using var session = new OutboxTransactionalSession(outboxStorage, synchronizedSession, messageSession, dispatcher, Enumerable.Empty<IOpenSessionOptionsCustomization>(), queueAddress);
+
+            await session.Open(new FakeOpenSessionOptions());
+            // no outgoing operations
+            await session.Commit();
+
+            Assert.That(dispatcher.Dispatched, Is.Empty, "should not have dispatched control message");
+            Assert.That(outboxStorage.Stored, Has.Count.EqualTo(1));
+            var outboxRecord = outboxStorage.Stored.Single();
+            Assert.Multiple(() =>
+            {
+                Assert.That(outboxRecord.outboxMessage.MessageId, Is.EqualTo(session.SessionId));
+                Assert.That(outboxRecord.transaction, Is.EqualTo(outboxStorage.StartedTransactions.Single()));
+                Assert.That(outboxRecord.outboxMessage.TransportOperations, Is.Empty);
+            });
+            Assert.Multiple(() =>
+            {
+                Assert.That(synchronizedSession.Completed, Is.True);
+                Assert.That(synchronizedSession.Disposed, Is.True);
+                Assert.That(outboxStorage.StartedTransactions.Single().Committed, Is.True);
+                Assert.That(outboxStorage.Dispatched.Single().messageId, Is.EqualTo(session.SessionId));
+            });
+        }
+
+        [Test]
         public async Task Commit_should_send_control_message_when_outbox_fails()
         {
             var messageSession = new FakeMessageSession();
@@ -222,13 +255,16 @@
             var outboxStorage = new FakeOutboxStorage();
             using var session = new OutboxTransactionalSession(outboxStorage, new FakeSynchronizableStorageSession(), messageSession, dispatcher, Enumerable.Empty<IOpenSessionOptionsCustomization>(), "queue address");
 
-            var options = new FakeOpenSessionOptions();
-            options.CommitDelayIncrement = expectedDelayIncrement;
-            options.MaximumCommitDuration = expectedMaximumCommitDuration;
+            var options = new FakeOpenSessionOptions
+            {
+                CommitDelayIncrement = expectedDelayIncrement,
+                MaximumCommitDuration = expectedMaximumCommitDuration
+            };
             options.Extensions.Set("extensions-key", expectedExtensionsValue);
             options.Metadata.Add("metadata-key", expectedMetadataValue);
 
             await session.Open(options);
+            await session.Send(new object());
             await session.Commit();
 
             var controlMessage = dispatcher.Dispatched.Single().outgoingMessages.UnicastTransportOperations.Single();
