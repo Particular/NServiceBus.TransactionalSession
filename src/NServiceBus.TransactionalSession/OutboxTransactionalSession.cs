@@ -37,17 +37,21 @@
             // disposing multiple times is safe
             synchronizedStorageSession.Dispose();
 
-            var outboxMessage =
-                new OutboxMessage(SessionId, ConvertToOutboxOperations(pendingOperations.Operations));
-            await outboxStorage.Store(outboxMessage, outboxTransaction, Context, cancellationToken)
-                .ConfigureAwait(false);
+            // The outbox record is only stored when there are operations to store. When there are no operations
+            // it doesn't make sense to store an empty outbox record and mark it as dispatched as long as we are not
+            // exposing the possibility to set the session ID from the outside. When the session ID is random and
+            // there are not outgoing messages there is no way to correlate the outbox record with the transactional
+            // session call and therefore the cost storing (within tx) and setting as dispatched (outside tx)
+            // the outbox record is not justified.
+            if (pendingOperations.HasOperations)
+            {
+                var outboxMessage =
+                    new OutboxMessage(SessionId, ConvertToOutboxOperations(pendingOperations.Operations));
+                await outboxStorage.Store(outboxMessage, outboxTransaction, Context, cancellationToken)
+                    .ConfigureAwait(false);
+            }
 
             await outboxTransaction.Commit(cancellationToken).ConfigureAwait(false);
-
-            if (!pendingOperations.HasOperations)
-            {
-                await outboxStorage.SetAsDispatched(SessionId, Context, cancellationToken).ConfigureAwait(false);
-            }
         }
 
         async Task DispatchControlMessage(CancellationToken cancellationToken)
