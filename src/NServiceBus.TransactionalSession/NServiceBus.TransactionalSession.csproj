@@ -9,14 +9,12 @@
 
   <ItemGroup>
     <PackageReference Include="NServiceBus" Version="8.2.4" />
-    <PackageReference Include="Particular.Packaging" Version="2.2.0">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
+    <PackageReference Include="Particular.Packaging" Version="2.2.0" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="NServiceBus.TransactionalSession.Tests" Key="$(NServiceBusTestsKey)" />
     <InternalsVisibleTo Include="NServiceBus.TransactionalSession.AcceptanceTests" Key="$(NServiceBusTestsKey)" />
+    <InternalsVisibleTo Include="NServiceBus.TransactionalSession.Tests" Key="$(NServiceBusTestsKey)" />
   </ItemGroup>
+
 </Project>
