@@ -71,7 +71,7 @@
                 }
             }
             var message = new OutgoingMessage(SessionId, headers, ReadOnlyMemory<byte>.Empty);
-            var outgoingMessages = new TransportOperations(new TransportTransportOperation(message, new UnicastAddressTag(physicalQueueAddress)));
+            var outgoingMessages = new TransportOperations(new TransportTransportOperation(message, new UnicastAddressTag(physicalQueueAddress), null, DispatchConsistency.Isolated));
             await dispatcher.Dispatch(outgoingMessages, new TransportTransaction(), cancellationToken).ConfigureAwait(false);
         }
 
