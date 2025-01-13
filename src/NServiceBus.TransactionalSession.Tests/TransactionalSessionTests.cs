@@ -6,6 +6,7 @@
     using Extensibility;
     using Fakes;
     using NUnit.Framework;
+    using Transport;
 
     [TestFixture]
     public class TransactionalSessionTests
@@ -124,6 +125,7 @@
             var dispatchedMessage = dispatched.outgoingMessages.UnicastTransportOperations.Single();
             Assert.Multiple(() =>
             {
+                Assert.That(dispatchedMessage.RequiredDispatchConsistency, Is.EqualTo(DispatchConsistency.Isolated));
                 Assert.That(dispatchedMessage.Message.MessageId, Is.EqualTo(messageId));
                 Assert.That(dispatchedMessage.Message.Headers.ContainsKey(Headers.ControlMessageHeader), Is.False);
 
