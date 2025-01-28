@@ -77,8 +77,8 @@
                 null,
                 DispatchConsistency.Isolated // We do not want the this dispatch to enlist in any active transaction scope like we do want for the outbox operation
                 );
-            var outgoingMessages = new TransportOperations();
-            await dispatcher.Dispatch(outgoingMessages, new TransportTransaction(operation), cancellationToken).ConfigureAwait(false);
+            var outgoingMessages = new TransportOperations(operation);
+            await dispatcher.Dispatch(outgoingMessages, new TransportTransaction(), cancellationToken).ConfigureAwait(false);
         }
 
         protected override void Dispose(bool disposing)
