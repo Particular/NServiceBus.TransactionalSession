@@ -75,7 +75,7 @@
                 message,
                 new UnicastAddressTag(physicalQueueAddress),
                 null,
-                DispatchConsistency.Isolated // We do not want the this dispatch to enlist in any active transaction scope like we do want for the outbox operation
+                DispatchConsistency.Isolated // Avoids promoting to distributed tx by not combining transport and persistence when both share same technology
                 );
             var outgoingMessages = new TransportOperations(operation);
             await dispatcher.Dispatch(outgoingMessages, new TransportTransaction(), cancellationToken).ConfigureAwait(false);
