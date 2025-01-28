@@ -71,8 +71,14 @@
                 }
             }
             var message = new OutgoingMessage(SessionId, headers, ReadOnlyMemory<byte>.Empty);
-            var outgoingMessages = new TransportOperations(new TransportTransportOperation(message, new UnicastAddressTag(physicalQueueAddress), null, DispatchConsistency.Isolated));
-            await dispatcher.Dispatch(outgoingMessages, new TransportTransaction(), cancellationToken).ConfigureAwait(false);
+            var operation = new TransportTransportOperation(
+                message,
+                new UnicastAddressTag(physicalQueueAddress),
+                null,
+                DispatchConsistency.Isolated // We do not want the this dispatch to enlist in any active transaction scope like we do want for the outbox operation
+                );
+            var outgoingMessages = new TransportOperations();
+            await dispatcher.Dispatch(outgoingMessages, new TransportTransaction(operation), cancellationToken).ConfigureAwait(false);
         }
 
         protected override void Dispose(bool disposing)
