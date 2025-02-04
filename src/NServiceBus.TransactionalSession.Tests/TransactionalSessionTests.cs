@@ -6,6 +6,7 @@
     using Extensibility;
     using Fakes;
     using NUnit.Framework;
+    using Transport;
 
     [TestFixture]
     public class TransactionalSessionTests

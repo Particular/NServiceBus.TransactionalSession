@@ -5,6 +5,7 @@
     using System.Threading.Tasks;
     using Extensibility;
     using Fakes;
+    using NServiceBus.Transport;
     using NUnit.Framework;
 
     [TestFixture]
@@ -135,6 +136,7 @@
             var controlMessage = dispatched.outgoingMessages.UnicastTransportOperations.Single();
             Assert.Multiple(() =>
             {
+                Assert.That(controlMessage.RequiredDispatchConsistency, Is.EqualTo(DispatchConsistency.Isolated));
                 Assert.That(controlMessage.Message.MessageId, Is.EqualTo(session.SessionId));
                 Assert.That(controlMessage.Message.Headers[Headers.ControlMessageHeader], Is.EqualTo(bool.TrueString));
                 Assert.That(controlMessage.Message.Body.IsEmpty, Is.True);
