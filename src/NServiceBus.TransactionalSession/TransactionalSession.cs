@@ -85,14 +85,12 @@ public abstract class TransactionalSession : Feature
     sealed class InformationHolderToAvoidClosures
     {
         public IMessageSession MessageSession { get; set; }
-        public QueueAddress LocalAddress { get; set; }
-        public bool IsOutboxEnabled { get; set; }
+        public QueueAddress LocalAddress { get; init; }
+        public bool IsOutboxEnabled { get; init; }
     }
 
-    class SessionCaptureTask : FeatureStartupTask
+    class SessionCaptureTask(InformationHolderToAvoidClosures informationHolder) : FeatureStartupTask
     {
-        public SessionCaptureTask(InformationHolderToAvoidClosures informationHolder) => this.informationHolder = informationHolder;
-
         protected override Task OnStart(IMessageSession session, CancellationToken cancellationToken = default)
         {
             informationHolder.MessageSession = session;
@@ -101,7 +99,5 @@ public abstract class TransactionalSession : Feature
 
         protected override Task OnStop(IMessageSession session, CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
-
-        readonly InformationHolderToAvoidClosures informationHolder;
     }
 }

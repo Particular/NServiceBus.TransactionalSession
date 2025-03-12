@@ -11,8 +11,7 @@ using Transport;
 
 class TransactionalSessionDelayControlMessageBehavior(IMessageDispatcher dispatcher,
     string physicalQueueAddress)
-    : IBehavior<IIncomingPhysicalMessageContext,
-        IIncomingPhysicalMessageContext>
+    : IBehavior<IIncomingPhysicalMessageContext, IIncomingPhysicalMessageContext>
 {
     public async Task Invoke(IIncomingPhysicalMessageContext context,
         Func<IIncomingPhysicalMessageContext, Task> next)
