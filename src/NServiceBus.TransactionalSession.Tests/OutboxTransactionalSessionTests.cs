@@ -5,7 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Extensibility;
 using Fakes;
-using NServiceBus.Transport;
+using Transport;
 using NUnit.Framework;
 
 [TestFixture]

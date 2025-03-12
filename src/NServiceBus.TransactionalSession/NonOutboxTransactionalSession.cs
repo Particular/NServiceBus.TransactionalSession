@@ -7,16 +7,12 @@ using System.Threading.Tasks;
 using Persistence;
 using Transport;
 
-sealed class NonOutboxTransactionalSession : TransactionalSessionBase
+sealed class NonOutboxTransactionalSession(ICompletableSynchronizedStorageSession synchronizedStorageSession,
+    IMessageSession messageSession,
+    IMessageDispatcher dispatcher,
+    IEnumerable<IOpenSessionOptionsCustomization> customizations)
+    : TransactionalSessionBase(synchronizedStorageSession, messageSession, dispatcher, customizations)
 {
-    public NonOutboxTransactionalSession(
-        ICompletableSynchronizedStorageSession synchronizedStorageSession,
-        IMessageSession messageSession,
-        IMessageDispatcher dispatcher,
-        IEnumerable<IOpenSessionOptionsCustomization> customizations) : base(synchronizedStorageSession, messageSession, dispatcher, customizations)
-    {
-    }
-
     protected override async Task CommitInternal(CancellationToken cancellationToken = default)
     {
         await synchronizedStorageSession.CompleteAsync(cancellationToken).ConfigureAwait(false);
@@ -34,11 +30,11 @@ sealed class NonOutboxTransactionalSession : TransactionalSessionBase
             throw new InvalidOperationException($"This session is already open. {nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)} should only be called once.");
         }
 
-        this.options = options;
+        openSessionOptions = options;
 
         foreach (var customization in customizations)
         {
-            customization.Apply(this.options);
+            customization.Apply(openSessionOptions);
         }
 
         await synchronizedStorageSession.Open(null, new TransportTransaction(), Context, cancellationToken).ConfigureAwait(false);

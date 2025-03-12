@@ -2,7 +2,7 @@ namespace NServiceBus.TransactionalSession.AcceptanceTests;
 
 using System.Linq;
 using System.Threading;
-using NServiceBus.AcceptanceTesting.Customization;
+using AcceptanceTesting.Customization;
 using NUnit.Framework;
 
 /// <summary>

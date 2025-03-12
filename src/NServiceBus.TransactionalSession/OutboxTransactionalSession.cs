@@ -11,19 +11,14 @@ using Transport;
 using TransportTransportOperation = Transport.TransportOperation;
 using OutboxTransportOperation = Outbox.TransportOperation;
 
-sealed class OutboxTransactionalSession : TransactionalSessionBase
+sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
+    ICompletableSynchronizedStorageSession synchronizedStorageSession,
+    IMessageSession messageSession,
+    IMessageDispatcher dispatcher,
+    IEnumerable<IOpenSessionOptionsCustomization> customizations,
+    string physicalQueueAddress)
+    : TransactionalSessionBase(synchronizedStorageSession, messageSession, dispatcher, customizations)
 {
-    public OutboxTransactionalSession(IOutboxStorage outboxStorage,
-        ICompletableSynchronizedStorageSession synchronizedStorageSession,
-        IMessageSession messageSession,
-        IMessageDispatcher dispatcher,
-        IEnumerable<IOpenSessionOptionsCustomization> customizations,
-        string physicalQueueAddress) : base(synchronizedStorageSession, messageSession, dispatcher, customizations)
-    {
-        this.outboxStorage = outboxStorage;
-        this.physicalQueueAddress = physicalQueueAddress;
-    }
-
     protected override async Task CommitInternal(CancellationToken cancellationToken = default)
     {
         if (pendingOperations.HasOperations)
@@ -60,16 +55,17 @@ sealed class OutboxTransactionalSession : TransactionalSessionBase
         {
             { Headers.MessageId, SessionId },
             { Headers.ControlMessageHeader, bool.TrueString },
-            { RemainingCommitDurationHeaderName, options.MaximumCommitDuration.ToString() },
-            { CommitDelayIncrementHeaderName, options.CommitDelayIncrement.ToString() },
+            { RemainingCommitDurationHeaderName, openSessionOptions.MaximumCommitDuration.ToString() },
+            { CommitDelayIncrementHeaderName, openSessionOptions.CommitDelayIncrement.ToString() },
         };
-        if (options.HasMetadata)
+        if (openSessionOptions.HasMetadata)
         {
-            foreach (KeyValuePair<string, string> keyValuePair in options.Metadata)
+            foreach (KeyValuePair<string, string> keyValuePair in openSessionOptions.Metadata)
             {
                 headers.Add(keyValuePair.Key, keyValuePair.Value);
             }
         }
+
         var message = new OutgoingMessage(SessionId, headers, ReadOnlyMemory<byte>.Empty);
         var operation = new TransportTransportOperation(
             message,
@@ -114,19 +110,17 @@ sealed class OutboxTransactionalSession : TransactionalSessionBase
 
     static void SerializeRoutingStrategy(AddressTag addressTag, Dictionary<string, string> options)
     {
-        if (addressTag is MulticastAddressTag indirect)
+        switch (addressTag)
         {
-            options["EventType"] = indirect.MessageType.AssemblyQualifiedName;
-            return;
+            case MulticastAddressTag indirect:
+                options["EventType"] = indirect.MessageType.AssemblyQualifiedName;
+                return;
+            case UnicastAddressTag direct:
+                options["Destination"] = direct.Destination;
+                return;
+            default:
+                throw new Exception($"Unknown routing strategy {addressTag.GetType().FullName}");
         }
-
-        if (addressTag is UnicastAddressTag direct)
-        {
-            options["Destination"] = direct.Destination;
-            return;
-        }
-
-        throw new Exception($"Unknown routing strategy {addressTag.GetType().FullName}");
     }
 
     public override Task Open(OpenSessionOptions options, CancellationToken cancellationToken = default)
@@ -139,11 +133,11 @@ sealed class OutboxTransactionalSession : TransactionalSessionBase
             throw new InvalidOperationException($"This session is already open. {nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)} should only be called once.");
         }
 
-        this.options = options;
+        openSessionOptions = options;
 
         foreach (var customization in customizations)
         {
-            customization.Apply(this.options);
+            customization.Apply(openSessionOptions);
         }
 
         // Unfortunately this is the only way to make it possible for Transaction.Current to float up to the caller
@@ -162,9 +156,8 @@ sealed class OutboxTransactionalSession : TransactionalSessionBase
         }
     }
 
-    readonly string physicalQueueAddress;
-    readonly IOutboxStorage outboxStorage;
     IOutboxTransaction outboxTransaction;
+
     public const string RemainingCommitDurationHeaderName = "NServiceBus.TransactionalSession.RemainingCommitDuration";
     public const string CommitDelayIncrementHeaderName = "NServiceBus.TransactionalSession.CommitDelayIncrement";
 }

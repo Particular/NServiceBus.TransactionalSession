@@ -9,16 +9,11 @@ using Pipeline;
 using Routing;
 using Transport;
 
-class TransactionalSessionDelayControlMessageBehavior : IBehavior<IIncomingPhysicalMessageContext,
-    IIncomingPhysicalMessageContext>
+class TransactionalSessionDelayControlMessageBehavior(IMessageDispatcher dispatcher,
+    string physicalQueueAddress)
+    : IBehavior<IIncomingPhysicalMessageContext,
+        IIncomingPhysicalMessageContext>
 {
-    public TransactionalSessionDelayControlMessageBehavior(IMessageDispatcher dispatcher,
-        string physicalQueueAddress)
-    {
-        this.dispatcher = dispatcher;
-        this.physicalQueueAddress = physicalQueueAddress;
-    }
-
     public async Task Invoke(IIncomingPhysicalMessageContext context,
         Func<IIncomingPhysicalMessageContext, Task> next)
     {
@@ -73,7 +68,5 @@ class TransactionalSessionDelayControlMessageBehavior : IBehavior<IIncomingPhysi
         throw new ConsumeMessageException();
     }
 
-    readonly IMessageDispatcher dispatcher;
-    readonly string physicalQueueAddress;
     static readonly ILog Log = LogManager.GetLogger<TransactionalSessionDelayControlMessageBehavior>();
 }

@@ -47,13 +47,13 @@ abstract class TransactionalSessionBase : ITransactionalSession
                     "The session has to be opened before accessing the SessionId.");
             }
 
-            return options?.SessionId;
+            return openSessionOptions?.SessionId;
         }
     }
 
-    protected ContextBag Context => options.Extensions;
+    protected ContextBag Context => openSessionOptions.Extensions;
 
-    protected bool IsOpen => options != null;
+    protected bool IsOpen => openSessionOptions != null;
 
     public async Task Commit(CancellationToken cancellationToken = default)
     {
@@ -153,8 +153,8 @@ abstract class TransactionalSessionBase : ITransactionalSession
     protected readonly IMessageDispatcher dispatcher;
     protected readonly IEnumerable<IOpenSessionOptionsCustomization> customizations;
     protected readonly PendingTransportOperations pendingOperations;
-    protected OpenSessionOptions options;
+    protected OpenSessionOptions openSessionOptions;
     readonly IMessageSession messageSession;
     protected bool disposed;
-    protected bool committed;
+    bool committed;
 }
