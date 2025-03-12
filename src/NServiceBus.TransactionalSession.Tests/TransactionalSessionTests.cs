@@ -14,7 +14,7 @@ public class TransactionalSessionTests
     [Test]
     public async Task Open_should_use_session_id_from_options()
     {
-        using var session = new NonOutboxTransactionalSession(new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>());
+        using var session = new NonOutboxTransactionalSession(new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), []);
 
         var openOptions = new FakeOpenSessionOptions();
         await session.Open(openOptions);
@@ -25,7 +25,7 @@ public class TransactionalSessionTests
     [Test]
     public async Task Open_should_throw_if_session_already_open()
     {
-        using var session = new NonOutboxTransactionalSession(new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>());
+        using var session = new NonOutboxTransactionalSession(new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), []);
 
         await session.Open(new FakeOpenSessionOptions());
 
@@ -39,7 +39,7 @@ public class TransactionalSessionTests
     {
         var synchronizedStorageSession = new FakeSynchronizableStorageSession();
 
-        using var session = new NonOutboxTransactionalSession(synchronizedStorageSession, new FakeMessageSession(), new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>());
+        using var session = new NonOutboxTransactionalSession(synchronizedStorageSession, new FakeMessageSession(), new FakeDispatcher(), []);
 
         var options = new FakeOpenSessionOptions();
         await session.Open(options);
@@ -60,7 +60,7 @@ public class TransactionalSessionTests
     public async Task Send_should_set_PendingOperations_collection_on_context()
     {
         var messageSession = new FakeMessageSession();
-        using var session = new NonOutboxTransactionalSession(new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>());
+        using var session = new NonOutboxTransactionalSession(new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), []);
 
         await session.Open(new FakeOpenSessionOptions());
         await session.Send(new object());
@@ -72,7 +72,7 @@ public class TransactionalSessionTests
     public async Task Publish_should_set_PendingOperations_collection_on_context()
     {
         var messageSession = new FakeMessageSession();
-        using var session = new NonOutboxTransactionalSession(new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>());
+        using var session = new NonOutboxTransactionalSession(new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), []);
 
         await session.Open(new FakeOpenSessionOptions());
         await session.Publish(new object());
@@ -84,7 +84,7 @@ public class TransactionalSessionTests
     public void Send_should_throw_exception_when_session_not_opened()
     {
         var messageSession = new FakeMessageSession();
-        using var session = new NonOutboxTransactionalSession(new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>());
+        using var session = new NonOutboxTransactionalSession(new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), []);
 
         var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Send(new object()));
 
@@ -96,7 +96,7 @@ public class TransactionalSessionTests
     public void Publish_should_throw_exception_when_session_not_opened()
     {
         var messageSession = new FakeMessageSession();
-        using var session = new NonOutboxTransactionalSession(new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>());
+        using var session = new NonOutboxTransactionalSession(new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), []);
 
         var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Publish(new object()));
 
@@ -109,7 +109,7 @@ public class TransactionalSessionTests
     {
         var dispatcher = new FakeDispatcher();
         var synchronizableSession = new FakeSynchronizableStorageSession();
-        using var session = new NonOutboxTransactionalSession(synchronizableSession, new FakeMessageSession(), dispatcher, Enumerable.Empty<IOpenSessionOptionsCustomization>());
+        using var session = new NonOutboxTransactionalSession(synchronizableSession, new FakeMessageSession(), dispatcher, []);
 
         await session.Open(new FakeOpenSessionOptions());
         var sendOptions = new SendOptions();
@@ -139,7 +139,7 @@ public class TransactionalSessionTests
         var storageSession = new FakeSynchronizableStorageSession();
         storageSession.CompleteCallback = () => throw new Exception("session complete exception");
 
-        using var session = new NonOutboxTransactionalSession(storageSession, new FakeMessageSession(), dispatcher, Enumerable.Empty<IOpenSessionOptionsCustomization>());
+        using var session = new NonOutboxTransactionalSession(storageSession, new FakeMessageSession(), dispatcher, []);
 
         await session.Open(new FakeOpenSessionOptions());
         await session.Send(new object());
@@ -153,7 +153,7 @@ public class TransactionalSessionTests
     {
         var synchronizedStorageSession = new FakeSynchronizableStorageSession();
 
-        var session = new NonOutboxTransactionalSession(synchronizedStorageSession, new FakeMessageSession(), new FakeDispatcher(), Enumerable.Empty<IOpenSessionOptionsCustomization>());
+        var session = new NonOutboxTransactionalSession(synchronizedStorageSession, new FakeMessageSession(), new FakeDispatcher(), []);
         var options = new FakeOpenSessionOptions();
         await session.Open(options);
 

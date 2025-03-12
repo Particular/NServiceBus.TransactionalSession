@@ -114,7 +114,7 @@ sealed class CustomTestingOutboxStorage : IOutboxStorage
         public void MarkAsDispatched()
         {
             Dispatched = true;
-            TransportOperations = new TransportOperation[0];
+            TransportOperations = [];
         }
 
         protected bool Equals(StoredMessage other)
