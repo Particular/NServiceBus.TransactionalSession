@@ -9,8 +9,7 @@ using Transport;
 using NUnit.Framework;
 
 [TestFixture]
-public class 
-    OutboxTransactionalSessionTests
+public class OutboxTransactionalSessionTests
 {
     [Test]
     public async Task Open_should_use_session_id_from_options()
