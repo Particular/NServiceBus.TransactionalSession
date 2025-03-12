@@ -1,22 +1,21 @@
-﻿namespace NServiceBus.TransactionalSession
-{
-    using System;
-    using System.Threading.Tasks;
-    using Pipeline;
+﻿namespace NServiceBus.TransactionalSession;
 
-    class TransactionalSessionControlMessageExceptionBehavior : IBehavior<ITransportReceiveContext,
-        ITransportReceiveContext>
+using System;
+using System.Threading.Tasks;
+using Pipeline;
+
+class TransactionalSessionControlMessageExceptionBehavior : IBehavior<ITransportReceiveContext,
+    ITransportReceiveContext>
+{
+    public async Task Invoke(ITransportReceiveContext context, Func<ITransportReceiveContext, Task> next)
     {
-        public async Task Invoke(ITransportReceiveContext context, Func<ITransportReceiveContext, Task> next)
+        try
         {
-            try
-            {
-                await next(context).ConfigureAwait(false);
-            }
-            catch (ConsumeMessageException)
-            {
-                //HINT: swallow the exception to acknowledge the incoming message and prevent outbox from commiting
-            }
+            await next(context).ConfigureAwait(false);
+        }
+        catch (ConsumeMessageException)
+        {
+            //HINT: swallow the exception to acknowledge the incoming message and prevent outbox from commiting
         }
     }
 }

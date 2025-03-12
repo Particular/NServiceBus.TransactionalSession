@@ -1,7 +1,6 @@
-﻿namespace NServiceBus.TransactionalSession.Tests.Fakes
-{
-    class FakeOpenSessionOptions : OpenSessionOptions
-    {
+﻿namespace NServiceBus.TransactionalSession.Tests.Fakes;
 
-    }
+class FakeOpenSessionOptions : OpenSessionOptions
+{
+
 }

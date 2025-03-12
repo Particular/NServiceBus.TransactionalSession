@@ -1,106 +1,105 @@
-﻿namespace NServiceBus.TransactionalSession.AcceptanceTests
+﻿namespace NServiceBus.TransactionalSession.AcceptanceTests;
+
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using AcceptanceTesting;
+using AcceptanceTesting.Customization;
+using Microsoft.Extensions.DependencyInjection;
+using NUnit.Framework;
+using Pipeline;
+
+public class When_outbox_commits_after_receiving_control_message : NServiceBusAcceptanceTest
 {
-    using System;
-    using System.Threading;
-    using System.Threading.Tasks;
-    using AcceptanceTesting;
-    using AcceptanceTesting.Customization;
-    using Microsoft.Extensions.DependencyInjection;
-    using NUnit.Framework;
-    using Pipeline;
-
-    public class When_outbox_commits_after_receiving_control_message : NServiceBusAcceptanceTest
+    [Test]
+    public async Task Should_retry_till_outbox_transaction_committed()
     {
-        [Test]
-        public async Task Should_retry_till_outbox_transaction_committed()
-        {
-            await Scenario.Define<Context>()
-                .WithEndpoint<SenderEndpoint>(e => e
-                    .When(async (_, context) =>
-                    {
-                        using var scope = context.ServiceProvider.CreateScope();
-                        using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
-
-                        var options = new CustomTestingPersistenceOpenSessionOptions
-                        {
-                            TransactionCommitTaskCompletionSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously)
-                        };
-                        context.TxCommitTcs = options.TransactionCommitTaskCompletionSource;
-
-                        await transactionalSession.Open(options);
-                        await transactionalSession.Send(new SomeMessage());
-                        await transactionalSession.Send(new SomeMessage());
-                        await transactionalSession.Send(new SomeMessage());
-
-                        await transactionalSession.Commit();
-                    }))
-                .WithEndpoint<ReceiverEndpoint>()
-                .Done(c => c.MessageReceiveCounter == 3)
-                .Run(TimeSpan.FromSeconds(15));
-        }
-
-        class Context : ScenarioContext, IInjectServiceProvider
-        {
-            public int MessageReceiveCounter = 0;
-            public IServiceProvider ServiceProvider { get; set; }
-            public TaskCompletionSource<bool> TxCommitTcs { get; set; }
-        }
-
-        class SenderEndpoint : EndpointConfigurationBuilder
-        {
-            public SenderEndpoint() =>
-                EndpointSetup<TransactionSessionWithOutboxEndpoint>((c, r) =>
+        await Scenario.Define<Context>()
+            .WithEndpoint<SenderEndpoint>(e => e
+                .When(async (_, context) =>
                 {
-                    c.ConfigureRouting().RouteToEndpoint(typeof(SomeMessage), typeof(ReceiverEndpoint));
+                    using var scope = context.ServiceProvider.CreateScope();
+                    using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
-                    c.Pipeline.Register(new DelayedOutboxTransactionCommitBehavior((Context)r.ScenarioContext), "delays the outbox transaction commit");
-                });
+                    var options = new CustomTestingPersistenceOpenSessionOptions
+                    {
+                        TransactionCommitTaskCompletionSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously)
+                    };
+                    context.TxCommitTcs = options.TransactionCommitTaskCompletionSource;
 
+                    await transactionalSession.Open(options);
+                    await transactionalSession.Send(new SomeMessage());
+                    await transactionalSession.Send(new SomeMessage());
+                    await transactionalSession.Send(new SomeMessage());
 
-            class DelayedOutboxTransactionCommitBehavior : Behavior<ITransportReceiveContext>
+                    await transactionalSession.Commit();
+                }))
+            .WithEndpoint<ReceiverEndpoint>()
+            .Done(c => c.MessageReceiveCounter == 3)
+            .Run(TimeSpan.FromSeconds(15));
+    }
+
+    class Context : ScenarioContext, IInjectServiceProvider
+    {
+        public int MessageReceiveCounter = 0;
+        public IServiceProvider ServiceProvider { get; set; }
+        public TaskCompletionSource<bool> TxCommitTcs { get; set; }
+    }
+
+    class SenderEndpoint : EndpointConfigurationBuilder
+    {
+        public SenderEndpoint() =>
+            EndpointSetup<TransactionSessionWithOutboxEndpoint>((c, r) =>
             {
-                public DelayedOutboxTransactionCommitBehavior(Context testContext) => this.testContext = testContext;
+                c.ConfigureRouting().RouteToEndpoint(typeof(SomeMessage), typeof(ReceiverEndpoint));
 
-                public override async Task Invoke(ITransportReceiveContext context, Func<Task> next)
+                c.Pipeline.Register(new DelayedOutboxTransactionCommitBehavior((Context)r.ScenarioContext), "delays the outbox transaction commit");
+            });
+
+
+        class DelayedOutboxTransactionCommitBehavior : Behavior<ITransportReceiveContext>
+        {
+            public DelayedOutboxTransactionCommitBehavior(Context testContext) => this.testContext = testContext;
+
+            public override async Task Invoke(ITransportReceiveContext context, Func<Task> next)
+            {
+                try
                 {
-                    try
-                    {
-                        await next();
-                    }
-                    catch (ConsumeMessageException)
-                    {
-                        // we don't know the order of behaviors
-                    }
-
-                    // unblock transaction once the receive pipeline "completed" once
-                    testContext.TxCommitTcs.TrySetResult(true);
+                    await next();
+                }
+                catch (ConsumeMessageException)
+                {
+                    // we don't know the order of behaviors
                 }
 
-                readonly Context testContext;
+                // unblock transaction once the receive pipeline "completed" once
+                testContext.TxCommitTcs.TrySetResult(true);
             }
+
+            readonly Context testContext;
         }
+    }
 
-        class ReceiverEndpoint : EndpointConfigurationBuilder
+    class ReceiverEndpoint : EndpointConfigurationBuilder
+    {
+        public ReceiverEndpoint() => EndpointSetup<DefaultServer>();
+
+        class MessageHandler : IHandleMessages<SomeMessage>
         {
-            public ReceiverEndpoint() => EndpointSetup<DefaultServer>();
+            Context testContext;
 
-            class MessageHandler : IHandleMessages<SomeMessage>
+            public MessageHandler(Context testContext) => this.testContext = testContext;
+
+
+            public Task Handle(SomeMessage message, IMessageHandlerContext context)
             {
-                Context testContext;
-
-                public MessageHandler(Context testContext) => this.testContext = testContext;
-
-
-                public Task Handle(SomeMessage message, IMessageHandlerContext context)
-                {
-                    Interlocked.Increment(ref testContext.MessageReceiveCounter);
-                    return Task.CompletedTask;
-                }
+                Interlocked.Increment(ref testContext.MessageReceiveCounter);
+                return Task.CompletedTask;
             }
         }
+    }
 
-        class SomeMessage : IMessage
-        {
-        }
+    class SomeMessage : IMessage
+    {
     }
 }

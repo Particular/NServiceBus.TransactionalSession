@@ -1,8 +1,7 @@
-﻿namespace NServiceBus.TransactionalSession
-{
-    using System;
+﻿namespace NServiceBus.TransactionalSession;
 
-    sealed class ConsumeMessageException : Exception
-    {
-    }
+using System;
+
+sealed class ConsumeMessageException : Exception
+{
 }

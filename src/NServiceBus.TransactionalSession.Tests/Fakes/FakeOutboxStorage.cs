@@ -1,47 +1,46 @@
-﻿namespace NServiceBus.TransactionalSession.Tests.Fakes
+﻿namespace NServiceBus.TransactionalSession.Tests.Fakes;
+
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using Extensibility;
+using Outbox;
+
+class FakeOutboxStorage : IOutboxStorage
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Threading;
-    using System.Threading.Tasks;
-    using Extensibility;
-    using Outbox;
+    public List<(OutboxMessage outboxMessage, IOutboxTransaction transaction, ContextBag context)> Stored { get; } = [];
+    public List<(string messageId, ContextBag context)> Dispatched { get; } = [];
+    public Action<OutboxMessage, IOutboxTransaction, ContextBag> StoreCallback { get; set; } = null;
 
-    class FakeOutboxStorage : IOutboxStorage
+    public Action<string, ContextBag> DispatchedCallback { get; set; } = null;
+
+    public List<FakeOutboxTransaction> StartedTransactions { get; } = [];
+
+    public Task<OutboxMessage> Get(string messageId, ContextBag context, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+
+    public Task Store(OutboxMessage message, IOutboxTransaction transaction, ContextBag context,
+        CancellationToken cancellationToken = default)
     {
-        public List<(OutboxMessage outboxMessage, IOutboxTransaction transaction, ContextBag context)> Stored { get; } = [];
-        public List<(string messageId, ContextBag context)> Dispatched { get; } = [];
-        public Action<OutboxMessage, IOutboxTransaction, ContextBag> StoreCallback { get; set; } = null;
+        Stored.Add((message, transaction, context));
+        StoreCallback?.Invoke(message, transaction, context);
 
-        public Action<string, ContextBag> DispatchedCallback { get; set; } = null;
+        return Task.CompletedTask;
+    }
 
-        public List<FakeOutboxTransaction> StartedTransactions { get; } = [];
+    public Task SetAsDispatched(string messageId, ContextBag context,
+        CancellationToken cancellationToken = default)
+    {
+        Dispatched.Add((messageId, context));
+        DispatchedCallback?.Invoke(messageId, context);
 
-        public Task<OutboxMessage> Get(string messageId, ContextBag context, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+        return Task.CompletedTask;
+    }
 
-        public Task Store(OutboxMessage message, IOutboxTransaction transaction, ContextBag context,
-            CancellationToken cancellationToken = default)
-        {
-            Stored.Add((message, transaction, context));
-            StoreCallback?.Invoke(message, transaction, context);
-
-            return Task.CompletedTask;
-        }
-
-        public Task SetAsDispatched(string messageId, ContextBag context,
-            CancellationToken cancellationToken = default)
-        {
-            Dispatched.Add((messageId, context));
-            DispatchedCallback?.Invoke(messageId, context);
-
-            return Task.CompletedTask;
-        }
-
-        public Task<IOutboxTransaction> BeginTransaction(ContextBag context, CancellationToken cancellationToken = default)
-        {
-            var tx = new FakeOutboxTransaction();
-            StartedTransactions.Add(tx);
-            return Task.FromResult<IOutboxTransaction>(tx);
-        }
+    public Task<IOutboxTransaction> BeginTransaction(ContextBag context, CancellationToken cancellationToken = default)
+    {
+        var tx = new FakeOutboxTransaction();
+        StartedTransactions.Add(tx);
+        return Task.FromResult<IOutboxTransaction>(tx);
     }
 }
