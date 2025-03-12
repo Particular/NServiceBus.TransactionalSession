@@ -85,18 +85,14 @@ public class When_using_transactional_session : NServiceBusAcceptanceTest
             }
         }
 
-        class MessageHandler : IHandleMessages<SomeMessage>
+        class MessageHandler(Context testContext) : IHandleMessages<SomeMessage>
         {
-            public MessageHandler(Context context) => testContext = context;
-
             public Task Handle(SomeMessage message, IMessageHandlerContext context)
             {
                 testContext.MessageReceived = true;
 
                 return Task.CompletedTask;
             }
-
-            readonly Context testContext;
         }
     }
 

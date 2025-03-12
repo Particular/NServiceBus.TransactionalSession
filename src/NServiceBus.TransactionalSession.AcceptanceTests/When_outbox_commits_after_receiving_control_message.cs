@@ -57,10 +57,8 @@ public class When_outbox_commits_after_receiving_control_message : NServiceBusAc
             });
 
 
-        class DelayedOutboxTransactionCommitBehavior : Behavior<ITransportReceiveContext>
+        class DelayedOutboxTransactionCommitBehavior(Context testContext) : Behavior<ITransportReceiveContext>
         {
-            public DelayedOutboxTransactionCommitBehavior(Context testContext) => this.testContext = testContext;
-
             public override async Task Invoke(ITransportReceiveContext context, Func<Task> next)
             {
                 try
@@ -75,8 +73,6 @@ public class When_outbox_commits_after_receiving_control_message : NServiceBusAc
                 // unblock transaction once the receive pipeline "completed" once
                 testContext.TxCommitTcs.TrySetResult(true);
             }
-
-            readonly Context testContext;
         }
     }
 
@@ -84,13 +80,8 @@ public class When_outbox_commits_after_receiving_control_message : NServiceBusAc
     {
         public ReceiverEndpoint() => EndpointSetup<DefaultServer>();
 
-        class MessageHandler : IHandleMessages<SomeMessage>
+        class MessageHandler(Context testContext) : IHandleMessages<SomeMessage>
         {
-            Context testContext;
-
-            public MessageHandler(Context testContext) => this.testContext = testContext;
-
-
             public Task Handle(SomeMessage message, IMessageHandlerContext context)
             {
                 Interlocked.Increment(ref testContext.MessageReceiveCounter);

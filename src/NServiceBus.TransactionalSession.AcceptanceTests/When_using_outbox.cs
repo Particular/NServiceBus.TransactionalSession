@@ -155,38 +155,28 @@ public class When_using_outbox : NServiceBusAcceptanceTest
             EndpointSetup<TransactionSessionWithOutboxEndpoint>(
                 c => c.Pipeline.Register(typeof(DiscoverControlMessagesBehavior), "Discovers control messages"));
 
-        class SampleHandler : IHandleMessages<SampleMessage>
+        class SampleHandler(Context testContext) : IHandleMessages<SampleMessage>
         {
-            public SampleHandler(Context testContext) => this.testContext = testContext;
-
             public Task Handle(SampleMessage message, IMessageHandlerContext context)
             {
                 testContext.MessageReceived = true;
 
                 return Task.CompletedTask;
             }
-
-            readonly Context testContext;
         }
 
-        class CompleteTestMessageHandler : IHandleMessages<CompleteTestMessage>
+        class CompleteTestMessageHandler(Context testContext) : IHandleMessages<CompleteTestMessage>
         {
-            public CompleteTestMessageHandler(Context context) => testContext = context;
-
             public Task Handle(CompleteTestMessage message, IMessageHandlerContext context)
             {
                 testContext.CompleteMessageReceived = true;
 
                 return Task.CompletedTask;
             }
-
-            readonly Context testContext;
         }
 
-        class DiscoverControlMessagesBehavior : Behavior<ITransportReceiveContext>
+        class DiscoverControlMessagesBehavior(Context testContext) : Behavior<ITransportReceiveContext>
         {
-            public DiscoverControlMessagesBehavior(Context testContext) => this.testContext = testContext;
-
             public override async Task Invoke(ITransportReceiveContext context, Func<Task> next)
             {
                 if (context.Message.Headers.ContainsKey(OutboxTransactionalSession.CommitDelayIncrementHeaderName))
@@ -196,8 +186,6 @@ public class When_using_outbox : NServiceBusAcceptanceTest
 
                 await next();
             }
-
-            readonly Context testContext;
         }
     }
 

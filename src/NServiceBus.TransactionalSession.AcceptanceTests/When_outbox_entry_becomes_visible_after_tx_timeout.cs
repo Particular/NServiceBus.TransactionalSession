@@ -79,17 +79,13 @@ public class When_outbox_entry_becomes_visible_after_tx_timeout : NServiceBusAcc
     {
         public ReceiverEndpoint() => EndpointSetup<DefaultServer>();
 
-        class MessageHandler : IHandleMessages<SomeMessage>
+        class MessageHandler(Context testContext) : IHandleMessages<SomeMessage>
         {
-            public MessageHandler(Context testContext) => this.testContext = testContext;
-
             public Task Handle(SomeMessage message, IMessageHandlerContext context)
             {
                 testContext.MessageReceived = true;
                 return Task.CompletedTask;
             }
-
-            Context testContext;
         }
     }
 

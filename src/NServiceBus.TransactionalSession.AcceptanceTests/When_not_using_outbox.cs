@@ -65,33 +65,24 @@ public class When_not_using_outbox : NServiceBusAcceptanceTest
     {
         public AnEndpoint() => EndpointSetup<TransactionSessionDefaultServer>();
 
-        class SampleHandler : IHandleMessages<SampleMessage>
+        class SampleHandler(Context testContext) : IHandleMessages<SampleMessage>
         {
-            public SampleHandler(Context testContext) => this.testContext = testContext;
-
             public Task Handle(SampleMessage message, IMessageHandlerContext context)
             {
                 testContext.MessageReceived = true;
 
                 return Task.CompletedTask;
             }
-
-            readonly Context testContext;
         }
 
-        class CompleteTestMessageHandler : IHandleMessages<CompleteTestMessage>
+        class CompleteTestMessageHandler(Context testContext) : IHandleMessages<CompleteTestMessage>
         {
-
-            public CompleteTestMessageHandler(Context testContext) => this.testContext = testContext;
-
             public Task Handle(CompleteTestMessage message, IMessageHandlerContext context)
             {
                 testContext.CompleteMessageReceived = true;
 
                 return Task.CompletedTask;
             }
-
-            readonly Context testContext;
         }
     }
 

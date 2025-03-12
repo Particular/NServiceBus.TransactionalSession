@@ -76,10 +76,8 @@ sealed class CustomTestingSynchronizedStorageSession : ICompletableSynchronizedS
 
     bool ownsTransaction;
 
-    sealed class EnlistmentNotification : IEnlistmentNotification
+    sealed class EnlistmentNotification(AcceptanceTestingTransaction transaction) : IEnlistmentNotification
     {
-        public EnlistmentNotification(AcceptanceTestingTransaction transaction) => this.transaction = transaction;
-
         public void Prepare(PreparingEnlistment preparingEnlistment)
         {
             try
@@ -102,8 +100,6 @@ sealed class CustomTestingSynchronizedStorageSession : ICompletableSynchronizedS
         }
 
         public void InDoubt(Enlistment enlistment) => enlistment.Done();
-
-        readonly AcceptanceTestingTransaction transaction;
     }
 
     string logContext;

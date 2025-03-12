@@ -8,21 +8,12 @@ using Extensibility;
 using Persistence;
 using Transport;
 
-abstract class TransactionalSessionBase : ITransactionalSession
+abstract class TransactionalSessionBase(ICompletableSynchronizedStorageSession synchronizedStorageSession,
+    IMessageSession messageSession,
+    IMessageDispatcher dispatcher,
+    IEnumerable<IOpenSessionOptionsCustomization> customizations)
+    : ITransactionalSession
 {
-    protected TransactionalSessionBase(
-        ICompletableSynchronizedStorageSession synchronizedStorageSession,
-        IMessageSession messageSession,
-        IMessageDispatcher dispatcher,
-        IEnumerable<IOpenSessionOptionsCustomization> customizations)
-    {
-        this.synchronizedStorageSession = synchronizedStorageSession;
-        this.messageSession = messageSession;
-        this.dispatcher = dispatcher;
-        this.customizations = customizations;
-        pendingOperations = new PendingTransportOperations();
-    }
-
     public ISynchronizedStorageSession SynchronizedStorageSession
     {
         get
@@ -149,12 +140,11 @@ abstract class TransactionalSessionBase : ITransactionalSession
         disposed = true;
     }
 
-    protected readonly ICompletableSynchronizedStorageSession synchronizedStorageSession;
-    protected readonly IMessageDispatcher dispatcher;
-    protected readonly IEnumerable<IOpenSessionOptionsCustomization> customizations;
-    protected readonly PendingTransportOperations pendingOperations;
+    protected readonly ICompletableSynchronizedStorageSession synchronizedStorageSession = synchronizedStorageSession;
+    protected readonly IMessageDispatcher dispatcher = dispatcher;
+    protected readonly IEnumerable<IOpenSessionOptionsCustomization> customizations = customizations;
+    protected readonly PendingTransportOperations pendingOperations = new();
     protected OpenSessionOptions openSessionOptions;
-    readonly IMessageSession messageSession;
     protected bool disposed;
     bool committed;
 }
