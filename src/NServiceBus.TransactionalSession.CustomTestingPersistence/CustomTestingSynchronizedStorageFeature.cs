@@ -8,8 +8,5 @@ sealed class CustomTestingSynchronizedStorageFeature : Feature
 {
     public CustomTestingSynchronizedStorageFeature() => DependsOn<SynchronizedStorage>();
 
-    protected override void Setup(FeatureConfigurationContext context)
-    {
-        context.Services.AddScoped<ICompletableSynchronizedStorageSession, CustomTestingSynchronizedStorageSession>();
-    }
+    protected override void Setup(FeatureConfigurationContext context) => context.Services.AddScoped<ICompletableSynchronizedStorageSession, CustomTestingSynchronizedStorageSession>();
 }

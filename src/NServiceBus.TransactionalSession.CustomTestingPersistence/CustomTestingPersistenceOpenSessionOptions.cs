@@ -10,9 +10,9 @@ public class CustomTestingPersistenceOpenSessionOptions : OpenSessionOptions
         Extensions.Set(this);
     }
 
-    public TaskCompletionSource<bool> TransactionCommitTaskCompletionSource { get; set; }
+    public TaskCompletionSource<bool> TransactionCommitTaskCompletionSource { get; init; }
 
-    public bool UseTransactionScope { get; set; }
+    public bool UseTransactionScope { get; init; }
 
     public const string LoggerContextName = "LoggerContext";
 }

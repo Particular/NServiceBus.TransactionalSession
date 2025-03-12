@@ -13,7 +13,7 @@ using Transport;
 
 sealed class CustomTestingSynchronizedStorageSession : ICompletableSynchronizedStorageSession
 {
-    public AcceptanceTestingTransaction Transaction { get; private set; }
+    AcceptanceTestingTransaction Transaction { get; set; }
 
     public void Dispose() => Transaction = null;
 

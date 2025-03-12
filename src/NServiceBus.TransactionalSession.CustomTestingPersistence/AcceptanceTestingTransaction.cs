@@ -18,5 +18,5 @@ sealed class AcceptanceTestingTransaction
 
     public void Rollback() => actions.Clear();
 
-    List<Action> actions = [];
+    readonly List<Action> actions = [];
 }

@@ -12,8 +12,8 @@ using Transport;
 class FakeSynchronizableStorageSession : ICompletableSynchronizedStorageSession
 {
     public List<(IOutboxTransaction, ContextBag)> OpenedOutboxTransactionSessions { get; } = [];
-    public List<ContextBag> OpenedTransactionSessions { get; set; } = [];
-    public Func<IOutboxTransaction, ContextBag, bool> TryOpenCallback { get; set; } = null;
+    public List<ContextBag> OpenedTransactionSessions { get; } = [];
+    public Func<IOutboxTransaction, ContextBag, bool> TryOpenCallback { get; set; }
     public Action CompleteCallback { get; set; } = null;
     public bool Completed { get; private set; }
     public bool Disposed { get; private set; }
@@ -21,7 +21,7 @@ class FakeSynchronizableStorageSession : ICompletableSynchronizedStorageSession
     public void Dispose() => Disposed = true;
 
     public ValueTask<bool> TryOpen(IOutboxTransaction transaction, ContextBag context,
-        CancellationToken cancellationToken = new CancellationToken())
+        CancellationToken cancellationToken = new())
     {
         if (transaction == null)
         {
@@ -35,13 +35,13 @@ class FakeSynchronizableStorageSession : ICompletableSynchronizedStorageSession
     public ValueTask<bool> TryOpen(TransportTransaction transportTransaction, ContextBag context,
         CancellationToken cancellationToken = new CancellationToken()) => new(false);
 
-    public Task Open(ContextBag contextBag, CancellationToken cancellationToken = new CancellationToken())
+    public Task Open(ContextBag contextBag, CancellationToken cancellationToken = new())
     {
         OpenedTransactionSessions.Add(contextBag);
         return Task.CompletedTask;
     }
 
-    public Task CompleteAsync(CancellationToken cancellationToken = new CancellationToken())
+    public Task CompleteAsync(CancellationToken cancellationToken = new())
     {
         Completed = true;
         CompleteCallback?.Invoke();

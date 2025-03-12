@@ -9,7 +9,7 @@ using TransactionalSession;
 
 sealed class CustomTestingOutboxTransaction : IOutboxTransaction
 {
-    public TaskCompletionSource<bool> CommitTaskCompletionSource { get; set; } = null;
+    TaskCompletionSource<bool> CommitTaskCompletionSource { get; }
 
     public CustomTestingOutboxTransaction(ContextBag contextBag)
     {
@@ -23,10 +23,7 @@ sealed class CustomTestingOutboxTransaction : IOutboxTransaction
 
     public AcceptanceTestingTransaction Transaction { get; private set; }
 
-    public void Dispose()
-    {
-        Transaction = null;
-    }
+    public void Dispose() => Transaction = null;
 
     public async Task Commit(CancellationToken cancellationToken = default)
     {
@@ -38,8 +35,5 @@ sealed class CustomTestingOutboxTransaction : IOutboxTransaction
         Transaction.Commit();
     }
 
-    public void Enlist(Action action)
-    {
-        Transaction.Enlist(action);
-    }
+    public void Enlist(Action action) => Transaction.Enlist(action);
 }

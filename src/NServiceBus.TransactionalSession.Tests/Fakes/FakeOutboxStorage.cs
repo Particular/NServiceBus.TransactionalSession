@@ -11,9 +11,9 @@ class FakeOutboxStorage : IOutboxStorage
 {
     public List<(OutboxMessage outboxMessage, IOutboxTransaction transaction, ContextBag context)> Stored { get; } = [];
     public List<(string messageId, ContextBag context)> Dispatched { get; } = [];
-    public Action<OutboxMessage, IOutboxTransaction, ContextBag> StoreCallback { get; set; } = null;
+    public Action<OutboxMessage, IOutboxTransaction, ContextBag> StoreCallback { get; init; }
 
-    public Action<string, ContextBag> DispatchedCallback { get; set; } = null;
+    Action<string, ContextBag> DispatchedCallback => null;
 
     public List<FakeOutboxTransaction> StartedTransactions { get; } = [];
 

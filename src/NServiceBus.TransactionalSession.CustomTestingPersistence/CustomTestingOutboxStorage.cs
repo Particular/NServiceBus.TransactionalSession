@@ -78,38 +78,17 @@ sealed class CustomTestingOutboxStorage : IOutboxStorage
         return Task.CompletedTask;
     }
 
-    public void RemoveEntriesOlderThan(DateTime dateTime)
+    readonly ConcurrentDictionary<string, StoredMessage> storage = new();
+
+    static readonly Task<OutboxMessage> NoOutboxMessageTask = Task.FromResult(default(OutboxMessage));
+
+    class StoredMessage(string messageId, TransportOperation[] transportOperations)
     {
-        foreach (var entry in storage)
-        {
-            var storedMessage = entry.Value;
-            if (storedMessage.Dispatched && storedMessage.StoredAt < dateTime)
-            {
-                storage.TryRemove(entry.Key, out _);
-            }
-        }
-    }
+        string Id { get; } = messageId;
 
-    ConcurrentDictionary<string, StoredMessage> storage = new ConcurrentDictionary<string, StoredMessage>();
+        bool Dispatched { get; set; }
 
-    static Task<OutboxMessage> NoOutboxMessageTask = Task.FromResult(default(OutboxMessage));
-
-    class StoredMessage
-    {
-        public StoredMessage(string messageId, TransportOperation[] transportOperations)
-        {
-            TransportOperations = transportOperations;
-            Id = messageId;
-            StoredAt = DateTime.UtcNow;
-        }
-
-        public string Id { get; }
-
-        public bool Dispatched { get; private set; }
-
-        public DateTime StoredAt { get; }
-
-        public TransportOperation[] TransportOperations { get; private set; }
+        public TransportOperation[] TransportOperations { get; private set; } = transportOperations;
 
         public void MarkAsDispatched()
         {
@@ -117,10 +96,7 @@ sealed class CustomTestingOutboxStorage : IOutboxStorage
             TransportOperations = [];
         }
 
-        protected bool Equals(StoredMessage other)
-        {
-            return string.Equals(Id, other.Id) && Dispatched.Equals(other.Dispatched);
-        }
+        bool Equals(StoredMessage other) => string.Equals(Id, other.Id) && Dispatched.Equals(other.Dispatched);
 
         public override bool Equals(object obj)
         {
@@ -128,15 +104,13 @@ sealed class CustomTestingOutboxStorage : IOutboxStorage
             {
                 return false;
             }
+
             if (ReferenceEquals(this, obj))
             {
                 return true;
             }
-            if (obj.GetType() != GetType())
-            {
-                return false;
-            }
-            return Equals((StoredMessage)obj);
+
+            return obj.GetType() == GetType() && Equals((StoredMessage)obj);
         }
 
         public override int GetHashCode()
