@@ -1,22 +1,21 @@
-namespace NServiceBus.AcceptanceTesting
+namespace NServiceBus.AcceptanceTesting;
+
+using Features;
+using Microsoft.Extensions.DependencyInjection;
+using Outbox;
+
+sealed class CustomTestingOutboxPersistence : Feature
 {
-    using Features;
-    using Microsoft.Extensions.DependencyInjection;
-    using Outbox;
-
-    sealed class CustomTestingOutboxPersistence : Feature
+    public CustomTestingOutboxPersistence()
     {
-        public CustomTestingOutboxPersistence()
-        {
-            DependsOn<Outbox>();
-            Defaults(s => s.EnableFeatureByDefault<CustomTestingSynchronizedStorageFeature>());
-        }
+        DependsOn<Outbox>();
+        Defaults(s => s.EnableFeatureByDefault<CustomTestingSynchronizedStorageFeature>());
+    }
 
-        protected override void Setup(FeatureConfigurationContext context)
-        {
-            var outboxStorage = new CustomTestingOutboxStorage();
+    protected override void Setup(FeatureConfigurationContext context)
+    {
+        var outboxStorage = new CustomTestingOutboxStorage();
 
-            context.Services.AddSingleton(typeof(IOutboxStorage), outboxStorage);
-        }
+        context.Services.AddSingleton(typeof(IOutboxStorage), outboxStorage);
     }
 }

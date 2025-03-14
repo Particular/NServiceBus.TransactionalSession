@@ -1,23 +1,22 @@
-namespace NServiceBus.AcceptanceTesting
+namespace NServiceBus.AcceptanceTesting;
+
+using System;
+using System.Collections.Generic;
+
+sealed class AcceptanceTestingTransaction
 {
-    using System;
-    using System.Collections.Generic;
+    public void Enlist(Action action) => actions.Add(action);
 
-    sealed class AcceptanceTestingTransaction
+    public void Commit()
     {
-        public void Enlist(Action action) => actions.Add(action);
-
-        public void Commit()
+        foreach (var action in actions)
         {
-            foreach (var action in actions)
-            {
-                action();
-            }
-            actions.Clear();
+            action();
         }
-
-        public void Rollback() => actions.Clear();
-
-        List<Action> actions = [];
+        actions.Clear();
     }
+
+    public void Rollback() => actions.Clear();
+
+    readonly List<Action> actions = [];
 }
