@@ -30,21 +30,25 @@ public abstract class TransactionalSession : Feature
         context.Services.AddTransient<SessionCaptureTask>();
         context.RegisterStartupTask(sp => sp.GetRequiredService<SessionCaptureTask>());
 
+        var outboxIsActive = context.Settings.IsFeatureActive(typeof(Outbox));
+
         var informationHolder = new InformationHolderToAvoidClosures
         {
-            LocalAddress = context.LocalQueueAddress(),
-            IsOutboxEnabled = context.Settings.IsFeatureActive(typeof(Outbox))
+            LocalAddress = outboxIsActive ? context.LocalQueueAddress() : null,
+            IsOutboxEnabled = outboxIsActive
         };
+
         context.Services.AddSingleton(informationHolder);
         context.Services.AddScoped(static sp =>
         {
             var informationHolder = sp.GetRequiredService<InformationHolderToAvoidClosures>();
-            var physicalLocalQueueAddress = sp.GetRequiredService<ITransportAddressResolver>().ToTransportAddress(informationHolder.LocalAddress);
 
             ITransactionalSession transactionalSession;
 
             if (informationHolder.IsOutboxEnabled)
             {
+                var physicalLocalQueueAddress = sp.GetRequiredService<ITransportAddressResolver>().ToTransportAddress(informationHolder.LocalAddress);
+
                 transactionalSession = new OutboxTransactionalSession(
                     sp.GetRequiredService<IOutboxStorage>(),
                     sp.GetRequiredService<ICompletableSynchronizedStorageSession>(),
