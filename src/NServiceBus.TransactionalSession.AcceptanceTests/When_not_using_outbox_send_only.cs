@@ -7,7 +7,7 @@ using AcceptanceTesting;
 using AcceptanceTesting.Customization;
 using NUnit.Framework;
 
-public class When_not_using_outbox : NServiceBusAcceptanceTest
+public class When_not_using_outbox_send_only : NServiceBusAcceptanceTest
 {
     [Test]
     public async Task Should_send_messages_on_transactional_session_commit()
@@ -20,43 +20,20 @@ public class When_not_using_outbox : NServiceBusAcceptanceTest
 
                 await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions());
 
-                await transactionalSession.SendLocal(new SampleMessage());
+                var options = new SendOptions();
+
+                options.SetDestination(Conventions.EndpointNamingConvention.Invoke(typeof(AnotherEndpoint)));
+
+                await transactionalSession.Send(new SampleMessage(), options);
 
                 await transactionalSession.Commit();
-            }))
+            }).CustomConfig(c => c.SendOnly()))
+            .WithEndpoint<AnotherEndpoint>()
             .Done(c => c.MessageReceived)
             .Run();
 
         Assert.That(result.MessageReceived, Is.True);
     }
-
-    [Test]
-    public async Task Should_not_send_messages_if_session_is_not_committed()
-    {
-        var result = await Scenario.Define<Context>()
-            .WithEndpoint<AnEndpoint>(s => s.When(async (messageSession, ctx) =>
-            {
-                using (var scope = ctx.ServiceProvider.CreateScope())
-                using (var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>())
-                {
-                    await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions());
-
-                    await transactionalSession.SendLocal(new SampleMessage());
-                }
-
-                //Send immediately dispatched message to finish the test
-                await messageSession.SendLocal(new CompleteTestMessage());
-            }))
-            .Done(c => c.CompleteMessageReceived)
-            .Run();
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(result.CompleteMessageReceived, Is.True);
-            Assert.That(result.MessageReceived, Is.False);
-        });
-    }
-
     class Context : ScenarioContext, IInjectServiceProvider
     {
         public bool MessageReceived { get; set; }
@@ -77,12 +54,17 @@ public class When_not_using_outbox : NServiceBusAcceptanceTest
                 return Task.CompletedTask;
             }
         }
+    }
 
-        class CompleteTestMessageHandler(Context testContext) : IHandleMessages<CompleteTestMessage>
+    class AnotherEndpoint : EndpointConfigurationBuilder
+    {
+        public AnotherEndpoint() => EndpointSetup<TransactionSessionDefaultServer>();
+
+        class SampleHandler(Context testContext) : IHandleMessages<SampleMessage>
         {
-            public Task Handle(CompleteTestMessage message, IMessageHandlerContext context)
+            public Task Handle(SampleMessage message, IMessageHandlerContext context)
             {
-                testContext.CompleteMessageReceived = true;
+                testContext.MessageReceived = true;
 
                 return Task.CompletedTask;
             }
@@ -90,10 +72,6 @@ public class When_not_using_outbox : NServiceBusAcceptanceTest
     }
 
     class SampleMessage : ICommand
-    {
-    }
-
-    class CompleteTestMessage : ICommand
     {
     }
 }
