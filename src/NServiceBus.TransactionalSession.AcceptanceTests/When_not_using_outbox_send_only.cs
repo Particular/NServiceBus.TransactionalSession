@@ -37,7 +37,6 @@ public class When_not_using_outbox_send_only : NServiceBusAcceptanceTest
     class Context : ScenarioContext, IInjectServiceProvider
     {
         public bool MessageReceived { get; set; }
-        public bool CompleteMessageReceived { get; set; }
         public IServiceProvider ServiceProvider { get; set; }
     }
 
