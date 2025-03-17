@@ -30,12 +30,12 @@ public abstract class TransactionalSession : Feature
         context.Services.AddTransient<SessionCaptureTask>();
         context.RegisterStartupTask(sp => sp.GetRequiredService<SessionCaptureTask>());
 
-        var outboxIsActive = context.Settings.IsFeatureActive(typeof(Outbox));
+        var outboxEnabled = context.Settings.IsFeatureActive(typeof(Outbox));
 
         var informationHolder = new InformationHolderToAvoidClosures
         {
-            LocalAddress = outboxIsActive ? context.LocalQueueAddress() : null,
-            IsOutboxEnabled = outboxIsActive
+            LocalAddress = outboxEnabled ? context.LocalQueueAddress() : null,
+            IsOutboxEnabled = outboxEnabled
         };
 
         context.Services.AddSingleton(informationHolder);
