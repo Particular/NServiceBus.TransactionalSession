@@ -47,7 +47,7 @@ public class When_using_outbox_send_only : NServiceBusAcceptanceTest
     {
         public SendOnlyEndpoint() => EndpointSetup<DefaultServerWithServiceProviderCapturing>(c =>
         {
-            var options = new TransactionalSessionOptions { ProcessorAddress = Conventions.EndpointNamingConvention.Invoke(typeof(AnotherEndpoint)) };
+            var options = new TransactionalSessionOptions { ProcessorAddress = Conventions.EndpointNamingConvention.Invoke(typeof(ProcessorEndpoint)) };
             var persistence = c.UsePersistence<CustomTestingPersistence>();
             persistence.EnableTransactionalSession(options);
 
