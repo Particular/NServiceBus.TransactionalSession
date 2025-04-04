@@ -1,5 +1,6 @@
 ﻿namespace NServiceBus.TransactionalSession;
 
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Features;
@@ -27,6 +28,11 @@ public abstract class TransactionalSession : Feature
     /// </summary>
     protected override void Setup(FeatureConfigurationContext context)
     {
+        if (!context.Settings.TryGet<TransactionalSessionOptions>(out var transactionalSessionOptions))
+        {
+            throw new InvalidOperationException("TransactionalSessionOptions is missing or not configured");
+        }
+
         context.Services.AddTransient<SessionCaptureTask>();
         context.RegisterStartupTask(sp => sp.GetRequiredService<SessionCaptureTask>());
 
