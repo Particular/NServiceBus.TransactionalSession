@@ -58,7 +58,7 @@ public class When_using_outbox_send_only : NServiceBusAcceptanceTest
 
     class AnotherEndpoint : EndpointConfigurationBuilder
     {
-        public AnotherEndpoint() => EndpointSetup<TransactionSessionDefaultServer>();
+        public AnotherEndpoint() => EndpointSetup<DefaultServer>();
 
         class SampleHandler(Context testContext) : IHandleMessages<SampleMessage>
         {
