@@ -9,4 +9,5 @@ public class TransactionalSessionOptions
     /// Address of the endpoint that will process the control messages used to dispatch outbox records.
     /// </summary>
     public string ProcessorAddress { get; init; }
+
 }
