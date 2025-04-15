@@ -42,11 +42,19 @@ public abstract class TransactionalSession : Feature
 
         var outboxEnabled = context.Settings.IsFeatureActive(typeof(Outbox));
 
+        //if outbox is enabled
+        //if the current endpoint is send only
+        //CONDITION 1 : there is a processor end point for control message processing and another endpoint for business data processing
+
+        //if the endpoint that executes this code is the processor endpoint then the processor is itself
+        var localQueueAddress = string.IsNullOrWhiteSpace(transactionalSessionOptions.ProcessorAddress) ? context.LocalQueueAddress() : new
+            QueueAddress(transactionalSessionOptions.ProcessorAddress);
+
         var informationHolder = new InformationHolderToAvoidClosures
         {
             //if the same endpoint processes the control message and business messages the processor address would be present and would be the address
-            //If the above assumption is right may be we can change the LocalAddress to be something else?
-            LocalAddress = outboxEnabled ? new QueueAddress(transactionalSessionOptions.ProcessorAddress) : null,
+            //If the above assumption is right may be we can change the LocalAddress variable name to be something else?
+            LocalAddress = outboxEnabled ? localQueueAddress : null,
             IsOutboxEnabled = outboxEnabled
         };
 
@@ -55,7 +63,7 @@ public abstract class TransactionalSession : Feature
         context.Services.AddScoped(static sp =>
         {
             var informationHolder = sp.GetRequiredService<InformationHolderToAvoidClosures>();
-           ITransactionalSession transactionalSession;
+            ITransactionalSession transactionalSession;
 
             if (informationHolder.IsOutboxEnabled)
             {
@@ -87,7 +95,7 @@ public abstract class TransactionalSession : Feature
             return;
         }
 
-        //we need to change this line of code so that the processor address is passed in when we have a processing endpoint
+        //LocalAddress would be the processor address; so change the name of the variable
         context.Pipeline.Register(static sp =>
             new TransactionalSessionDelayControlMessageBehavior(
                 sp.GetRequiredService<IMessageDispatcher>(),
