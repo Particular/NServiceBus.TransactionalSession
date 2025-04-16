@@ -65,6 +65,7 @@ public class When_using_outbox_full_endpoint_and_a_receiver_endpoint : NServiceB
     {
         public AnotherEndpoint() => EndpointSetup<DefaultServerWithServiceProviderCapturing>(c =>
         {
+            c.UsePersistence<CustomTestingPersistence>();
 
             c.ConfigureTransport().TransportTransactionMode = TransportTransactionMode.ReceiveOnly;
 
