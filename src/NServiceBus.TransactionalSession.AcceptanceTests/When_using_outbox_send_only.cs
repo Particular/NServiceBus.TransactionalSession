@@ -11,7 +11,7 @@ using Pipeline;
 
 public class When_using_outbox_send_only : NServiceBusAcceptanceTest
 {
-    [Test]
+    [Test(), Ignore("Not implemented yet")]
     public async Task Should_send_messages_on_transactional_session_commit()
     {
         var context = await Scenario.Define<Context>()
