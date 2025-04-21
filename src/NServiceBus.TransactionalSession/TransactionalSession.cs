@@ -41,20 +41,28 @@ public abstract class TransactionalSession : Feature
         context.RegisterStartupTask(sp => sp.GetRequiredService<SessionCaptureTask>());
 
         var outboxEnabled = context.Settings.IsFeatureActive(typeof(Outbox));
+        QueueAddress addressForControlMessages = null;
 
-        //if outbox is enabled
-        //if the current endpoint is send only
-        //CONDITION 1 : there is a processor end point for control message processing and another endpoint for business data processing
-
-        //if the endpoint that executes this code is the processor endpoint then the processor is itself
-        var localQueueAddress = string.IsNullOrWhiteSpace(transactionalSessionOptions.ProcessorAddress) ? context.LocalQueueAddress() : new
-            QueueAddress(transactionalSessionOptions.ProcessorAddress);
+        if (outboxEnabled)
+        {
+            var isSendOnly = context.Settings.GetOrDefault<bool>("Endpoint.SendOnly");
+            if (isSendOnly)
+            {
+                if (string.IsNullOrWhiteSpace(transactionalSessionOptions.ProcessorAddress))
+                {
+                    throw new InvalidOperationException("ProcessorAddress is required for send-only endpoints with Outbox enabled");
+                }
+                addressForControlMessages = new QueueAddress(transactionalSessionOptions.ProcessorAddress);
+            }
+            else
+            {
+                addressForControlMessages = context.LocalQueueAddress();
+            }
+        }
 
         var informationHolder = new InformationHolderToAvoidClosures
         {
-            //if the same endpoint processes the control message and business messages the processor address would be present and would be the address
-            //If the above assumption is right may be we can change the LocalAddress variable name to be something else?
-            LocalAddress = outboxEnabled ? localQueueAddress : null,
+            LocalAddress = outboxEnabled ? addressForControlMessages : null,
             IsOutboxEnabled = outboxEnabled
         };
 
