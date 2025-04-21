@@ -6,6 +6,7 @@ using Outbox;
 
 sealed class CustomTestingOutboxPersistence : Feature
 {
+    static readonly CustomTestingOutboxStorage OutboxStorage = new();
     public CustomTestingOutboxPersistence()
     {
         DependsOn<Outbox>();
@@ -14,8 +15,6 @@ sealed class CustomTestingOutboxPersistence : Feature
 
     protected override void Setup(FeatureConfigurationContext context)
     {
-        var outboxStorage = new CustomTestingOutboxStorage();
-
-        context.Services.AddSingleton(typeof(IOutboxStorage), outboxStorage);
+        context.Services.AddSingleton(typeof(IOutboxStorage), OutboxStorage);
     }
 }
