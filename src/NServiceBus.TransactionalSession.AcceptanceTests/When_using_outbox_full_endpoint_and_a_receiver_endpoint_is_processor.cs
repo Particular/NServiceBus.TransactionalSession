@@ -48,7 +48,7 @@ public class When_using_outbox_full_endpoint_and_a_receiver_endpoint_is_processo
 
     class FullEndpointWithTransactionalSession : EndpointConfigurationBuilder
     {
-        public FullEndpointWithTransactionalSession() => EndpointSetup<DefaultServer>(c =>
+        public FullEndpointWithTransactionalSession() => EndpointSetup<DefaultServerWithServiceProviderCapturing>(c =>
         {
             var options = new TransactionalSessionOptions { ProcessorAddress = Conventions.EndpointNamingConvention.Invoke(typeof(AnotherEndpoint)) };
             var persistence = c.UsePersistence<CustomTestingPersistence>();
@@ -61,7 +61,7 @@ public class When_using_outbox_full_endpoint_and_a_receiver_endpoint_is_processo
 
     class AnotherEndpoint : EndpointConfigurationBuilder
     {
-        public AnotherEndpoint() => EndpointSetup<DefaultServerWithServiceProviderCapturing>(c =>
+        public AnotherEndpoint() => EndpointSetup<DefaultServer>(c =>
         {
             c.Pipeline.Register(typeof(DiscoverControlMessagesBehavior), "Discovers control messages");
 
