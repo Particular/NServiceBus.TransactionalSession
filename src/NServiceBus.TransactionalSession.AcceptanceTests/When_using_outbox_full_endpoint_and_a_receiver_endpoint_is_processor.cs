@@ -9,25 +9,27 @@ using AcceptanceTesting.Customization;
 using NUnit.Framework;
 using Pipeline;
 
-public class When_using_outbox_full_endpoint_and_a_receiver_endpoint : NServiceBusAcceptanceTest
+public class When_using_outbox_full_endpoint_and_a_receiver_endpoint_is_processor : NServiceBusAcceptanceTest
 {
-    [Test, Ignore("Not implemented yet")]
+    [Test()]
     public async Task Should_send_messages_on_transactional_session_commit()
     {
         var context = await Scenario.Define<Context>()
-            .WithEndpoint<EndpointWithTransactionalSession>(s => s.When(async (_, ctx) =>
+            .WithEndpoint<FullEndpointWithTransactionalSession>(s => s.When(async (_, ctx) =>
             {
-
                 using var scope = ctx.ServiceProvider.CreateScope();
                 using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
                 await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions());
 
-                await transactionalSession.Send(new SampleMessage(), CancellationToken.None);
+                var options = new SendOptions();
 
-                await transactionalSession.Commit(CancellationToken.None).ConfigureAwait(false);
+                options.SetDestination(Conventions.EndpointNamingConvention.Invoke(typeof(AnotherEndpoint)));
+
+                await transactionalSession.Send(new SampleMessage(), options);
+
+                await transactionalSession.Commit(CancellationToken.None);
             }))
             .WithEndpoint<AnotherEndpoint>()
-            .WithEndpoint<ProcessorEndpoint>()
             .Done(c => c.MessageReceived)
             .Run();
 
@@ -44,20 +46,16 @@ public class When_using_outbox_full_endpoint_and_a_receiver_endpoint : NServiceB
         public bool ControlMessageReceived { get; set; }
     }
 
-    class EndpointWithTransactionalSession : EndpointConfigurationBuilder
+    class FullEndpointWithTransactionalSession : EndpointConfigurationBuilder
     {
-        public EndpointWithTransactionalSession() => EndpointSetup<DefaultServerWithServiceProviderCapturing>(c =>
+        public FullEndpointWithTransactionalSession() => EndpointSetup<DefaultServer>(c =>
         {
-            var options = new TransactionalSessionOptions { ProcessorAddress = Conventions.EndpointNamingConvention.Invoke(typeof(ProcessorEndpoint)) };
+            var options = new TransactionalSessionOptions { ProcessorAddress = Conventions.EndpointNamingConvention.Invoke(typeof(AnotherEndpoint)) };
             var persistence = c.UsePersistence<CustomTestingPersistence>();
+            c.ConfigureTransport().TransportTransactionMode = TransportTransactionMode.ReceiveOnly;
             persistence.EnableTransactionalSession(options);
 
-            c.ConfigureTransport().TransportTransactionMode = TransportTransactionMode.ReceiveOnly;
-
             c.EnableOutbox();
-
-            c.ConfigureRouting().RouteToEndpoint(typeof(SampleMessage), typeof(AnotherEndpoint));
-
         });
     }
 
@@ -65,12 +63,13 @@ public class When_using_outbox_full_endpoint_and_a_receiver_endpoint : NServiceB
     {
         public AnotherEndpoint() => EndpointSetup<DefaultServerWithServiceProviderCapturing>(c =>
         {
-            c.UsePersistence<CustomTestingPersistence>();
+            c.Pipeline.Register(typeof(DiscoverControlMessagesBehavior), "Discovers control messages");
 
+            var persistence = c.UsePersistence<CustomTestingPersistence>();
             c.ConfigureTransport().TransportTransactionMode = TransportTransactionMode.ReceiveOnly;
+            persistence.EnableTransactionalSession();
 
             c.EnableOutbox();
-
         });
 
         class SampleHandler(Context testContext) : IHandleMessages<SampleMessage>
@@ -82,20 +81,6 @@ public class When_using_outbox_full_endpoint_and_a_receiver_endpoint : NServiceB
                 return Task.CompletedTask;
             }
         }
-    }
-
-    class ProcessorEndpoint : EndpointConfigurationBuilder
-    {
-        public ProcessorEndpoint() => EndpointSetup<DefaultServer>(c =>
-            {
-                c.Pipeline.Register(typeof(DiscoverControlMessagesBehavior), "Discovers control messages");
-                c.EnableOutbox();
-                c.ConfigureTransport().TransportTransactionMode = TransportTransactionMode.ReceiveOnly;
-
-                c.UsePersistence<CustomTestingPersistence>()
-                    .EnableTransactionalSession();
-            }
-        );
 
         class DiscoverControlMessagesBehavior(Context testContext) : Behavior<ITransportReceiveContext>
         {
@@ -110,7 +95,6 @@ public class When_using_outbox_full_endpoint_and_a_receiver_endpoint : NServiceB
             }
         }
     }
-
     class SampleMessage : ICommand
     {
     }
