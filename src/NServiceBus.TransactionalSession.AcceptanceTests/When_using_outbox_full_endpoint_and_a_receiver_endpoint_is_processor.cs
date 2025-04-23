@@ -72,11 +72,12 @@ public class When_using_outbox_full_endpoint_and_a_receiver_endpoint_is_processo
             c.Pipeline.Register(typeof(DiscoverControlMessagesBehavior), "Discovers control messages");
 
             var persistence = c.UsePersistence<CustomTestingPersistence>();
-            c.ConfigureTransport().TransportTransactionMode = TransportTransactionMode.ReceiveOnly;
+
             persistence.EnableTransactionalSession();
             persistence.GetSettings().Set<IOutboxStorage>(((Context)runDescriptor.ScenarioContext).SharedOutboxStorage);
 
             c.EnableOutbox();
+            c.ConfigureTransport().TransportTransactionMode = TransportTransactionMode.ReceiveOnly;
         });
 
         class SampleHandler(Context testContext) : IHandleMessages<SampleMessage>
