@@ -12,7 +12,8 @@ public static class TransactionalSessionConfigurationExtensions
     /// <summary>
     /// Enables the transactional session for this endpoint.
     /// </summary>
-    public static void EnableTransactionalSession(this PersistenceExtensions<CustomTestingPersistence> persistence, TransactionalSessionOptions transactionalSessionOptions = null)
+    public static void EnableTransactionalSession(this PersistenceExtensions<CustomTestingPersistence> persistence,
+        TransactionalSessionOptions transactionalSessionOptions = null)
     {
         var settings = persistence.GetSettings();
 

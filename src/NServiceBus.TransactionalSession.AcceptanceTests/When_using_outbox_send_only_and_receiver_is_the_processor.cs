@@ -6,7 +6,9 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using AcceptanceTesting;
 using AcceptanceTesting.Customization;
+using Configuration.AdvancedExtensibility;
 using NUnit.Framework;
+using Outbox;
 using Pipeline;
 
 public class When_using_outbox_send_only_and_receiver_is_the_processor : NServiceBusAcceptanceTest
@@ -39,6 +41,8 @@ public class When_using_outbox_send_only_and_receiver_is_the_processor : NServic
 
     class Context : ScenarioContext, IInjectServiceProvider
     {
+        public CustomTestingOutboxStorage SharedOutboxStorage { get; } = new();
+
         public bool MessageReceived { get; set; }
 
         public IServiceProvider ServiceProvider { get; set; }
@@ -48,11 +52,12 @@ public class When_using_outbox_send_only_and_receiver_is_the_processor : NServic
 
     class SendOnlyEndpoint : EndpointConfigurationBuilder
     {
-        public SendOnlyEndpoint() => EndpointSetup<DefaultServerWithServiceProviderCapturing>(c =>
+        public SendOnlyEndpoint() => EndpointSetup<DefaultServerWithServiceProviderCapturing>((c, runDescriptor) =>
         {
             var options = new TransactionalSessionOptions { ProcessorAddress = Conventions.EndpointNamingConvention.Invoke(typeof(AnotherEndpoint)) };
             var persistence = c.UsePersistence<CustomTestingPersistence>();
             persistence.EnableTransactionalSession(options);
+            persistence.GetSettings().Set<IOutboxStorage>(((Context)runDescriptor.ScenarioContext).SharedOutboxStorage);
 
             c.EnableOutbox();
             c.SendOnly();
@@ -61,14 +66,17 @@ public class When_using_outbox_send_only_and_receiver_is_the_processor : NServic
 
     class AnotherEndpoint : EndpointConfigurationBuilder
     {
-        public AnotherEndpoint() => EndpointSetup<DefaultServer>(c =>
+        public AnotherEndpoint() => EndpointSetup<DefaultServer>((c, runDescriptor) =>
             {
                 c.Pipeline.Register(typeof(DiscoverControlMessagesBehavior), "Discovers control messages");
                 c.EnableOutbox();
                 c.ConfigureTransport().TransportTransactionMode = TransportTransactionMode.ReceiveOnly;
 
-                c.UsePersistence<CustomTestingPersistence>()
-                    .EnableTransactionalSession();
+                var persistence = c.UsePersistence<CustomTestingPersistence>();
+
+                persistence.EnableTransactionalSession();
+
+                persistence.GetSettings().Set<IOutboxStorage>(((Context)runDescriptor.ScenarioContext).SharedOutboxStorage);
             }
         );
 
