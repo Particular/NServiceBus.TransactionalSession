@@ -63,7 +63,7 @@ public class When_using_outbox_send_only : NServiceBusAcceptanceTest
             persistence.EnableTransactionalSession(options);
 
             c.EnableOutbox();
-            // c.SendOnly();
+            c.SendOnly();
         });
     }
 
