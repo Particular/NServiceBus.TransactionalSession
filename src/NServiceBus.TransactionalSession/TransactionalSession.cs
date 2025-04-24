@@ -30,8 +30,6 @@ public abstract class TransactionalSession : Feature
     /// </summary>
     protected override void Setup(FeatureConfigurationContext context)
     {
-        //we need a processor address regardless of whether is the same endpoint that processes control message and business messages
-        //so this is always assumed to be set
         if (!context.Settings.TryGet<TransactionalSessionOptions>(out var transactionalSessionOptions))
         {
             throw new InvalidOperationException("TransactionalSessionOptions is missing or not configured");
@@ -42,19 +40,12 @@ public abstract class TransactionalSession : Feature
 
         var outboxEnabled = context.Settings.IsFeatureActive(typeof(Outbox));
 
-        //if outbox is enabled
-        //if the current endpoint is send only
-        //CONDITION 1 : there is a processor end point for control message processing and another endpoint for business data processing
-
-        //if the endpoint that executes this code is the processor endpoint then the processor is itself
         var localQueueAddress = string.IsNullOrWhiteSpace(transactionalSessionOptions.ProcessorAddress) ? context.LocalQueueAddress() : new
             QueueAddress(transactionalSessionOptions.ProcessorAddress);
 
         var informationHolder = new InformationHolderToAvoidClosures
         {
-            //if the same endpoint processes the control message and business messages the processor address would be present and would be the address
-            //If the above assumption is right may be we can change the LocalAddress variable name to be something else?
-            LocalAddress = outboxEnabled ? localQueueAddress : null,
+            ProcessorAddress = outboxEnabled ? localQueueAddress : null,
             IsOutboxEnabled = outboxEnabled
         };
 
@@ -68,7 +59,7 @@ public abstract class TransactionalSession : Feature
             if (informationHolder.IsOutboxEnabled)
             {
                 var physicalProcessorQueueAddress = sp.GetRequiredService<ITransportAddressResolver>()
-                    .ToTransportAddress(informationHolder.LocalAddress);
+                    .ToTransportAddress(informationHolder.ProcessorAddress);
 
                 transactionalSession = new OutboxTransactionalSession(
                     sp.GetRequiredService<IOutboxStorage>(),
@@ -100,7 +91,7 @@ public abstract class TransactionalSession : Feature
             new TransactionalSessionDelayControlMessageBehavior(
                 sp.GetRequiredService<IMessageDispatcher>(),
                 sp.GetRequiredService<ITransportAddressResolver>()
-                    .ToTransportAddress(sp.GetRequiredService<InformationHolderToAvoidClosures>().LocalAddress)
+                    .ToTransportAddress(sp.GetRequiredService<InformationHolderToAvoidClosures>().ProcessorAddress)
             ), "Transaction commit control message delay behavior");
 
         context.Pipeline.Register(new TransactionalSessionControlMessageExceptionBehavior(),
@@ -112,7 +103,7 @@ public abstract class TransactionalSession : Feature
     sealed class InformationHolderToAvoidClosures
     {
         public IMessageSession MessageSession { get; set; }
-        public QueueAddress LocalAddress { get; init; }
+        public QueueAddress ProcessorAddress { get; init; }
         public bool IsOutboxEnabled { get; init; }
     }
 
