@@ -14,8 +14,13 @@ sealed class CustomTestingOutboxPersistence : Feature
 
     protected override void Setup(FeatureConfigurationContext context)
     {
-        var outboxStorage = new CustomTestingOutboxStorage();
-
-        context.Services.AddSingleton(typeof(IOutboxStorage), outboxStorage);
+        if (context.Settings.TryGet<IOutboxStorage>(out var outboxStorage))
+        {
+            context.Services.AddSingleton(typeof(IOutboxStorage), outboxStorage);
+        }
+        else
+        {
+            context.Services.AddSingleton<IOutboxStorage, CustomTestingOutboxStorage>();
+        }
     }
 }

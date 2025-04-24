@@ -1,4 +1,4 @@
-﻿namespace NServiceBus.TransactionalSession;
+namespace NServiceBus.TransactionalSession;
 
 using System;
 using System.Threading;
@@ -39,13 +39,23 @@ public abstract class TransactionalSession : Feature
         context.RegisterStartupTask(sp => sp.GetRequiredService<SessionCaptureTask>());
 
         var outboxEnabled = context.Settings.IsFeatureActive(typeof(Outbox));
+        QueueAddress addressForControlMessages = null;
 
-        var localQueueAddress = string.IsNullOrWhiteSpace(transactionalSessionOptions.ProcessorAddress) ? context.LocalQueueAddress() : new
-            QueueAddress(transactionalSessionOptions.ProcessorAddress);
+        if (outboxEnabled)
+        {
+            var isSendOnly = context.Settings.GetOrDefault<bool>("Endpoint.SendOnly");
+            //Do we want to prevent Send-Only endpoints with outbox enabled from starting if they don't specify a processorAddress?
+            if (isSendOnly && string.IsNullOrWhiteSpace(transactionalSessionOptions.ProcessorAddress))
+            {
+                throw new InvalidOperationException("ProcessorAddress is required for send-only endpoints with Outbox enabled");
+            }
+
+            addressForControlMessages = string.IsNullOrWhiteSpace(transactionalSessionOptions.ProcessorAddress) ? context.LocalQueueAddress() : new QueueAddress(transactionalSessionOptions.ProcessorAddress);
+        }
 
         var informationHolder = new InformationHolderToAvoidClosures
         {
-            ProcessorAddress = outboxEnabled ? localQueueAddress : null,
+            LocalAddress = outboxEnabled ? addressForControlMessages : null,
             IsOutboxEnabled = outboxEnabled
         };
 

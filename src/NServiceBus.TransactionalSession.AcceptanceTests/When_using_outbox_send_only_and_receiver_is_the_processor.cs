@@ -11,7 +11,7 @@ using NUnit.Framework;
 using Outbox;
 using Pipeline;
 
-public class When_using_outbox_send_only : NServiceBusAcceptanceTest
+public class When_using_outbox_send_only_and_receiver_is_the_processor : NServiceBusAcceptanceTest
 {
     [Test()]
     public async Task Should_send_messages_on_transactional_session_commit()
@@ -32,7 +32,6 @@ public class When_using_outbox_send_only : NServiceBusAcceptanceTest
                 await transactionalSession.Commit(CancellationToken.None);
             }))
             .WithEndpoint<AnotherEndpoint>()
-            .WithEndpoint<ProcessorEndpoint>()
             .Done(c => c.MessageReceived)
             .Run();
 
@@ -55,36 +54,19 @@ public class When_using_outbox_send_only : NServiceBusAcceptanceTest
     {
         public SendOnlyEndpoint() => EndpointSetup<DefaultServerWithServiceProviderCapturing>((c, runDescriptor) =>
         {
-            var options = new TransactionalSessionOptions { ProcessorAddress = Conventions.EndpointNamingConvention.Invoke(typeof(ProcessorEndpoint)) };
-
+            var options = new TransactionalSessionOptions { ProcessorAddress = Conventions.EndpointNamingConvention.Invoke(typeof(AnotherEndpoint)) };
             var persistence = c.UsePersistence<CustomTestingPersistence>();
-
-            persistence.GetSettings().Set<IOutboxStorage>(((Context)runDescriptor.ScenarioContext).SharedOutboxStorage);
             persistence.EnableTransactionalSession(options);
+            persistence.GetSettings().Set<IOutboxStorage>(((Context)runDescriptor.ScenarioContext).SharedOutboxStorage);
 
             c.EnableOutbox();
-            // c.SendOnly();
+            c.SendOnly();
         });
     }
 
     class AnotherEndpoint : EndpointConfigurationBuilder
     {
-        public AnotherEndpoint() => EndpointSetup<DefaultServer>();
-
-        class SampleHandler(Context testContext) : IHandleMessages<SampleMessage>
-        {
-            public Task Handle(SampleMessage message, IMessageHandlerContext context)
-            {
-                testContext.MessageReceived = true;
-
-                return Task.CompletedTask;
-            }
-        }
-    }
-
-    class ProcessorEndpoint : EndpointConfigurationBuilder
-    {
-        public ProcessorEndpoint() => EndpointSetup<DefaultServer>((c, runDescriptor) =>
+        public AnotherEndpoint() => EndpointSetup<DefaultServer>((c, runDescriptor) =>
             {
                 c.Pipeline.Register(typeof(DiscoverControlMessagesBehavior), "Discovers control messages");
                 c.EnableOutbox();
@@ -92,8 +74,9 @@ public class When_using_outbox_send_only : NServiceBusAcceptanceTest
 
                 var persistence = c.UsePersistence<CustomTestingPersistence>();
 
-                persistence.GetSettings().Set<IOutboxStorage>(((Context)runDescriptor.ScenarioContext).SharedOutboxStorage);
                 persistence.EnableTransactionalSession();
+
+                persistence.GetSettings().Set<IOutboxStorage>(((Context)runDescriptor.ScenarioContext).SharedOutboxStorage);
             }
         );
 
@@ -107,6 +90,16 @@ public class When_using_outbox_send_only : NServiceBusAcceptanceTest
                 }
 
                 await next();
+            }
+        }
+
+        class SampleHandler(Context testContext) : IHandleMessages<SampleMessage>
+        {
+            public Task Handle(SampleMessage message, IMessageHandlerContext context)
+            {
+                testContext.MessageReceived = true;
+
+                return Task.CompletedTask;
             }
         }
     }
