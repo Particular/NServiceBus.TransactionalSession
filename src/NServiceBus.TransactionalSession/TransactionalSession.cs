@@ -55,7 +55,7 @@ public abstract class TransactionalSession : Feature
 
         var informationHolder = new InformationHolderToAvoidClosures
         {
-            LocalAddress = outboxEnabled ? addressForControlMessages : null,
+            ControlMessageProcessorAddress = outboxEnabled ? addressForControlMessages : null,
             IsOutboxEnabled = outboxEnabled
         };
 
@@ -69,7 +69,7 @@ public abstract class TransactionalSession : Feature
             if (informationHolder.IsOutboxEnabled)
             {
                 var physicalProcessorQueueAddress = sp.GetRequiredService<ITransportAddressResolver>()
-                    .ToTransportAddress(informationHolder.ProcessorAddress);
+                    .ToTransportAddress(informationHolder.ControlMessageProcessorAddress);
 
                 transactionalSession = new OutboxTransactionalSession(
                     sp.GetRequiredService<IOutboxStorage>(),
@@ -101,7 +101,7 @@ public abstract class TransactionalSession : Feature
             new TransactionalSessionDelayControlMessageBehavior(
                 sp.GetRequiredService<IMessageDispatcher>(),
                 sp.GetRequiredService<ITransportAddressResolver>()
-                    .ToTransportAddress(sp.GetRequiredService<InformationHolderToAvoidClosures>().ProcessorAddress)
+                    .ToTransportAddress(sp.GetRequiredService<InformationHolderToAvoidClosures>().ControlMessageProcessorAddress)
             ), "Transaction commit control message delay behavior");
 
         context.Pipeline.Register(new TransactionalSessionControlMessageExceptionBehavior(),
@@ -113,7 +113,7 @@ public abstract class TransactionalSession : Feature
     sealed class InformationHolderToAvoidClosures
     {
         public IMessageSession MessageSession { get; set; }
-        public QueueAddress ProcessorAddress { get; init; }
+        public QueueAddress ControlMessageProcessorAddress { get; init; }
         public bool IsOutboxEnabled { get; init; }
     }
 
