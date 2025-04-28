@@ -91,6 +91,13 @@ public abstract class TransactionalSession : Feature
             return transactionalSession;
         });
 
+        context.Settings.AddStartupDiagnosticsSection("NServiceBus.TransactionalSession", new
+        {
+            UsingOutbox = outboxEnabled,
+            UsingRemoteProcessor = !string.IsNullOrWhiteSpace(transactionalSessionOptions.ProcessorAddress),
+            transactionalSessionOptions.ProcessorAddress
+        });
+
         if (!informationHolder.IsOutboxEnabled)
         {
             return;
