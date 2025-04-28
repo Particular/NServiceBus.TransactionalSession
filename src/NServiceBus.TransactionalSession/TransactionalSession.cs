@@ -55,8 +55,8 @@ public abstract class TransactionalSession : Feature
 
         var informationHolder = new InformationHolderToAvoidClosures
         {
-            ControlMessageProcessorAddress = outboxEnabled ? addressForControlMessages : null,
-            IsOutboxEnabled = outboxEnabled
+            IsOutboxEnabled = outboxEnabled,
+            ControlMessageProcessorAddress = addressForControlMessages
         };
 
         context.Services.AddSingleton(informationHolder);
