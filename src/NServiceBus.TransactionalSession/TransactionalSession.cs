@@ -96,7 +96,6 @@ public abstract class TransactionalSession : Feature
             return;
         }
 
-        //LocalAddress would be the processor address; so change the name of the variable
         context.Pipeline.Register(static sp =>
             new TransactionalSessionDelayControlMessageBehavior(
                 sp.GetRequiredService<IMessageDispatcher>(),
