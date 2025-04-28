@@ -16,7 +16,7 @@ public static class TransactionalSessionConfigurationExtensions
     public static void EnableTransactionalSession(this PersistenceExtensions<CustomTestingPersistence> persistence) => EnableTransactionalSession(persistence, new TransactionalSessionOptions());
 
     /// <summary>
-    /// Enables the transactional session for this endpoint.
+    /// Enables the transactional session for this endpoint using the specified TransactionalSessionOptions.
     /// </summary>
     public static void EnableTransactionalSession(this PersistenceExtensions<CustomTestingPersistence> persistence,
         TransactionalSessionOptions transactionalSessionOptions)
