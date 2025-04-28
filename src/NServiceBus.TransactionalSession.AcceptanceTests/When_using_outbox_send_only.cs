@@ -45,13 +45,21 @@ public class When_using_outbox_send_only : NServiceBusAcceptanceTest
     {
         var exception = Assert.ThrowsAsync<InvalidOperationException>(async () =>
         {
-            await Scenario.Define<Context>()
-                .WithEndpoint<SendOnlyEndpointWithoutProcessor>()
-                .Done(c => c.MessageReceived)
-                .Run();
+            var endpointConfiguration = new EndpointConfiguration("SendOnlyEndpointWithNoProcessorConfigured");
+
+            // Deliberately omitting ProcessorAddress in TransactionalSessionOptions
+            var persistence = endpointConfiguration.UsePersistence<CustomTestingPersistence>();
+            persistence.EnableTransactionalSession(); // No options specified here
+
+            endpointConfiguration.UseTransport(new LearningTransport());
+            endpointConfiguration.UseSerialization<SystemJsonSerializer>();
+            endpointConfiguration.EnableOutbox();
+            endpointConfiguration.SendOnly();
+
+            _ = await Endpoint.Create(endpointConfiguration);
         });
 
-        Assert.That(exception.Message, Is.EqualTo("ProcessorAddress is required for send-only endpoints with Outbox enabled"));
+        Assert.That(exception?.Message, Is.EqualTo("ProcessorAddress is required for send-only endpoints with Outbox enabled"));
     }
 
     class Context : ScenarioContext, IInjectServiceProvider
@@ -75,19 +83,6 @@ public class When_using_outbox_send_only : NServiceBusAcceptanceTest
 
             persistence.GetSettings().Set<IOutboxStorage>(((Context)runDescriptor.ScenarioContext).SharedOutboxStorage);
             persistence.EnableTransactionalSession(options);
-
-            c.EnableOutbox();
-            c.SendOnly();
-        });
-    }
-
-    class SendOnlyEndpointWithoutProcessor : EndpointConfigurationBuilder
-    {
-        public SendOnlyEndpointWithoutProcessor() => EndpointSetup<DefaultServerWithServiceProviderCapturing>(c =>
-        {
-            // Deliberately omitting ProcessorAddress in TransactionalSessionOptions
-            var persistence = c.UsePersistence<CustomTestingPersistence>();
-            persistence.EnableTransactionalSession(); // No options specified here
 
             c.EnableOutbox();
             c.SendOnly();
