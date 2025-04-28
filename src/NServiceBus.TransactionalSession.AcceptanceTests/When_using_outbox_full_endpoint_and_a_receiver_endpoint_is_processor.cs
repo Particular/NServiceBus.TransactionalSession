@@ -55,10 +55,12 @@ public class When_using_outbox_full_endpoint_and_a_receiver_endpoint_is_processo
         public FullEndpointWithTransactionalSession() => EndpointSetup<DefaultServerWithServiceProviderCapturing>((c, runDescriptor) =>
         {
             var options = new TransactionalSessionOptions { ProcessorAddress = Conventions.EndpointNamingConvention.Invoke(typeof(AnotherEndpoint)) };
+
+            options.SharedOutboxStorage(((Context)runDescriptor.ScenarioContext).SharedOutboxStorage);
+
             var persistence = c.UsePersistence<CustomTestingPersistence>();
 
             persistence.EnableTransactionalSession(options);
-            persistence.GetSettings().Set<IOutboxStorage>(((Context)runDescriptor.ScenarioContext).SharedOutboxStorage);
 
             c.EnableOutbox();
             c.ConfigureTransport().TransportTransactionMode = TransportTransactionMode.ReceiveOnly;
@@ -73,8 +75,11 @@ public class When_using_outbox_full_endpoint_and_a_receiver_endpoint_is_processo
 
             var persistence = c.UsePersistence<CustomTestingPersistence>();
 
-            persistence.EnableTransactionalSession();
-            persistence.GetSettings().Set<IOutboxStorage>(((Context)runDescriptor.ScenarioContext).SharedOutboxStorage);
+            var options = new TransactionalSessionOptions();
+
+            options.SharedOutboxStorage(((Context)runDescriptor.ScenarioContext).SharedOutboxStorage);
+
+            persistence.EnableTransactionalSession(options);
 
             c.EnableOutbox();
             c.ConfigureTransport().TransportTransactionMode = TransportTransactionMode.ReceiveOnly;

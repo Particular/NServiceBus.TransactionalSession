@@ -73,7 +73,8 @@ public class When_using_outbox_send_only : NServiceBusAcceptanceTest
 
             var persistence = c.UsePersistence<CustomTestingPersistence>();
 
-            persistence.GetSettings().Set<IOutboxStorage>(((Context)runDescriptor.ScenarioContext).SharedOutboxStorage);
+            options.SharedOutboxStorage(((Context)runDescriptor.ScenarioContext).SharedOutboxStorage);
+
             persistence.EnableTransactionalSession(options);
 
             c.EnableOutbox();
@@ -119,8 +120,11 @@ public class When_using_outbox_send_only : NServiceBusAcceptanceTest
 
                 var persistence = c.UsePersistence<CustomTestingPersistence>();
 
-                persistence.GetSettings().Set<IOutboxStorage>(((Context)runDescriptor.ScenarioContext).SharedOutboxStorage);
-                persistence.EnableTransactionalSession();
+                var options = new TransactionalSessionOptions();
+
+                options.SharedOutboxStorage(((Context)runDescriptor.ScenarioContext).SharedOutboxStorage);
+
+                persistence.EnableTransactionalSession(options);
             }
         );
 

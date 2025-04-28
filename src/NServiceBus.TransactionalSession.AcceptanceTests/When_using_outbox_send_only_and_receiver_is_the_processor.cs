@@ -55,9 +55,10 @@ public class When_using_outbox_send_only_and_receiver_is_the_processor : NServic
         public SendOnlyEndpoint() => EndpointSetup<DefaultServerWithServiceProviderCapturing>((c, runDescriptor) =>
         {
             var options = new TransactionalSessionOptions { ProcessorAddress = Conventions.EndpointNamingConvention.Invoke(typeof(AnotherEndpoint)) };
+            options.SharedOutboxStorage(((Context)runDescriptor.ScenarioContext).SharedOutboxStorage);
+
             var persistence = c.UsePersistence<CustomTestingPersistence>();
             persistence.EnableTransactionalSession(options);
-            persistence.GetSettings().Set<IOutboxStorage>(((Context)runDescriptor.ScenarioContext).SharedOutboxStorage);
 
             c.EnableOutbox();
             c.SendOnly();
@@ -74,9 +75,11 @@ public class When_using_outbox_send_only_and_receiver_is_the_processor : NServic
 
                 var persistence = c.UsePersistence<CustomTestingPersistence>();
 
-                persistence.EnableTransactionalSession();
+                var options = new TransactionalSessionOptions();
 
-                persistence.GetSettings().Set<IOutboxStorage>(((Context)runDescriptor.ScenarioContext).SharedOutboxStorage);
+                options.SharedOutboxStorage(((Context)runDescriptor.ScenarioContext).SharedOutboxStorage);
+
+                persistence.EnableTransactionalSession(options);
             }
         );
 
