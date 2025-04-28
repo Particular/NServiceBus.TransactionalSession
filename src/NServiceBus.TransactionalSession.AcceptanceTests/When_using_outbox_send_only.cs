@@ -45,18 +45,10 @@ public class When_using_outbox_send_only : NServiceBusAcceptanceTest
     {
         var exception = Assert.ThrowsAsync<InvalidOperationException>(async () =>
         {
-            var endpointConfiguration = new EndpointConfiguration("SendOnlyEndpointWithNoProcessorConfigured");
-
-            // Deliberately omitting ProcessorAddress in TransactionalSessionOptions
-            var persistence = endpointConfiguration.UsePersistence<CustomTestingPersistence>();
-            persistence.EnableTransactionalSession(); // No options specified here
-
-            endpointConfiguration.UseTransport(new LearningTransport());
-            endpointConfiguration.UseSerialization<SystemJsonSerializer>();
-            endpointConfiguration.EnableOutbox();
-            endpointConfiguration.SendOnly();
-
-            _ = await Endpoint.Create(endpointConfiguration);
+            await Scenario.Define<Context>()
+                .WithEndpoint<SendOnlyEndpointWithoutProcessor>()
+                .Done(c => c.MessageReceived)
+                .Run();
         });
 
         Assert.That(exception?.Message, Is.EqualTo("A configured ProcessorAddress is required when using the transactional session and the outbox with send-only endpoints"));
@@ -83,6 +75,19 @@ public class When_using_outbox_send_only : NServiceBusAcceptanceTest
 
             persistence.GetSettings().Set<IOutboxStorage>(((Context)runDescriptor.ScenarioContext).SharedOutboxStorage);
             persistence.EnableTransactionalSession(options);
+
+            c.EnableOutbox();
+            c.SendOnly();
+        });
+    }
+
+    class SendOnlyEndpointWithoutProcessor : EndpointConfigurationBuilder
+    {
+        public SendOnlyEndpointWithoutProcessor() => EndpointSetup<DefaultServerWithServiceProviderCapturing>(c =>
+        {
+            // Deliberately omitting ProcessorAddress in TransactionalSessionOptions
+            var persistence = c.UsePersistence<CustomTestingPersistence>();
+            persistence.EnableTransactionalSession(); // No options specified here
 
             c.EnableOutbox();
             c.SendOnly();
