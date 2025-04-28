@@ -47,7 +47,7 @@ public abstract class TransactionalSession : Feature
 
             if (isSendOnly && string.IsNullOrWhiteSpace(transactionalSessionOptions.ProcessorAddress))
             {
-                throw new InvalidOperationException("ProcessorAddress is required for send-only endpoints with Outbox enabled");
+                throw new InvalidOperationException("A configured ProcessorAddress is required when using the transactional session and the outbox with send-only endpoints");
             }
 
             addressForControlMessages = string.IsNullOrWhiteSpace(transactionalSessionOptions.ProcessorAddress) ? context.LocalQueueAddress() : new QueueAddress(transactionalSessionOptions.ProcessorAddress);

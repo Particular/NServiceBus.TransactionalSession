@@ -59,7 +59,7 @@ public class When_using_outbox_send_only : NServiceBusAcceptanceTest
             _ = await Endpoint.Create(endpointConfiguration);
         });
 
-        Assert.That(exception?.Message, Is.EqualTo("ProcessorAddress is required for send-only endpoints with Outbox enabled"));
+        Assert.That(exception?.Message, Is.EqualTo("A configured ProcessorAddress is required when using the transactional session and the outbox with send-only endpoints"));
     }
 
     class Context : ScenarioContext, IInjectServiceProvider
