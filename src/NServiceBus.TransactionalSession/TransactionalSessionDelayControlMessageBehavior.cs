@@ -34,7 +34,7 @@ class TransactionalSessionDelayControlMessageBehavior(IMessageDispatcher dispatc
             if (Log.IsWarnEnabled)
             {
                 Log.WarnFormat(
-                    "Consuming transaction commit control message for message ID '{0}' because the maximum commit duration has elapsed. If this occurs repeatedly, consider increasing the MaximumCommitDuration setting on the session.", messageId);
+                    "Consuming transaction commit control message for message ID '{0}' because the maximum commit duration has elapsed. If this occurs repeatedly, consider increasing the {1} setting on the session.", messageId, nameof(OpenSessionOptions.MaximumCommitDuration));
             }
 
             return;
@@ -46,8 +46,8 @@ class TransactionalSessionDelayControlMessageBehavior(IMessageDispatcher dispatc
         if (Log.IsInfoEnabled)
         {
             Log.InfoFormat(
-                "Delaying transaction commit control message for message ID '{0}' by {1} seconds. If this occurs repeatedly, consider increasing the CommitDelayIncrement setting on the session.",
-                messageId, Math.Abs(commitDelayIncrement.TotalSeconds));
+                "Delaying transaction commit control message for message ID '{0}' by {1} seconds. If this occurs repeatedly, consider increasing the {2} setting on the session.",
+                messageId, Math.Abs(commitDelayIncrement.TotalSeconds), nameof(OpenSessionOptions.CommitDelayIncrement));
         }
 
         var headers = new Dictionary<string, string>(context.Message.Headers)
