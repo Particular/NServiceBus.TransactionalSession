@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using AcceptanceTesting;
 using AcceptanceTesting.Support;
 
-public class TransactionSessionDefaultServer : DefaultServerWithServiceProviderCapturing
+public class TransactionSessionDefaultServer : DefaultServer
 {
     public override async Task<EndpointConfiguration> GetConfiguration(RunDescriptor runDescriptor, EndpointCustomizationConfiguration endpointConfiguration,
         Func<EndpointConfiguration, Task> configurationBuilderCustomization) =>

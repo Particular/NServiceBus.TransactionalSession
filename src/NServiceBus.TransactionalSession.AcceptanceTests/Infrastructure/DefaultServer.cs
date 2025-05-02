@@ -3,6 +3,7 @@ namespace NServiceBus.TransactionalSession.AcceptanceTests;
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using AcceptanceTesting;
 using AcceptanceTesting.Customization;
 using AcceptanceTesting.Support;
 using NUnit.Framework;
@@ -23,10 +24,12 @@ public class DefaultServer : IEndpointSetupTemplate
 
         var storageDir = Path.Combine(Path.GetTempPath(), "learn", TestContext.CurrentContext.Test.ID);
 
-        endpointConfiguration.UseTransport(new AcceptanceTestingTransport
+        endpointConfiguration.UseTransport(new AcceptanceTestingTransport { StorageLocation = storageDir });
+
+        if (!typeof(IDoNotCaptureServiceProvider).IsAssignableFrom(endpointCustomization.BuilderType))
         {
-            StorageLocation = storageDir
-        });
+            endpointConfiguration.RegisterStartupTask(sp => new CaptureServiceProviderStartupTask(sp, runDescriptor.ScenarioContext));
+        }
 
         await configurationBuilderCustomization(endpointConfiguration);
 

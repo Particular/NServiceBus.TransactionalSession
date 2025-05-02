@@ -52,7 +52,7 @@ public class When_using_outbox_full_endpoint_and_a_receiver_endpoint_is_processo
 
     class FullEndpointWithTransactionalSession : EndpointConfigurationBuilder
     {
-        public FullEndpointWithTransactionalSession() => EndpointSetup<DefaultServerWithServiceProviderCapturing>((c, runDescriptor) =>
+        public FullEndpointWithTransactionalSession() => EndpointSetup<DefaultServer>((c, runDescriptor) =>
         {
             var options = new TransactionalSessionOptions { ProcessorAddress = Conventions.EndpointNamingConvention.Invoke(typeof(AnotherEndpoint)) };
 
@@ -67,7 +67,7 @@ public class When_using_outbox_full_endpoint_and_a_receiver_endpoint_is_processo
         });
     }
 
-    class AnotherEndpoint : EndpointConfigurationBuilder
+    class AnotherEndpoint : EndpointConfigurationBuilder, IDoNotCaptureServiceProvider
     {
         public AnotherEndpoint() => EndpointSetup<DefaultServer>((c, runDescriptor) =>
         {

@@ -48,7 +48,7 @@ public class When_using_outbox_send_only_and_receiver_is_the_processor : NServic
 
     class SendOnlyEndpoint : EndpointConfigurationBuilder
     {
-        public SendOnlyEndpoint() => EndpointSetup<DefaultServerWithServiceProviderCapturing>((c, runDescriptor) =>
+        public SendOnlyEndpoint() => EndpointSetup<DefaultServer>((c, runDescriptor) =>
         {
             var options = new TransactionalSessionOptions { ProcessorAddress = Conventions.EndpointNamingConvention.Invoke(typeof(AnotherEndpoint)) };
             options.SharedOutboxStorage(((Context)runDescriptor.ScenarioContext).SharedOutboxStorage);
@@ -61,7 +61,7 @@ public class When_using_outbox_send_only_and_receiver_is_the_processor : NServic
         });
     }
 
-    class AnotherEndpoint : EndpointConfigurationBuilder
+    class AnotherEndpoint : EndpointConfigurationBuilder, IDoNotCaptureServiceProvider
     {
         public AnotherEndpoint() => EndpointSetup<DefaultServer>((c, runDescriptor) =>
             {

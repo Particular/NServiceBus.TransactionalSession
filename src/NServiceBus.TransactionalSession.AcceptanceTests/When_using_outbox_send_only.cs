@@ -62,7 +62,7 @@ public class When_using_outbox_send_only : NServiceBusAcceptanceTest
 
     class SendOnlyEndpoint : EndpointConfigurationBuilder
     {
-        public SendOnlyEndpoint() => EndpointSetup<DefaultServerWithServiceProviderCapturing>((c, runDescriptor) =>
+        public SendOnlyEndpoint() => EndpointSetup<DefaultServer>((c, runDescriptor) =>
         {
             var options = new TransactionalSessionOptions { ProcessorAddress = Conventions.EndpointNamingConvention.Invoke(typeof(ProcessorEndpoint)) };
 
@@ -79,7 +79,7 @@ public class When_using_outbox_send_only : NServiceBusAcceptanceTest
 
     class SendOnlyEndpointWithoutProcessor : EndpointConfigurationBuilder
     {
-        public SendOnlyEndpointWithoutProcessor() => EndpointSetup<DefaultServerWithServiceProviderCapturing>(c =>
+        public SendOnlyEndpointWithoutProcessor() => EndpointSetup<DefaultServer>(c =>
         {
             var persistence = c.UsePersistence<CustomTestingPersistence>();
 
@@ -91,7 +91,7 @@ public class When_using_outbox_send_only : NServiceBusAcceptanceTest
         });
     }
 
-    class AnotherEndpoint : EndpointConfigurationBuilder
+    class AnotherEndpoint : EndpointConfigurationBuilder, IDoNotCaptureServiceProvider
     {
         public AnotherEndpoint() => EndpointSetup<DefaultServer>();
 
