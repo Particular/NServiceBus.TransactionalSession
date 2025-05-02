@@ -6,9 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using AcceptanceTesting;
 using AcceptanceTesting.Customization;
-using Configuration.AdvancedExtensibility;
 using NUnit.Framework;
-using Outbox;
 using Pipeline;
 
 public class When_using_outbox_send_only : NServiceBusAcceptanceTest
@@ -86,9 +84,10 @@ public class When_using_outbox_send_only : NServiceBusAcceptanceTest
     {
         public SendOnlyEndpointWithoutProcessor() => EndpointSetup<DefaultServerWithServiceProviderCapturing>(c =>
         {
-            // Deliberately omitting ProcessorAddress in TransactionalSessionOptions
             var persistence = c.UsePersistence<CustomTestingPersistence>();
-            persistence.EnableTransactionalSession(); // No options specified here
+
+            // Deliberately not passing a ProcessorAddress via TransactionalSessionOptions
+            persistence.EnableTransactionalSession();
 
             c.EnableOutbox();
             c.SendOnly();
@@ -128,6 +127,7 @@ public class When_using_outbox_send_only : NServiceBusAcceptanceTest
             }
         );
 
+        //TODO: Discuss if we need this
         class DiscoverControlMessagesBehavior(Context testContext) : Behavior<ITransportReceiveContext>
         {
             public override async Task Invoke(ITransportReceiveContext context, Func<Task> next)

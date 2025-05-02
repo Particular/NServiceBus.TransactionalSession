@@ -28,7 +28,7 @@ public class DefaultServer : IEndpointSetupTemplate
             StorageLocation = storageDir
         });
 
-        await configurationBuilderCustomization(endpointConfiguration).ConfigureAwait(false);
+        await configurationBuilderCustomization(endpointConfiguration);
 
         // scan types at the end so that all types used by the configuration have been loaded into the AppDomain
         endpointConfiguration.TypesToIncludeInScan(endpointCustomization.GetTypesScopedByTestClass());
