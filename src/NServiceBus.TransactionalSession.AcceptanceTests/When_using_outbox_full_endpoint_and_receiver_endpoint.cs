@@ -36,11 +36,9 @@ public class When_using_outbox_full_endpoint_and_receiver_endpoint : NServiceBus
         Assert.That(context.MessageReceived, Is.True);
     }
 
-    class Context : ScenarioContext, IInjectServiceProvider
+    class Context : TransactionalSessionTestContext
     {
         public bool MessageReceived { get; set; }
-
-        public IServiceProvider ServiceProvider { get; set; }
     }
 
     class FullEndpointWithTransactionalSession : EndpointConfigurationBuilder
@@ -55,7 +53,7 @@ public class When_using_outbox_full_endpoint_and_receiver_endpoint : NServiceBus
         });
     }
 
-    class AnotherEndpoint : EndpointConfigurationBuilder, IDoNotCaptureServiceProvider
+    class AnotherEndpoint : EndpointConfigurationBuilder
     {
         public AnotherEndpoint() => EndpointSetup<DefaultServer>();
 

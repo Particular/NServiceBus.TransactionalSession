@@ -35,10 +35,9 @@ public class When_not_using_outbox_send_only : NServiceBusAcceptanceTest
         Assert.That(result.MessageReceived, Is.True);
     }
 
-    class Context : ScenarioContext, IInjectServiceProvider
+    class Context : TransactionalSessionTestContext
     {
         public bool MessageReceived { get; set; }
-        public IServiceProvider ServiceProvider { get; set; }
     }
 
     class SendOnlyEndpoint : EndpointConfigurationBuilder

@@ -46,9 +46,8 @@ public class When_outbox_commits_after_control_message : NServiceBusAcceptanceTe
 
     }
 
-    class Context : ScenarioContext, IInjectServiceProvider
+    class Context : TransactionalSessionTestContext
     {
-        public IServiceProvider ServiceProvider { get; set; }
         public bool MessageReceived { get; set; }
         public Exception TransactionalSessionException { get; set; }
         public TaskCompletionSource<bool> TransactionTaskCompletionSource { get; set; }

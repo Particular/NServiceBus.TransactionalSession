@@ -39,10 +39,9 @@ public class When_outbox_commits_after_receiving_control_message : NServiceBusAc
             .Run(TimeSpan.FromSeconds(15));
     }
 
-    class Context : ScenarioContext, IInjectServiceProvider
+    class Context : TransactionalSessionTestContext
     {
-        public int MessageReceiveCounter = 0;
-        public IServiceProvider ServiceProvider { get; set; }
+        public int MessageReceiveCounter;
         public TaskCompletionSource<bool> TxCommitTcs { get; set; }
     }
 

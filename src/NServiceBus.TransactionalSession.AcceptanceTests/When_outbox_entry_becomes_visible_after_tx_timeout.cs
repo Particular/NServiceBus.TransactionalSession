@@ -48,9 +48,8 @@ public class When_outbox_entry_becomes_visible_after_tx_timeout : NServiceBusAcc
 
     }
 
-    class Context : ScenarioContext, IInjectServiceProvider
+    class Context : TransactionalSessionTestContext
     {
-        public IServiceProvider ServiceProvider { get; set; }
         public bool MessageReceived { get; set; }
         public string TransactionalSessionId { get; set; }
     }

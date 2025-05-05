@@ -39,13 +39,11 @@ public class When_using_outbox_full_endpoint_and_a_receiver_endpoint_is_processo
         Assert.That(context.MessageReceived, Is.True);
     }
 
-    class Context : ScenarioContext, IInjectServiceProvider
+    class Context : TransactionalSessionTestContext
     {
         public CustomTestingOutboxStorage SharedOutboxStorage { get; } = new();
 
         public bool MessageReceived { get; set; }
-
-        public IServiceProvider ServiceProvider { get; set; }
 
         public bool ControlMessageReceived { get; set; }
     }
@@ -67,7 +65,7 @@ public class When_using_outbox_full_endpoint_and_a_receiver_endpoint_is_processo
         });
     }
 
-    class AnotherEndpoint : EndpointConfigurationBuilder, IDoNotCaptureServiceProvider
+    class AnotherEndpoint : EndpointConfigurationBuilder
     {
         public AnotherEndpoint() => EndpointSetup<DefaultServer>((c, runDescriptor) =>
         {

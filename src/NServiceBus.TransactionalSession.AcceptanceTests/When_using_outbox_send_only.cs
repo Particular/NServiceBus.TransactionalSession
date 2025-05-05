@@ -51,13 +51,11 @@ public class When_using_outbox_send_only : NServiceBusAcceptanceTest
         Assert.That(exception?.Message, Is.EqualTo("A configured ProcessorAddress is required when using the transactional session and the outbox with send-only endpoints"));
     }
 
-    class Context : ScenarioContext, IInjectServiceProvider
+    class Context : TransactionalSessionTestContext
     {
         public CustomTestingOutboxStorage SharedOutboxStorage { get; } = new();
 
         public bool MessageReceived { get; set; }
-
-        public IServiceProvider ServiceProvider { get; set; }
     }
 
     class SendOnlyEndpoint : EndpointConfigurationBuilder
@@ -91,7 +89,7 @@ public class When_using_outbox_send_only : NServiceBusAcceptanceTest
         });
     }
 
-    class AnotherEndpoint : EndpointConfigurationBuilder, IDoNotCaptureServiceProvider
+    class AnotherEndpoint : EndpointConfigurationBuilder
     {
         public AnotherEndpoint() => EndpointSetup<DefaultServer>();
 
