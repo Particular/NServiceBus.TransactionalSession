@@ -1,6 +1,5 @@
 ﻿namespace NServiceBus.TransactionalSession.AcceptanceTests;
 
-using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using AcceptanceTesting;

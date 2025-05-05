@@ -1,10 +1,8 @@
 ﻿namespace NServiceBus.TransactionalSession.AcceptanceTests;
 
-using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using AcceptanceTesting;
-using AcceptanceTesting.Customization;
 using NUnit.Framework;
 
 public class When_not_using_outbox : NServiceBusAcceptanceTest

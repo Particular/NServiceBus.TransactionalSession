@@ -1,13 +1,11 @@
 namespace NServiceBus.TransactionalSession.AcceptanceTests;
 
-using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using AcceptanceTesting;
 using AcceptanceTesting.Customization;
 using NUnit.Framework;
-using Pipeline;
 
 public class When_using_outbox_full_endpoint_and_receiver_endpoint : NServiceBusAcceptanceTest
 {

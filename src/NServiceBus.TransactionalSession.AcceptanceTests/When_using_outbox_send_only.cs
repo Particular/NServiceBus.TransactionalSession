@@ -7,7 +7,6 @@ using Microsoft.Extensions.DependencyInjection;
 using AcceptanceTesting;
 using AcceptanceTesting.Customization;
 using NUnit.Framework;
-using Pipeline;
 
 public class When_using_outbox_send_only : NServiceBusAcceptanceTest
 {
