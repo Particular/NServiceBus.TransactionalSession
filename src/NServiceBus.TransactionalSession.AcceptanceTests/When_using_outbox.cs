@@ -137,7 +137,7 @@ public class When_using_outbox : NServiceBusAcceptanceTest
         });
     }
 
-    class Context : ScenarioContext, IInjectServiceProvider
+    class Context : TransactionalSessionTestContext
     {
         public bool AmbientTransactionFoundBeforeAwait { get; set; }
         public bool AmbientTransactionFoundAfterAwait { get; set; }
@@ -145,8 +145,6 @@ public class When_using_outbox : NServiceBusAcceptanceTest
         public bool MessageReceived { get; set; }
 
         public bool ControlMessageReceived { get; set; }
-
-        public IServiceProvider ServiceProvider { get; set; }
     }
 
     class AnEndpoint : EndpointConfigurationBuilder

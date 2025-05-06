@@ -1,10 +1,8 @@
 ﻿namespace NServiceBus.TransactionalSession.AcceptanceTests;
 
-using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using AcceptanceTesting;
-using AcceptanceTesting.Customization;
 using NUnit.Framework;
 
 public class When_not_using_outbox : NServiceBusAcceptanceTest
@@ -57,11 +55,10 @@ public class When_not_using_outbox : NServiceBusAcceptanceTest
         });
     }
 
-    class Context : ScenarioContext, IInjectServiceProvider
+    class Context : TransactionalSessionTestContext
     {
         public bool MessageReceived { get; set; }
         public bool CompleteMessageReceived { get; set; }
-        public IServiceProvider ServiceProvider { get; set; }
     }
 
     class AnEndpoint : EndpointConfigurationBuilder

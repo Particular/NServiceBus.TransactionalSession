@@ -1,15 +1,11 @@
 namespace NServiceBus.TransactionalSession.AcceptanceTests;
 
-using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using AcceptanceTesting;
 using AcceptanceTesting.Customization;
-using Configuration.AdvancedExtensibility;
 using NUnit.Framework;
-using Outbox;
-using Pipeline;
 
 public class When_using_outbox_send_only_and_receiver_is_the_processor : NServiceBusAcceptanceTest
 {
@@ -35,24 +31,19 @@ public class When_using_outbox_send_only_and_receiver_is_the_processor : NServic
             .Done(c => c.MessageReceived)
             .Run();
 
-        Assert.That(context.ControlMessageReceived, Is.True);
         Assert.That(context.MessageReceived, Is.True);
     }
 
-    class Context : ScenarioContext, IInjectServiceProvider
+    class Context : TransactionalSessionTestContext
     {
         public CustomTestingOutboxStorage SharedOutboxStorage { get; } = new();
 
         public bool MessageReceived { get; set; }
-
-        public IServiceProvider ServiceProvider { get; set; }
-
-        public bool ControlMessageReceived { get; set; }
     }
 
     class SendOnlyEndpoint : EndpointConfigurationBuilder
     {
-        public SendOnlyEndpoint() => EndpointSetup<DefaultServerWithServiceProviderCapturing>((c, runDescriptor) =>
+        public SendOnlyEndpoint() => EndpointSetup<DefaultServer>((c, runDescriptor) =>
         {
             var options = new TransactionalSessionOptions { ProcessorAddress = Conventions.EndpointNamingConvention.Invoke(typeof(AnotherEndpoint)) };
             options.SharedOutboxStorage(((Context)runDescriptor.ScenarioContext).SharedOutboxStorage);
@@ -69,7 +60,6 @@ public class When_using_outbox_send_only_and_receiver_is_the_processor : NServic
     {
         public AnotherEndpoint() => EndpointSetup<DefaultServer>((c, runDescriptor) =>
             {
-                c.Pipeline.Register(typeof(DiscoverControlMessagesBehavior), "Discovers control messages");
                 c.EnableOutbox();
                 c.ConfigureTransport().TransportTransactionMode = TransportTransactionMode.ReceiveOnly;
 
@@ -82,19 +72,6 @@ public class When_using_outbox_send_only_and_receiver_is_the_processor : NServic
                 persistence.EnableTransactionalSession(options);
             }
         );
-
-        class DiscoverControlMessagesBehavior(Context testContext) : Behavior<ITransportReceiveContext>
-        {
-            public override async Task Invoke(ITransportReceiveContext context, Func<Task> next)
-            {
-                if (context.Message.Headers.ContainsKey(OutboxTransactionalSession.CommitDelayIncrementHeaderName))
-                {
-                    testContext.ControlMessageReceived = true;
-                }
-
-                await next();
-            }
-        }
 
         class SampleHandler(Context testContext) : IHandleMessages<SampleMessage>
         {

@@ -62,10 +62,9 @@ public class When_using_transactional_session : NServiceBusAcceptanceTest
             .Select(l => l.Message.Replace(filter, string.Empty))
             .ToArray();
 
-    class Context : ScenarioContext, IInjectServiceProvider
+    class Context : TransactionalSessionTestContext
     {
         public bool MessageReceived { get; set; }
-        public IServiceProvider ServiceProvider { get; set; }
     }
 
     class AnEndpoint : EndpointConfigurationBuilder

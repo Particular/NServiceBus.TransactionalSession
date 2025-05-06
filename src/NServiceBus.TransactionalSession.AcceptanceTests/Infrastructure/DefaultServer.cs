@@ -3,6 +3,7 @@ namespace NServiceBus.TransactionalSession.AcceptanceTests;
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using AcceptanceTesting;
 using AcceptanceTesting.Customization;
 using AcceptanceTesting.Support;
 using NUnit.Framework;
@@ -23,12 +24,14 @@ public class DefaultServer : IEndpointSetupTemplate
 
         var storageDir = Path.Combine(Path.GetTempPath(), "learn", TestContext.CurrentContext.Test.ID);
 
-        endpointConfiguration.UseTransport(new AcceptanceTestingTransport
-        {
-            StorageLocation = storageDir
-        });
+        endpointConfiguration.UseTransport(new AcceptanceTestingTransport { StorageLocation = storageDir });
 
-        await configurationBuilderCustomization(endpointConfiguration).ConfigureAwait(false);
+        if (runDescriptor.ScenarioContext is TransactionalSessionTestContext testContext)
+        {
+            endpointConfiguration.RegisterStartupTask(sp => new CaptureServiceProviderStartupTask(sp, testContext, endpointCustomization.EndpointName));
+        }
+
+        await configurationBuilderCustomization(endpointConfiguration);
 
         // scan types at the end so that all types used by the configuration have been loaded into the AppDomain
         endpointConfiguration.TypesToIncludeInScan(endpointCustomization.GetTypesScopedByTestClass());

@@ -6,9 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using AcceptanceTesting;
 using AcceptanceTesting.Customization;
-using Configuration.AdvancedExtensibility;
 using NUnit.Framework;
-using Outbox;
 using Pipeline;
 
 public class When_using_outbox_full_endpoint_and_a_receiver_endpoint_is_processor : NServiceBusAcceptanceTest
@@ -39,20 +37,18 @@ public class When_using_outbox_full_endpoint_and_a_receiver_endpoint_is_processo
         Assert.That(context.MessageReceived, Is.True);
     }
 
-    class Context : ScenarioContext, IInjectServiceProvider
+    class Context : TransactionalSessionTestContext
     {
         public CustomTestingOutboxStorage SharedOutboxStorage { get; } = new();
 
         public bool MessageReceived { get; set; }
-
-        public IServiceProvider ServiceProvider { get; set; }
 
         public bool ControlMessageReceived { get; set; }
     }
 
     class FullEndpointWithTransactionalSession : EndpointConfigurationBuilder
     {
-        public FullEndpointWithTransactionalSession() => EndpointSetup<DefaultServerWithServiceProviderCapturing>((c, runDescriptor) =>
+        public FullEndpointWithTransactionalSession() => EndpointSetup<DefaultServer>((c, runDescriptor) =>
         {
             var options = new TransactionalSessionOptions { ProcessorAddress = Conventions.EndpointNamingConvention.Invoke(typeof(AnotherEndpoint)) };
 
