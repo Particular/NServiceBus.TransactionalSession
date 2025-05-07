@@ -46,7 +46,7 @@ class TransactionalSessionDelayControlMessageBehavior(IMessageDispatcher dispatc
         if (Log.IsInfoEnabled)
         {
             Log.InfoFormat(
-                "Delaying transaction commit control message for message ID '{0}' by {1} seconds. If this occurs repeatedly, consider increasing the {2} setting on the session.",
+                "Delaying transaction commit control message for message ID '{0}' by {1} seconds. If this occurs repeatedly for the same message id, consider increasing the {2} setting on the session.",
                 messageId, Math.Abs(commitDelayIncrement.TotalSeconds), nameof(OpenSessionOptions.CommitDelayIncrement));
         }
 
