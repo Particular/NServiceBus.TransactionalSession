@@ -31,22 +31,24 @@ class TransactionalSessionDelayControlMessageBehavior(IMessageDispatcher dispatc
         var messageId = context.MessageId;
         if (remainingCommitDuration <= TimeSpan.Zero)
         {
-            if (Log.IsInfoEnabled)
+            if (Log.IsWarnEnabled)
             {
-                Log.Info(
-                    $"Consuming transaction commit control message for the message ID '{messageId}' because the maximum commit duration has elapsed.");
+                Log.WarnFormat(
+                    "Consuming transaction commit control message for message ID '{0}' because the maximum commit duration has elapsed. If this occurs repeatedly, consider increasing the {1} setting on the session.", messageId, nameof(OpenSessionOptions.MaximumCommitDuration));
             }
 
             return;
         }
 
-        if (Log.IsDebugEnabled)
-        {
-            Log.Debug($"Delaying transaction commit control message for the message ID '{messageId}'");
-        }
-
         var newCommitDelay = commitDelayIncrement.Add(commitDelayIncrement);
         commitDelayIncrement = newCommitDelay > remainingCommitDuration ? remainingCommitDuration : newCommitDelay;
+
+        if (Log.IsInfoEnabled)
+        {
+            Log.InfoFormat(
+                "Delaying transaction commit control message for message ID '{0}' by {1} seconds. If this occurs repeatedly for the same message id, consider increasing the {2} setting on the session.",
+                messageId, Math.Abs(commitDelayIncrement.TotalSeconds), nameof(OpenSessionOptions.CommitDelayIncrement));
+        }
 
         var headers = new Dictionary<string, string>(context.Message.Headers)
         {
