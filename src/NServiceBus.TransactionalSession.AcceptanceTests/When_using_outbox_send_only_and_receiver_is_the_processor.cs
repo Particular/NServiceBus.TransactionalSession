@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using AcceptanceTesting;
 using AcceptanceTesting.Customization;
+using Configuration.AdvancedExtensibility;
 using NUnit.Framework;
 
 public class When_using_outbox_send_only_and_receiver_is_the_processor : NServiceBusAcceptanceTest
@@ -36,20 +37,17 @@ public class When_using_outbox_send_only_and_receiver_is_the_processor : NServic
 
     class Context : TransactionalSessionTestContext
     {
-        public CustomTestingOutboxStorage SharedOutboxStorage { get; } = new();
-
         public bool MessageReceived { get; set; }
     }
 
     class SendOnlyEndpoint : EndpointConfigurationBuilder
     {
-        public SendOnlyEndpoint() => EndpointSetup<DefaultServer>((c, runDescriptor) =>
+        public SendOnlyEndpoint() => EndpointSetup<DefaultServer>(c =>
         {
             var options = new TransactionalSessionOptions { ProcessorAddress = Conventions.EndpointNamingConvention.Invoke(typeof(AnotherEndpoint)) };
-            options.SharedOutboxStorage(((Context)runDescriptor.ScenarioContext).SharedOutboxStorage);
 
-            var persistence = c.UsePersistence<CustomTestingPersistence>();
-            persistence.EnableTransactionalSession(options);
+            c.GetSettings().Get<PersistenceExtensions<CustomTestingPersistence>>()
+                .EnableTransactionalSession(options);
 
             c.EnableOutbox();
             c.SendOnly();
@@ -58,18 +56,11 @@ public class When_using_outbox_send_only_and_receiver_is_the_processor : NServic
 
     class AnotherEndpoint : EndpointConfigurationBuilder
     {
-        public AnotherEndpoint() => EndpointSetup<DefaultServer>((c, runDescriptor) =>
+        public AnotherEndpoint() => EndpointSetup<TransactionSessionDefaultServer>(c =>
             {
-                c.EnableOutbox();
                 c.ConfigureTransport().TransportTransactionMode = TransportTransactionMode.ReceiveOnly;
-
-                var persistence = c.UsePersistence<CustomTestingPersistence>();
-
-                var options = new TransactionalSessionOptions();
-
-                options.SharedOutboxStorage(((Context)runDescriptor.ScenarioContext).SharedOutboxStorage);
-
-                persistence.EnableTransactionalSession(options);
+                c.EnableOutbox()
+                    .EndpointName(Conventions.EndpointNamingConvention.Invoke(typeof(SendOnlyEndpoint)));
             }
         );
 

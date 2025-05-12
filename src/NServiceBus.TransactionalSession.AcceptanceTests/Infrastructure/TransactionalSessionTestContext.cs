@@ -7,6 +7,8 @@ using AcceptanceTesting;
 
 public class TransactionalSessionTestContext : ScenarioContext
 {
+    public CustomTestingDatabase Database { get; } = new();
+
     public IServiceProvider ServiceProvider
     {
         get

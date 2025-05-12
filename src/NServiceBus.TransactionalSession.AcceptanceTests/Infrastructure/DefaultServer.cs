@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using AcceptanceTesting;
 using AcceptanceTesting.Customization;
 using AcceptanceTesting.Support;
+using Configuration.AdvancedExtensibility;
 using NUnit.Framework;
 
 public class DefaultServer : IEndpointSetupTemplate
@@ -26,10 +27,16 @@ public class DefaultServer : IEndpointSetupTemplate
 
         endpointConfiguration.UseTransport(new AcceptanceTestingTransport { StorageLocation = storageDir });
 
+        var persistence = endpointConfiguration.UsePersistence<CustomTestingPersistence>();
+
         if (runDescriptor.ScenarioContext is TransactionalSessionTestContext testContext)
         {
             endpointConfiguration.RegisterStartupTask(sp => new CaptureServiceProviderStartupTask(sp, testContext, endpointCustomization.EndpointName));
+
+            persistence.UseDatabase(testContext.Database);
         }
+
+        endpointConfiguration.GetSettings().Set(persistence);
 
         await configurationBuilderCustomization(endpointConfiguration);
 

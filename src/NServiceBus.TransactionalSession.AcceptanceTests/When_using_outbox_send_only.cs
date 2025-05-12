@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using AcceptanceTesting;
 using AcceptanceTesting.Customization;
+using Configuration.AdvancedExtensibility;
 using NUnit.Framework;
 
 public class When_using_outbox_send_only : NServiceBusAcceptanceTest
@@ -52,22 +53,16 @@ public class When_using_outbox_send_only : NServiceBusAcceptanceTest
 
     class Context : TransactionalSessionTestContext
     {
-        public CustomTestingOutboxStorage SharedOutboxStorage { get; } = new();
-
         public bool MessageReceived { get; set; }
     }
 
     class SendOnlyEndpoint : EndpointConfigurationBuilder
     {
-        public SendOnlyEndpoint() => EndpointSetup<DefaultServer>((c, runDescriptor) =>
+        public SendOnlyEndpoint() => EndpointSetup<DefaultServer>(c =>
         {
             var options = new TransactionalSessionOptions { ProcessorAddress = Conventions.EndpointNamingConvention.Invoke(typeof(ProcessorEndpoint)) };
 
-            var persistence = c.UsePersistence<CustomTestingPersistence>();
-
-            options.SharedOutboxStorage(((Context)runDescriptor.ScenarioContext).SharedOutboxStorage);
-
-            persistence.EnableTransactionalSession(options);
+            c.GetSettings().Get<PersistenceExtensions<CustomTestingPersistence>>().EnableTransactionalSession(options);
 
             c.EnableOutbox();
             c.SendOnly();
@@ -78,10 +73,8 @@ public class When_using_outbox_send_only : NServiceBusAcceptanceTest
     {
         public SendOnlyEndpointWithoutProcessor() => EndpointSetup<DefaultServer>(c =>
         {
-            var persistence = c.UsePersistence<CustomTestingPersistence>();
-
             // Deliberately not passing a ProcessorAddress via TransactionalSessionOptions
-            persistence.EnableTransactionalSession();
+            c.GetSettings().Get<PersistenceExtensions<CustomTestingPersistence>>().EnableTransactionalSession();
 
             c.EnableOutbox();
             c.SendOnly();
@@ -105,18 +98,12 @@ public class When_using_outbox_send_only : NServiceBusAcceptanceTest
 
     class ProcessorEndpoint : EndpointConfigurationBuilder
     {
-        public ProcessorEndpoint() => EndpointSetup<DefaultServer>((c, runDescriptor) =>
+        public ProcessorEndpoint() => EndpointSetup<TransactionSessionWithOutboxEndpoint>(c =>
             {
-                c.EnableOutbox();
                 c.ConfigureTransport().TransportTransactionMode = TransportTransactionMode.ReceiveOnly;
 
-                var persistence = c.UsePersistence<CustomTestingPersistence>();
-
-                var options = new TransactionalSessionOptions();
-
-                options.SharedOutboxStorage(((Context)runDescriptor.ScenarioContext).SharedOutboxStorage);
-
-                persistence.EnableTransactionalSession(options);
+                c.EnableOutbox()
+                    .EndpointName(Conventions.EndpointNamingConvention.Invoke(typeof(SendOnlyEndpoint)));
             }
         );
     }

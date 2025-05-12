@@ -4,16 +4,20 @@ using System;
 using System.Threading.Tasks;
 using AcceptanceTesting;
 using AcceptanceTesting.Support;
+using Configuration.AdvancedExtensibility;
 
 public class TransactionSessionDefaultServer : DefaultServer
 {
-    public override async Task<EndpointConfiguration> GetConfiguration(RunDescriptor runDescriptor, EndpointCustomizationConfiguration endpointConfiguration,
-        Func<EndpointConfiguration, Task> configurationBuilderCustomization) =>
-        await base.GetConfiguration(runDescriptor, endpointConfiguration, async configuration =>
+    public override async Task<EndpointConfiguration> GetConfiguration(RunDescriptor runDescriptor, EndpointCustomizationConfiguration endpointCustomization,
+        Func<EndpointConfiguration, Task> configurationBuilderCustomization)
+    {
         {
-            var persistence = configuration.UsePersistence<CustomTestingPersistence>();
-            persistence.EnableTransactionalSession();
+            var endpointConfiguration = await base.GetConfiguration(runDescriptor, endpointCustomization, configurationBuilderCustomization);
 
-            await configurationBuilderCustomization(configuration);
-        });
+            endpointConfiguration.GetSettings().Get<PersistenceExtensions<CustomTestingPersistence>>()
+                .EnableTransactionalSession();
+
+            return endpointConfiguration;
+        }
+    }
 }

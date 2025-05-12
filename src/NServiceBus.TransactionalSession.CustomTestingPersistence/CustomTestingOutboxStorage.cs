@@ -1,7 +1,6 @@
 namespace NServiceBus.AcceptanceTesting;
 
 using System;
-using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Transactions;
@@ -10,7 +9,7 @@ using Logging;
 using Outbox;
 using TransactionalSession;
 
-sealed class CustomTestingOutboxStorage : IOutboxStorage
+sealed class CustomTestingOutboxStorage(CustomTestingDatabase database, string endpointName) : IOutboxStorage
 {
     public Task<OutboxMessage> Get(string messageId, ContextBag context, CancellationToken cancellationToken = default)
     {
@@ -22,9 +21,11 @@ sealed class CustomTestingOutboxStorage : IOutboxStorage
             return Task.FromResult(customResult);
         }
 
-        if (storage.TryGetValue(messageId, out var storedMessage))
+        var recordId = GetOutboxRecordId(messageId);
+
+        if (database.TryGetValue(recordId, out var storedMessage))
         {
-            return Task.FromResult(new OutboxMessage(messageId, storedMessage.TransportOperations));
+            return Task.FromResult(new OutboxMessage(recordId, storedMessage.TransportOperations));
         }
 
         return NoOutboxMessageTask;
@@ -51,9 +52,11 @@ sealed class CustomTestingOutboxStorage : IOutboxStorage
         var tx = (CustomTestingOutboxTransaction)transaction;
         tx.Enlist(() =>
         {
-            if (!storage.TryAdd(message.MessageId, new StoredMessage(message.MessageId, message.TransportOperations)))
+            var recordId = GetOutboxRecordId(message.MessageId);
+
+            if (!database.TryAdd(recordId, new CustomTestingDatabase.StoredMessage(message.MessageId, endpointName, message.TransportOperations)))
             {
-                throw new Exception($"Outbox message with id '{message.MessageId}' is already present in storage.");
+                throw new Exception($"Outbox message with id '{message.MessageId}' associated to endpoint {endpointName} is already present in storage.");
             }
 
             if (context.TryGet("TestOutboxStorage.StoreCallback", out Action callback))
@@ -69,7 +72,9 @@ sealed class CustomTestingOutboxStorage : IOutboxStorage
         context.TryGet<string>(CustomTestingPersistenceOpenSessionOptions.LoggerContextName, out var logContext);
         Logger.InfoFormat("{0} - Outbox.SetAsDispatched", logContext ?? "Pipeline");
 
-        if (!storage.TryGetValue(messageId, out var storedMessage))
+        var recordId = GetOutboxRecordId(messageId);
+
+        if (!database.TryGetValue(recordId, out var storedMessage))
         {
             return Task.CompletedTask;
         }
@@ -78,49 +83,9 @@ sealed class CustomTestingOutboxStorage : IOutboxStorage
         return Task.CompletedTask;
     }
 
-    readonly ConcurrentDictionary<string, StoredMessage> storage = new();
+    string GetOutboxRecordId(string messageId) => $"{endpointName}-{messageId}";
 
     static readonly Task<OutboxMessage> NoOutboxMessageTask = Task.FromResult(default(OutboxMessage));
-
-    class StoredMessage(string messageId, TransportOperation[] transportOperations)
-    {
-        string Id { get; } = messageId;
-
-        bool Dispatched { get; set; }
-
-        public TransportOperation[] TransportOperations { get; private set; } = transportOperations;
-
-        public void MarkAsDispatched()
-        {
-            Dispatched = true;
-            TransportOperations = [];
-        }
-
-        bool Equals(StoredMessage other) => string.Equals(Id, other.Id) && Dispatched.Equals(other.Dispatched);
-
-        public override bool Equals(object obj)
-        {
-            if (obj is null)
-            {
-                return false;
-            }
-
-            if (ReferenceEquals(this, obj))
-            {
-                return true;
-            }
-
-            return obj.GetType() == GetType() && Equals((StoredMessage)obj);
-        }
-
-        public override int GetHashCode()
-        {
-            unchecked
-            {
-                return ((Id?.GetHashCode() ?? 0) * 397) ^ Dispatched.GetHashCode();
-            }
-        }
-    }
 
     static readonly ILog Logger = LogManager.GetLogger<CustomTestingOutboxStorage>();
 }
