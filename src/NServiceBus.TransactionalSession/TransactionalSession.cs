@@ -55,6 +55,7 @@ public abstract class TransactionalSession : Feature
 
         var informationHolder = new InformationHolderToAvoidClosures
         {
+            EndpointName = context.Settings.EndpointName(),
             IsOutboxEnabled = outboxEnabled,
             ControlMessageProcessorAddress = addressForControlMessages
         };
@@ -77,6 +78,7 @@ public abstract class TransactionalSession : Feature
                     informationHolder.MessageSession,
                     sp.GetRequiredService<IMessageDispatcher>(),
                     sp.GetServices<IOpenSessionOptionsCustomization>(),
+                    informationHolder.EndpointName,
                     physicalProcessorQueueAddress);
             }
             else
@@ -121,6 +123,7 @@ public abstract class TransactionalSession : Feature
         public IMessageSession MessageSession { get; set; }
         public QueueAddress ControlMessageProcessorAddress { get; init; }
         public bool IsOutboxEnabled { get; init; }
+        public string EndpointName { get; init; }
     }
 
     class SessionCaptureTask(InformationHolderToAvoidClosures informationHolder) : FeatureStartupTask

@@ -7,6 +7,7 @@ using System.Transactions;
 using Extensibility;
 using Logging;
 using Outbox;
+using Pipeline;
 using TransactionalSession;
 
 sealed class CustomTestingOutboxStorage(CustomTestingDatabase database, string endpointName) : IOutboxStorage
@@ -21,7 +22,9 @@ sealed class CustomTestingOutboxStorage(CustomTestingDatabase database, string e
             return Task.FromResult(customResult);
         }
 
-        var recordId = GetOutboxRecordId(messageId);
+        var owningEndpointName = GetOriginEndpointName(context);
+
+        var recordId = GetOutboxRecordId(messageId, owningEndpointName);
 
         if (database.TryGetValue(recordId, out var storedMessage))
         {
@@ -52,7 +55,7 @@ sealed class CustomTestingOutboxStorage(CustomTestingDatabase database, string e
         var tx = (CustomTestingOutboxTransaction)transaction;
         tx.Enlist(() =>
         {
-            var recordId = GetOutboxRecordId(message.MessageId);
+            var recordId = GetOutboxRecordId(message.MessageId, endpointName);
 
             if (!database.TryAdd(recordId, new CustomTestingDatabase.StoredMessage(message.MessageId, endpointName, message.TransportOperations)))
             {
@@ -72,7 +75,9 @@ sealed class CustomTestingOutboxStorage(CustomTestingDatabase database, string e
         context.TryGet<string>(CustomTestingPersistenceOpenSessionOptions.LoggerContextName, out var logContext);
         Logger.InfoFormat("{0} - Outbox.SetAsDispatched", logContext ?? "Pipeline");
 
-        var recordId = GetOutboxRecordId(messageId);
+        var owningEndpointName = GetOriginEndpointName(context);
+
+        var recordId = GetOutboxRecordId(messageId, owningEndpointName);
 
         if (!database.TryGetValue(recordId, out var storedMessage))
         {
@@ -83,7 +88,17 @@ sealed class CustomTestingOutboxStorage(CustomTestingDatabase database, string e
         return Task.CompletedTask;
     }
 
-    string GetOutboxRecordId(string messageId) => $"{endpointName}-{messageId}";
+    string GetOutboxRecordId(string messageId, string owningEndpoint) => $"{owningEndpoint}-{messageId}";
+
+    string GetOriginEndpointName(ContextBag context)
+    {
+        if (context is not ITransportReceiveContext receiveContext)
+        {
+            throw new InvalidOperationException("Getting the Originating endpoint name requires ITransportReceiveContext.");
+        }
+
+        return receiveContext.Message.Headers[Headers.OriginatingEndpoint];
+    }
 
     static readonly Task<OutboxMessage> NoOutboxMessageTask = Task.FromResult(default(OutboxMessage));
 

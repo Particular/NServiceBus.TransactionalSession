@@ -60,14 +60,7 @@ public class When_using_outbox_full_endpoint_and_a_receiver_endpoint_is_processo
 
     class AnotherEndpoint : EndpointConfigurationBuilder
     {
-        public AnotherEndpoint() => EndpointSetup<TransactionSessionDefaultServer>(c =>
-        {
-            c.Pipeline.Register(typeof(DiscoverControlMessagesBehavior), "Discovers control messages");
-            c.ConfigureTransport().TransportTransactionMode = TransportTransactionMode.ReceiveOnly;
-
-            c.EnableOutbox()
-                .EndpointName(Conventions.EndpointNamingConvention.Invoke(typeof(FullEndpointWithTransactionalSession)));
-        });
+        public AnotherEndpoint() => EndpointSetup<TransactionSessionWithOutboxEndpoint>(c => c.Pipeline.Register(typeof(DiscoverControlMessagesBehavior), "Discovers control messages"));
 
         class SampleHandler(Context testContext) : IHandleMessages<SampleMessage>
         {

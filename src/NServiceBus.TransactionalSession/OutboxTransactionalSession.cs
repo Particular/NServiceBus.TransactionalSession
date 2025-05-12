@@ -16,6 +16,7 @@ sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
     IMessageSession messageSession,
     IMessageDispatcher dispatcher,
     IEnumerable<IOpenSessionOptionsCustomization> customizations,
+    string endpointName,
     string physicalQueueAddress)
     : TransactionalSessionBase(synchronizedStorageSession, messageSession, dispatcher, customizations)
 {
@@ -55,6 +56,7 @@ sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
         {
             { Headers.MessageId, SessionId },
             { Headers.ControlMessageHeader, bool.TrueString },
+            { Headers.OriginatingEndpoint, endpointName },
             { RemainingCommitDurationHeaderName, openSessionOptions.MaximumCommitDuration.ToString() },
             { CommitDelayIncrementHeaderName, openSessionOptions.CommitDelayIncrement.ToString() },
         };
