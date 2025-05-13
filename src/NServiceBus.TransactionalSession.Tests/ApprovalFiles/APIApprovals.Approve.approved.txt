@@ -43,6 +43,11 @@ namespace NServiceBus.TransactionalSession
         public static System.Threading.Tasks.Task SendLocal(this NServiceBus.TransactionalSession.ITransactionalSession session, object message, System.Threading.CancellationToken cancellationToken = default) { }
         public static System.Threading.Tasks.Task SendLocal<T>(this NServiceBus.TransactionalSession.ITransactionalSession session, System.Action<T> messageConstructor, System.Threading.CancellationToken cancellationToken = default) { }
     }
+    public class TransactionalSessionHeaders
+    {
+        public const string OriginatingEndpoint = "NServiceBus.TransactionalSession.OriginEndpoint";
+        public TransactionalSessionHeaders() { }
+    }
     public class TransactionalSessionOptions : NServiceBus.Extensibility.ExtendableOptions
     {
         public TransactionalSessionOptions() { }

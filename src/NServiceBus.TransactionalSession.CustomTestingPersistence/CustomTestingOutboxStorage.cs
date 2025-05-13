@@ -1,6 +1,7 @@
 namespace NServiceBus.AcceptanceTesting;
 
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Transactions;
@@ -22,9 +23,8 @@ sealed class CustomTestingOutboxStorage(CustomTestingDatabase database, string e
             return Task.FromResult(customResult);
         }
 
-        var owningEndpointName = GetOriginEndpointName(context);
-
-        var recordId = GetOutboxRecordId(messageId, owningEndpointName);
+        var originatingEndpointName = GetOriginatingEndpointName(context);
+        var recordId = GetOutboxRecordId(messageId, originatingEndpointName);
 
         if (database.TryGetValue(recordId, out var storedMessage))
         {
@@ -55,11 +55,12 @@ sealed class CustomTestingOutboxStorage(CustomTestingDatabase database, string e
         var tx = (CustomTestingOutboxTransaction)transaction;
         tx.Enlist(() =>
         {
-            var recordId = GetOutboxRecordId(message.MessageId, endpointName);
+            var originatingEndpointName = GetOriginatingEndpointName(context);
+            var recordId = GetOutboxRecordId(message.MessageId, originatingEndpointName);
 
-            if (!database.TryAdd(recordId, new CustomTestingDatabase.StoredMessage(message.MessageId, endpointName, message.TransportOperations)))
+            if (!database.TryAdd(recordId, new CustomTestingDatabase.StoredMessage(message.MessageId, originatingEndpointName, message.TransportOperations)))
             {
-                throw new Exception($"Outbox message with id '{message.MessageId}' associated to endpoint {endpointName} is already present in storage.");
+                throw new Exception($"Outbox message with id '{message.MessageId}' associated to endpoint {originatingEndpointName} is already present in storage.");
             }
 
             if (context.TryGet("TestOutboxStorage.StoreCallback", out Action callback))
@@ -75,9 +76,8 @@ sealed class CustomTestingOutboxStorage(CustomTestingDatabase database, string e
         context.TryGet<string>(CustomTestingPersistenceOpenSessionOptions.LoggerContextName, out var logContext);
         Logger.InfoFormat("{0} - Outbox.SetAsDispatched", logContext ?? "Pipeline");
 
-        var owningEndpointName = GetOriginEndpointName(context);
-
-        var recordId = GetOutboxRecordId(messageId, owningEndpointName);
+        var originatingEndpointName = GetOriginatingEndpointName(context);
+        var recordId = GetOutboxRecordId(messageId, originatingEndpointName);
 
         if (!database.TryGetValue(recordId, out var storedMessage))
         {
@@ -90,14 +90,14 @@ sealed class CustomTestingOutboxStorage(CustomTestingDatabase database, string e
 
     string GetOutboxRecordId(string messageId, string owningEndpoint) => $"{owningEndpoint}-{messageId}";
 
-    string GetOriginEndpointName(ContextBag context)
+    string GetOriginatingEndpointName(ContextBag context)
     {
         if (context is not ITransportReceiveContext receiveContext)
         {
-            throw new InvalidOperationException("Getting the Originating endpoint name requires ITransportReceiveContext.");
+            return endpointName;
         }
 
-        return receiveContext.Message.Headers[Headers.OriginatingEndpoint];
+        return receiveContext.Message.Headers.GetValueOrDefault(TransactionalSessionHeaders.OriginatingEndpoint, endpointName);
     }
 
     static readonly Task<OutboxMessage> NoOutboxMessageTask = Task.FromResult(default(OutboxMessage));

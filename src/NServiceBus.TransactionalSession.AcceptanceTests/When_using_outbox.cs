@@ -177,7 +177,7 @@ public class When_using_outbox : NServiceBusAcceptanceTest
         {
             public override async Task Invoke(ITransportReceiveContext context, Func<Task> next)
             {
-                if (context.Message.Headers.ContainsKey(OutboxTransactionalSession.CommitDelayIncrementHeaderName))
+                if (context.Message.Headers.ContainsKey(TransactionalSessionHeaders.CommitDelayIncrementHeader))
                 {
                     testContext.ControlMessageReceived = true;
                 }

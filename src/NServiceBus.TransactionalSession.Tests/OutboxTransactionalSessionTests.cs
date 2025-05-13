@@ -244,11 +244,12 @@ public class OutboxTransactionalSessionTests
         var expectedMaximumCommitDuration = TimeSpan.FromSeconds(1);
         const string expectedExtensionsValue = "extensions-value";
         const string expectedMetadataValue = "metadata-value";
+        const string expectedEndpointName = "transaction-id";
 
         var messageSession = new FakeMessageSession();
         var dispatcher = new FakeDispatcher();
         var outboxStorage = new FakeOutboxStorage();
-        using var session = new OutboxTransactionalSession(outboxStorage, new FakeSynchronizableStorageSession(), messageSession, dispatcher, [], "MyEndpoint", "queue address");
+        using var session = new OutboxTransactionalSession(outboxStorage, new FakeSynchronizableStorageSession(), messageSession, dispatcher, [], expectedEndpointName, "queue address");
 
         var options = new FakeOpenSessionOptions
         {
@@ -267,8 +268,9 @@ public class OutboxTransactionalSessionTests
         {
             Assert.That(controlMessage.Message.MessageId, Is.EqualTo(session.SessionId));
             Assert.That(controlMessage.Message.Headers[Headers.ControlMessageHeader], Is.EqualTo(bool.TrueString));
-            Assert.That(controlMessage.Message.Headers[OutboxTransactionalSession.CommitDelayIncrementHeaderName], Is.EqualTo(expectedDelayIncrement.ToString("c")));
-            Assert.That(controlMessage.Message.Headers[OutboxTransactionalSession.RemainingCommitDurationHeaderName], Is.EqualTo(expectedMaximumCommitDuration.ToString("c")));
+            Assert.That(controlMessage.Message.Headers[TransactionalSessionHeaders.CommitDelayIncrementHeader], Is.EqualTo(expectedDelayIncrement.ToString("c")));
+            Assert.That(controlMessage.Message.Headers[TransactionalSessionHeaders.RemainingCommitDuration], Is.EqualTo(expectedMaximumCommitDuration.ToString("c")));
+            Assert.That(controlMessage.Message.Headers[TransactionalSessionHeaders.OriginatingEndpoint], Is.EqualTo(expectedEndpointName));
             Assert.That(controlMessage.Message.Headers["metadata-key"], Is.EqualTo(expectedMetadataValue), "metadata should be propagated to headers");
             Assert.That(controlMessage.Message.Headers.ContainsKey("extensions-key"), Is.False, "extensions should not be propagated to headers");
         });

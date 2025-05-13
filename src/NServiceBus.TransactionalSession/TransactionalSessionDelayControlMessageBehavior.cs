@@ -16,9 +16,9 @@ class TransactionalSessionDelayControlMessageBehavior(IMessageDispatcher dispatc
     public async Task Invoke(IIncomingPhysicalMessageContext context,
         Func<IIncomingPhysicalMessageContext, Task> next)
     {
-        if (!context.Message.Headers.TryGetValue(OutboxTransactionalSession.RemainingCommitDurationHeaderName,
+        if (!context.Message.Headers.TryGetValue(TransactionalSessionHeaders.RemainingCommitDuration,
                 out var remainingCommitDurationHeader)
-            || !context.Message.Headers.TryGetValue(OutboxTransactionalSession.CommitDelayIncrementHeaderName,
+            || !context.Message.Headers.TryGetValue(TransactionalSessionHeaders.CommitDelayIncrementHeader,
                 out var commitDelayIncrementHeader))
         {
             await next(context).ConfigureAwait(false);
@@ -50,9 +50,8 @@ class TransactionalSessionDelayControlMessageBehavior(IMessageDispatcher dispatc
 
         var headers = new Dictionary<string, string>(context.Message.Headers)
         {
-            [OutboxTransactionalSession.RemainingCommitDurationHeaderName] =
-                (remainingCommitDuration - commitDelayIncrement).ToString(),
-            [OutboxTransactionalSession.CommitDelayIncrementHeaderName] = commitDelayIncrement.ToString()
+            [TransactionalSessionHeaders.RemainingCommitDuration] = (remainingCommitDuration - commitDelayIncrement).ToString(),
+            [TransactionalSessionHeaders.CommitDelayIncrementHeader] = commitDelayIncrement.ToString()
         };
         await dispatcher.Dispatch(new TransportOperations(
                 new TransportOperation(

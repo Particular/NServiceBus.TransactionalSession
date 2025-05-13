@@ -38,8 +38,8 @@ public class TransactionalSessionDelayControlMessageBehaviorTests
         var behavior = new TransactionalSessionDelayControlMessageBehavior(dispatcher, "queue address");
 
         var messageContext = new TestableIncomingPhysicalMessageContext();
-        messageContext.Message.Headers[OutboxTransactionalSession.RemainingCommitDurationHeaderName] = TimeSpan.FromSeconds(-10).ToString("c");
-        messageContext.Message.Headers[OutboxTransactionalSession.CommitDelayIncrementHeaderName] = TimeSpan.FromSeconds(5).ToString("c");
+        messageContext.Message.Headers[TransactionalSessionHeaders.RemainingCommitDuration] = TimeSpan.FromSeconds(-10).ToString("c");
+        messageContext.Message.Headers[TransactionalSessionHeaders.CommitDelayIncrementHeader] = TimeSpan.FromSeconds(5).ToString("c");
 
         bool continued = false;
         await behavior.Invoke(messageContext, _ =>
@@ -64,8 +64,8 @@ public class TransactionalSessionDelayControlMessageBehaviorTests
         var behavior = new TransactionalSessionDelayControlMessageBehavior(dispatcher, queueAddress);
 
         var messageContext = new TestableIncomingPhysicalMessageContext();
-        messageContext.Message.Headers[OutboxTransactionalSession.RemainingCommitDurationHeaderName] = TimeSpan.FromSeconds(30).ToString("c");
-        messageContext.Message.Headers[OutboxTransactionalSession.CommitDelayIncrementHeaderName] = TimeSpan.FromSeconds(10).ToString("c");
+        messageContext.Message.Headers[TransactionalSessionHeaders.RemainingCommitDuration] = TimeSpan.FromSeconds(30).ToString("c");
+        messageContext.Message.Headers[TransactionalSessionHeaders.CommitDelayIncrementHeader] = TimeSpan.FromSeconds(10).ToString("c");
         messageContext.Message.Headers["custom-header-key"] = "custom-header-value";
 
         bool continued = false;

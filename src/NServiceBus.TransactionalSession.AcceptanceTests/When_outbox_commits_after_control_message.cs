@@ -66,7 +66,7 @@ public class When_outbox_commits_after_control_message : NServiceBusAcceptanceTe
         {
             public override async Task Invoke(ITransportReceiveContext context, Func<Task> next)
             {
-                if (context.Message.Headers.ContainsKey(OutboxTransactionalSession.RemainingCommitDurationHeaderName))
+                if (context.Message.Headers.ContainsKey(TransactionalSessionHeaders.CommitDelayIncrementHeader))
                 {
                     context.Extensions.Set("TestOutboxStorage.StoreCallback", () =>
                     {
