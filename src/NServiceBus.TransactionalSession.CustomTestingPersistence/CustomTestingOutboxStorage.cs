@@ -97,7 +97,7 @@ sealed class CustomTestingOutboxStorage(CustomTestingDatabase database, string e
             return endpointName;
         }
 
-        return receiveContext.Message.Headers.GetValueOrDefault(TransactionalSessionHeaders.OriginatingEndpoint, endpointName);
+        return receiveContext.Message.Headers.GetValueOrDefault("NServiceBus.Outbox.OwningEndpoint", endpointName);
     }
 
     static readonly Task<OutboxMessage> NoOutboxMessageTask = Task.FromResult(default(OutboxMessage));

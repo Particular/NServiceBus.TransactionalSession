@@ -56,9 +56,9 @@ sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
         {
             { Headers.MessageId, SessionId },
             { Headers.ControlMessageHeader, bool.TrueString },
-            { TransactionalSessionHeaders.OriginatingEndpoint, endpointName },
-            { TransactionalSessionHeaders.RemainingCommitDuration, openSessionOptions.MaximumCommitDuration.ToString() },
-            { TransactionalSessionHeaders.CommitDelayIncrementHeader, openSessionOptions.CommitDelayIncrement.ToString() },
+            { "NServiceBus.Outbox.OwningEndpoint", endpointName },
+            { RemainingCommitDuration, openSessionOptions.MaximumCommitDuration.ToString() },
+            { CommitDelayIncrementHeader, openSessionOptions.CommitDelayIncrement.ToString() },
         };
         if (openSessionOptions.HasMetadata)
         {
@@ -159,4 +159,7 @@ sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
     }
 
     IOutboxTransaction outboxTransaction;
+
+    public const string RemainingCommitDuration = "NServiceBus.TransactionalSession.RemainingCommitDuration";
+    public const string CommitDelayIncrementHeader = "NServiceBus.TransactionalSession.CommitDelayIncrement";
 }

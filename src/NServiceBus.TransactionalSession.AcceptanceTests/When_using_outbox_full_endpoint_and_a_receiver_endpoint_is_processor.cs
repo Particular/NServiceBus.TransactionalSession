@@ -76,7 +76,7 @@ public class When_using_outbox_full_endpoint_and_a_receiver_endpoint_is_processo
         {
             public override async Task Invoke(ITransportReceiveContext context, Func<Task> next)
             {
-                if (context.Message.Headers.ContainsKey(TransactionalSessionHeaders.CommitDelayIncrementHeader))
+                if (context.Message.Headers.ContainsKey(OutboxTransactionalSession.CommitDelayIncrementHeader))
                 {
                     testContext.ControlMessageReceived = true;
                 }

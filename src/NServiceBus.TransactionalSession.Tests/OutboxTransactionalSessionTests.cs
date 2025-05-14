@@ -268,9 +268,9 @@ public class OutboxTransactionalSessionTests
         {
             Assert.That(controlMessage.Message.MessageId, Is.EqualTo(session.SessionId));
             Assert.That(controlMessage.Message.Headers[Headers.ControlMessageHeader], Is.EqualTo(bool.TrueString));
-            Assert.That(controlMessage.Message.Headers[TransactionalSessionHeaders.CommitDelayIncrementHeader], Is.EqualTo(expectedDelayIncrement.ToString("c")));
-            Assert.That(controlMessage.Message.Headers[TransactionalSessionHeaders.RemainingCommitDuration], Is.EqualTo(expectedMaximumCommitDuration.ToString("c")));
-            Assert.That(controlMessage.Message.Headers[TransactionalSessionHeaders.OriginatingEndpoint], Is.EqualTo(expectedEndpointName));
+            Assert.That(controlMessage.Message.Headers[OutboxTransactionalSession.CommitDelayIncrementHeader], Is.EqualTo(expectedDelayIncrement.ToString("c")));
+            Assert.That(controlMessage.Message.Headers[OutboxTransactionalSession.RemainingCommitDuration], Is.EqualTo(expectedMaximumCommitDuration.ToString("c")));
+            Assert.That(controlMessage.Message.Headers["NServiceBus.Outbox.OwningEndpoint"], Is.EqualTo(expectedEndpointName));
             Assert.That(controlMessage.Message.Headers["metadata-key"], Is.EqualTo(expectedMetadataValue), "metadata should be propagated to headers");
             Assert.That(controlMessage.Message.Headers.ContainsKey("extensions-key"), Is.False, "extensions should not be propagated to headers");
         });
