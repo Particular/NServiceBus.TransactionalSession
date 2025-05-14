@@ -98,7 +98,7 @@ public class When_using_outbox_send_only : NServiceBusAcceptanceTest
 
     class ProcessorEndpoint : EndpointConfigurationBuilder
     {
-        public ProcessorEndpoint() => EndpointSetup<TransactionSessionWithOutboxEndpoint>(c =>
+        public ProcessorEndpoint() => EndpointSetup<TransactionSessionDefaultServer>(c =>
             {
                 c.ConfigureTransport().TransportTransactionMode = TransportTransactionMode.ReceiveOnly;
 
