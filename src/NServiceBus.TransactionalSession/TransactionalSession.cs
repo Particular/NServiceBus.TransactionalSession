@@ -39,24 +39,24 @@ public abstract class TransactionalSession : Feature
         context.RegisterStartupTask(sp => sp.GetRequiredService<SessionCaptureTask>());
 
         var outboxEnabled = context.Settings.IsFeatureActive(typeof(Outbox));
-        QueueAddress addressForControlMessages = null;
+        QueueAddress processorAddress = null;
 
         if (outboxEnabled)
         {
             var isSendOnly = context.Settings.GetOrDefault<bool>("Endpoint.SendOnly");
 
-            if (isSendOnly && string.IsNullOrWhiteSpace(transactionalSessionOptions.ProcessorAddress))
+            if (isSendOnly && string.IsNullOrWhiteSpace(transactionalSessionOptions.ProcessorEndpoint))
             {
-                throw new InvalidOperationException("A configured ProcessorAddress is required when using the transactional session and the outbox with send-only endpoints");
+                throw new InvalidOperationException("A configured ProcessorEndpoint is required when using the transactional session and the outbox with send-only endpoints");
             }
 
-            addressForControlMessages = string.IsNullOrWhiteSpace(transactionalSessionOptions.ProcessorAddress) ? context.LocalQueueAddress() : new QueueAddress(transactionalSessionOptions.ProcessorAddress);
+            processorAddress = string.IsNullOrWhiteSpace(transactionalSessionOptions.ProcessorEndpoint) ? context.LocalQueueAddress() : new QueueAddress(transactionalSessionOptions.ProcessorEndpoint);
         }
 
         var informationHolder = new InformationHolderToAvoidClosures
         {
             IsOutboxEnabled = outboxEnabled,
-            ControlMessageProcessorAddress = addressForControlMessages
+            ControlMessageProcessorAddress = processorAddress
         };
 
         context.Services.AddSingleton(informationHolder);
@@ -94,8 +94,8 @@ public abstract class TransactionalSession : Feature
         context.Settings.AddStartupDiagnosticsSection("NServiceBus.TransactionalSession", new
         {
             UsingOutbox = outboxEnabled,
-            UsingRemoteProcessor = !string.IsNullOrWhiteSpace(transactionalSessionOptions.ProcessorAddress),
-            transactionalSessionOptions.ProcessorAddress
+            transactionalSessionOptions.ProcessorEndpoint,
+            ProcessorEndpointAddress = informationHolder.ControlMessageProcessorAddress
         });
 
         if (!informationHolder.IsOutboxEnabled)
