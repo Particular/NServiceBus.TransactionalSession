@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using AcceptanceTesting;
 using AcceptanceTesting.Customization;
+using Configuration.AdvancedExtensibility;
 using NUnit.Framework;
 using Pipeline;
 
@@ -39,8 +40,6 @@ public class When_using_outbox_full_endpoint_and_a_receiver_endpoint_is_processo
 
     class Context : TransactionalSessionTestContext
     {
-        public CustomTestingOutboxStorage SharedOutboxStorage { get; } = new();
-
         public bool MessageReceived { get; set; }
 
         public bool ControlMessageReceived { get; set; }
@@ -48,15 +47,11 @@ public class When_using_outbox_full_endpoint_and_a_receiver_endpoint_is_processo
 
     class FullEndpointWithTransactionalSession : EndpointConfigurationBuilder
     {
-        public FullEndpointWithTransactionalSession() => EndpointSetup<DefaultServer>((c, runDescriptor) =>
+        public FullEndpointWithTransactionalSession() => EndpointSetup<DefaultServer>(c =>
         {
             var options = new TransactionalSessionOptions { ProcessorAddress = Conventions.EndpointNamingConvention.Invoke(typeof(AnotherEndpoint)) };
 
-            options.SharedOutboxStorage(((Context)runDescriptor.ScenarioContext).SharedOutboxStorage);
-
-            var persistence = c.UsePersistence<CustomTestingPersistence>();
-
-            persistence.EnableTransactionalSession(options);
+            c.GetSettings().Get<PersistenceExtensions<CustomTestingPersistence>>().EnableTransactionalSession(options);
 
             c.EnableOutbox();
             c.ConfigureTransport().TransportTransactionMode = TransportTransactionMode.ReceiveOnly;
@@ -65,20 +60,13 @@ public class When_using_outbox_full_endpoint_and_a_receiver_endpoint_is_processo
 
     class AnotherEndpoint : EndpointConfigurationBuilder
     {
-        public AnotherEndpoint() => EndpointSetup<DefaultServer>((c, runDescriptor) =>
+        public AnotherEndpoint() => EndpointSetup<TransactionSessionDefaultServer>(c =>
         {
             c.Pipeline.Register(typeof(DiscoverControlMessagesBehavior), "Discovers control messages");
-
-            var persistence = c.UsePersistence<CustomTestingPersistence>();
-
-            var options = new TransactionalSessionOptions();
-
-            options.SharedOutboxStorage(((Context)runDescriptor.ScenarioContext).SharedOutboxStorage);
-
-            persistence.EnableTransactionalSession(options);
-
-            c.EnableOutbox();
             c.ConfigureTransport().TransportTransactionMode = TransportTransactionMode.ReceiveOnly;
+
+            c.EnableOutbox()
+                .EndpointName(Conventions.EndpointNamingConvention.Invoke(typeof(FullEndpointWithTransactionalSession)));
         });
 
         class SampleHandler(Context testContext) : IHandleMessages<SampleMessage>

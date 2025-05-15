@@ -42,7 +42,7 @@ public class When_outbox_entry_becomes_visible_after_tx_timeout : NServiceBusAcc
         {
             // message should fail because it can't create an outbox record for the control message since the sender has already created the record and this causes a concurrency exception
             // once the failed control message retries, the outbox record should be correctly found by the storage and the contained messages will be dispatched.
-            Assert.That(failedMessage.Exception.Message, Is.EqualTo($"Outbox message with id '{context.TransactionalSessionId}' is already present in storage."));
+            Assert.That(failedMessage.Exception.Message.Contains($"Outbox message with id '{context.TransactionalSessionId}' "), Is.True);
             Assert.That(failedMessage.MessageId, Is.EqualTo(context.TransactionalSessionId));
         });
 

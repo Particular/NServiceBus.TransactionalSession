@@ -41,14 +41,7 @@ public class When_using_outbox_full_endpoint_and_receiver_endpoint : NServiceBus
 
     class FullEndpointWithTransactionalSession : EndpointConfigurationBuilder
     {
-        public FullEndpointWithTransactionalSession() => EndpointSetup<DefaultServer>(c =>
-        {
-            var persistence = c.UsePersistence<CustomTestingPersistence>();
-            c.ConfigureTransport().TransportTransactionMode = TransportTransactionMode.ReceiveOnly;
-            persistence.EnableTransactionalSession();
-
-            c.EnableOutbox();
-        });
+        public FullEndpointWithTransactionalSession() => EndpointSetup<TransactionSessionWithOutboxEndpoint>();
     }
 
     class AnotherEndpoint : EndpointConfigurationBuilder

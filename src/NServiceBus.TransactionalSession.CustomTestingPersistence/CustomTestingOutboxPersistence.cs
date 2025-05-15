@@ -1,14 +1,13 @@
 namespace NServiceBus.AcceptanceTesting;
 
-using System;
-using Extensibility;
 using Features;
 using Microsoft.Extensions.DependencyInjection;
 using Outbox;
-using TransactionalSession;
 
 sealed class CustomTestingOutboxPersistence : Feature
 {
+    public const string EndpointNameKey = "CustomTestingOutboxPersistence.EndpointName";
+
     public CustomTestingOutboxPersistence()
     {
         DependsOn<Outbox>();
@@ -17,36 +16,17 @@ sealed class CustomTestingOutboxPersistence : Feature
 
     protected override void Setup(FeatureConfigurationContext context)
     {
-        IOutboxStorage outboxStorage = null;
-
-        if (context.Settings.TryGet<TransactionalSessionOptions>(out var transactionalSessionOptions))
+        if (context.Settings.TryGet<CustomTestingDatabase>(out var database))
         {
-            if (transactionalSessionOptions.GetExtensions().TryGet<IOutboxStorage>(SharedStorageKey, out var sharedOutboxStorage))
-            {
-                outboxStorage = sharedOutboxStorage;
-            }
-        }
-
-        if (outboxStorage is null)
-        {
-            context.Services.AddSingleton<IOutboxStorage, CustomTestingOutboxStorage>();
+            context.Services.AddSingleton(database);
         }
         else
         {
-            context.Services.AddSingleton(typeof(IOutboxStorage), outboxStorage);
+            context.Services.AddSingleton<CustomTestingDatabase>();
         }
-    }
 
-    public const string SharedStorageKey = "CustomTestingOutboxPersistence.SharedStorage";
-}
+        var endpointName = context.Settings.GetOrDefault<string>(EndpointNameKey) ?? context.Settings.EndpointName();
 
-static class CustomTestingOutboxPersistenceConfigurationExtensions
-{
-    public static void SharedOutboxStorage(this TransactionalSessionOptions options, IOutboxStorage outboxStorage)
-    {
-        ArgumentNullException.ThrowIfNull(options);
-        ArgumentNullException.ThrowIfNull(outboxStorage);
-
-        options.GetExtensions().Set(CustomTestingOutboxPersistence.SharedStorageKey, outboxStorage);
+        context.Services.AddSingleton<IOutboxStorage>(sp => new CustomTestingOutboxStorage(sp.GetRequiredService<CustomTestingDatabase>(), endpointName));
     }
 }
