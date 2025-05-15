@@ -94,7 +94,6 @@ public abstract class TransactionalSession : Feature
         context.Settings.AddStartupDiagnosticsSection("NServiceBus.TransactionalSession", new
         {
             UsingOutbox = outboxEnabled,
-            transactionalSessionOptions.ProcessorEndpoint,
             ProcessorEndpointAddress = informationHolder.ControlMessageProcessorAddress
         });
 

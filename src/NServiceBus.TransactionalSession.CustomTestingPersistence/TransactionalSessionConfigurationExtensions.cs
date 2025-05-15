@@ -30,7 +30,7 @@ public static class TransactionalSessionConfigurationExtensions
 
         if (!string.IsNullOrWhiteSpace(transactionalSessionOptions.ProcessorEndpoint))
         {
-            settings.Set(CustomTestingOutboxPersistence.OwningEndpointNameKey, transactionalSessionOptions.ProcessorEndpoint);
+            settings.Set(CustomTestingOutboxPersistence.ProcessorEndpointKey, transactionalSessionOptions.ProcessorEndpoint);
         }
 
         settings.EnableFeatureByDefault<CustomTestingPersistenceTransactionalSession>();
