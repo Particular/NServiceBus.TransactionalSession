@@ -44,7 +44,7 @@ public class When_using_outbox_send_only_and_receiver_is_the_processor : NServic
     {
         public SendOnlyEndpoint() => EndpointSetup<DefaultServer>(c =>
         {
-            var options = new TransactionalSessionOptions { ProcessorAddress = Conventions.EndpointNamingConvention.Invoke(typeof(AnotherEndpoint)) };
+            var options = new TransactionalSessionOptions { ProcessorEndpoint = Conventions.EndpointNamingConvention.Invoke(typeof(AnotherEndpoint)) };
 
             c.GetSettings().Get<PersistenceExtensions<CustomTestingPersistence>>()
                 .EnableTransactionalSession(options);
@@ -56,13 +56,7 @@ public class When_using_outbox_send_only_and_receiver_is_the_processor : NServic
 
     class AnotherEndpoint : EndpointConfigurationBuilder
     {
-        public AnotherEndpoint() => EndpointSetup<TransactionSessionDefaultServer>(c =>
-            {
-                c.ConfigureTransport().TransportTransactionMode = TransportTransactionMode.ReceiveOnly;
-                c.EnableOutbox()
-                    .EndpointName(Conventions.EndpointNamingConvention.Invoke(typeof(SendOnlyEndpoint)));
-            }
-        );
+        public AnotherEndpoint() => EndpointSetup<TransactionSessionWithOutboxEndpoint>();
 
         class SampleHandler(Context testContext) : IHandleMessages<SampleMessage>
         {

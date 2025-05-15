@@ -48,7 +48,7 @@ public class When_using_outbox_send_only : NServiceBusAcceptanceTest
                 .Run();
         });
 
-        Assert.That(exception?.Message, Is.EqualTo("A configured ProcessorAddress is required when using the transactional session and the outbox with send-only endpoints"));
+        Assert.That(exception?.Message, Is.EqualTo("A configured ProcessorEndpoint is required when using the transactional session and the outbox with send-only endpoints"));
     }
 
     class Context : TransactionalSessionTestContext
@@ -60,7 +60,7 @@ public class When_using_outbox_send_only : NServiceBusAcceptanceTest
     {
         public SendOnlyEndpoint() => EndpointSetup<DefaultServer>(c =>
         {
-            var options = new TransactionalSessionOptions { ProcessorAddress = Conventions.EndpointNamingConvention.Invoke(typeof(ProcessorEndpoint)) };
+            var options = new TransactionalSessionOptions { ProcessorEndpoint = Conventions.EndpointNamingConvention.Invoke(typeof(ProcessorEndpoint)) };
 
             c.GetSettings().Get<PersistenceExtensions<CustomTestingPersistence>>().EnableTransactionalSession(options);
 
@@ -98,14 +98,7 @@ public class When_using_outbox_send_only : NServiceBusAcceptanceTest
 
     class ProcessorEndpoint : EndpointConfigurationBuilder
     {
-        public ProcessorEndpoint() => EndpointSetup<TransactionSessionDefaultServer>(c =>
-            {
-                c.ConfigureTransport().TransportTransactionMode = TransportTransactionMode.ReceiveOnly;
-
-                c.EnableOutbox()
-                    .EndpointName(Conventions.EndpointNamingConvention.Invoke(typeof(SendOnlyEndpoint)));
-            }
-        );
+        public ProcessorEndpoint() => EndpointSetup<TransactionSessionWithOutboxEndpoint>();
     }
 
     class SampleMessage : ICommand

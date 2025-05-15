@@ -27,6 +27,12 @@ public static class TransactionalSessionConfigurationExtensions
         var settings = persistence.GetSettings();
 
         settings.Set(transactionalSessionOptions);
+
+        if (!string.IsNullOrWhiteSpace(transactionalSessionOptions.ProcessorEndpoint))
+        {
+            settings.Set(CustomTestingOutboxPersistence.ProcessorEndpointKey, transactionalSessionOptions.ProcessorEndpoint);
+        }
+
         settings.EnableFeatureByDefault<CustomTestingPersistenceTransactionalSession>();
     }
 }

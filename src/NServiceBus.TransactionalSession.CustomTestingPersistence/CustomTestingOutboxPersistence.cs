@@ -6,7 +6,7 @@ using Outbox;
 
 sealed class CustomTestingOutboxPersistence : Feature
 {
-    public const string EndpointNameKey = "CustomTestingOutboxPersistence.EndpointName";
+    public const string ProcessorEndpointKey = "CustomTestingPersistence.TransactionalSession.ProcessorEndpoint";
 
     public CustomTestingOutboxPersistence()
     {
@@ -25,7 +25,7 @@ sealed class CustomTestingOutboxPersistence : Feature
             context.Services.AddSingleton<CustomTestingDatabase>();
         }
 
-        var endpointName = context.Settings.GetOrDefault<string>(EndpointNameKey) ?? context.Settings.EndpointName();
+        var endpointName = context.Settings.GetOrDefault<string>(ProcessorEndpointKey) ?? context.Settings.EndpointName();
 
         context.Services.AddSingleton<IOutboxStorage>(sp => new CustomTestingOutboxStorage(sp.GetRequiredService<CustomTestingDatabase>(), endpointName));
     }

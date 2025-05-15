@@ -8,7 +8,7 @@ using Extensibility;
 public class TransactionalSessionOptions : ExtendableOptions
 {
     /// <summary>
-    /// Address of the endpoint that will process the control messages used to dispatch outbox records.
+    /// The endpoint that will be responsible for dispatching outbox messages on behalf of this endpoint.
     /// </summary>
-    public string ProcessorAddress { get; init; }
+    public string ProcessorEndpoint { get; init; }
 }
