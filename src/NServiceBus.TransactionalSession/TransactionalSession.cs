@@ -63,7 +63,7 @@ public abstract class TransactionalSession : Feature
                 : new QueueAddress(transactionalSessionOptions.ProcessorEndpoint);
         }
 
-        if (!outboxEnabled && transactionalSessionOptions.ProcessorEndpoint != null)
+        if (!outboxEnabled &&  !string.IsNullOrEmpty(transactionalSessionOptions.ProcessorEndpoint))
 
         {
             throw new InvalidOperationException(
