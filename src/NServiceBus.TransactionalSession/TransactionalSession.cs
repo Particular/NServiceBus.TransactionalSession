@@ -51,7 +51,7 @@ public abstract class TransactionalSession : Feature
                     "A configured ProcessorEndpoint is required when using the transactional session and the outbox with send-only endpoints");
             }
 
-            if (transactionalSessionOptions.ProcessorEndpoint != null && !isSendOnly)
+            if (!string,IsNullOrEmpty(transactionalSessionOptions.ProcessorEndpoint) && !isSendOnly)
 
             {
                 throw new InvalidOperationException(
