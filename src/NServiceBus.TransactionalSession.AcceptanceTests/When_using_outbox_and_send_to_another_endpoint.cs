@@ -1,16 +1,14 @@
 namespace NServiceBus.TransactionalSession.AcceptanceTests;
 
-using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using AcceptanceTesting;
 using AcceptanceTesting.Customization;
-using Configuration.AdvancedExtensibility;
 using NUnit.Framework;
-using Pipeline;
 
-public class When_using_outbox_full_endpoint_and_a_receiver_endpoint_is_processor : NServiceBusAcceptanceTest
+// This test verifies that a regular full endpoint (non send only) can successfully deliver to another endpoint when using the transactional session
+public class When_using_outbox_and_send_to_another_endpoint : NServiceBusAcceptanceTest
 {
     [Test()]
     public async Task Should_send_messages_on_transactional_session_commit()
@@ -34,33 +32,22 @@ public class When_using_outbox_full_endpoint_and_a_receiver_endpoint_is_processo
             .Done(c => c.MessageReceived)
             .Run();
 
-        Assert.That(context.ControlMessageReceived, Is.True);
         Assert.That(context.MessageReceived, Is.True);
     }
 
     class Context : TransactionalSessionTestContext
     {
         public bool MessageReceived { get; set; }
-
-        public bool ControlMessageReceived { get; set; }
     }
 
     class FullEndpointWithTransactionalSession : EndpointConfigurationBuilder
     {
-        public FullEndpointWithTransactionalSession() => EndpointSetup<DefaultServer>(c =>
-        {
-            var options = new TransactionalSessionOptions { ProcessorEndpoint = Conventions.EndpointNamingConvention.Invoke(typeof(AnotherEndpoint)) };
-
-            c.GetSettings().Get<PersistenceExtensions<CustomTestingPersistence>>().EnableTransactionalSession(options);
-
-            c.EnableOutbox();
-            c.ConfigureTransport().TransportTransactionMode = TransportTransactionMode.ReceiveOnly;
-        });
+        public FullEndpointWithTransactionalSession() => EndpointSetup<TransactionSessionWithOutboxEndpoint>();
     }
 
     class AnotherEndpoint : EndpointConfigurationBuilder
     {
-        public AnotherEndpoint() => EndpointSetup<TransactionSessionWithOutboxEndpoint>(c => c.Pipeline.Register(typeof(DiscoverControlMessagesBehavior), "Discovers control messages"));
+        public AnotherEndpoint() => EndpointSetup<DefaultServer>();
 
         class SampleHandler(Context testContext) : IHandleMessages<SampleMessage>
         {
@@ -71,21 +58,7 @@ public class When_using_outbox_full_endpoint_and_a_receiver_endpoint_is_processo
                 return Task.CompletedTask;
             }
         }
-
-        class DiscoverControlMessagesBehavior(Context testContext) : Behavior<ITransportReceiveContext>
-        {
-            public override async Task Invoke(ITransportReceiveContext context, Func<Task> next)
-            {
-                if (context.Message.Headers.ContainsKey(OutboxTransactionalSession.CommitDelayIncrementHeaderName))
-                {
-                    testContext.ControlMessageReceived = true;
-                }
-
-                await next();
-            }
-        }
     }
-
     class SampleMessage : ICommand
     {
     }
