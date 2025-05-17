@@ -5,7 +5,7 @@ using AcceptanceTesting;
 using NUnit.Framework;
 
 public class
-    When_using_outbox_and_configuring_a_proceesor_endpoint : NServiceBusAcceptanceTest
+    When_using_outbox_and_configuring_a_processor_endpoint : NServiceBusAcceptanceTest
 {
     [Test]
     public void Should_throw_when_processor_address_is_specified()
