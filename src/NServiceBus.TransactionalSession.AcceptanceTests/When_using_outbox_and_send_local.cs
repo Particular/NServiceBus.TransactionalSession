@@ -9,7 +9,7 @@ using AcceptanceTesting;
 using NUnit.Framework;
 using Pipeline;
 
-public class When_using_outbox : NServiceBusAcceptanceTest
+public class When_using_outbox_and_send_local : NServiceBusAcceptanceTest
 {
     [Test]
     public async Task Should_send_messages_on_transactional_session_commit()

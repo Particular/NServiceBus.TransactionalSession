@@ -47,10 +47,27 @@ public abstract class TransactionalSession : Feature
 
             if (isSendOnly && string.IsNullOrWhiteSpace(transactionalSessionOptions.ProcessorEndpoint))
             {
-                throw new InvalidOperationException("A configured ProcessorEndpoint is required when using the transactional session and the outbox with send-only endpoints");
+                throw new InvalidOperationException(
+                    "A configured ProcessorEndpoint is required when using the transactional session and the outbox with send-only endpoints");
             }
 
-            processorAddress = string.IsNullOrWhiteSpace(transactionalSessionOptions.ProcessorEndpoint) ? context.LocalQueueAddress() : new QueueAddress(transactionalSessionOptions.ProcessorEndpoint);
+            if (!string.IsNullOrEmpty(transactionalSessionOptions.ProcessorEndpoint) && !isSendOnly)
+
+            {
+                throw new InvalidOperationException(
+                    "A ProcessorEndpoint can only be specified for send-only endpoints");
+            }
+
+            processorAddress = string.IsNullOrWhiteSpace(transactionalSessionOptions.ProcessorEndpoint)
+                ? context.LocalQueueAddress()
+                : new QueueAddress(transactionalSessionOptions.ProcessorEndpoint);
+        }
+
+        if (!outboxEnabled && !string.IsNullOrEmpty(transactionalSessionOptions.ProcessorEndpoint))
+
+        {
+            throw new InvalidOperationException(
+                "A ProcessorEndpoint can only be specified for send-only endpoints with Outbox enabled");
         }
 
         var informationHolder = new InformationHolderToAvoidClosures
@@ -91,11 +108,12 @@ public abstract class TransactionalSession : Feature
             return transactionalSession;
         });
 
-        context.Settings.AddStartupDiagnosticsSection("NServiceBus.TransactionalSession", new
-        {
-            UsingOutbox = outboxEnabled,
-            ProcessorEndpointAddress = informationHolder.ControlMessageProcessorAddress
-        });
+        context.Settings.AddStartupDiagnosticsSection("NServiceBus.TransactionalSession",
+            new
+            {
+                UsingOutbox = outboxEnabled,
+                ProcessorEndpointAddress = informationHolder.ControlMessageProcessorAddress
+            });
 
         if (!informationHolder.IsOutboxEnabled)
         {
@@ -106,7 +124,8 @@ public abstract class TransactionalSession : Feature
             new TransactionalSessionDelayControlMessageBehavior(
                 sp.GetRequiredService<IMessageDispatcher>(),
                 sp.GetRequiredService<ITransportAddressResolver>()
-                    .ToTransportAddress(sp.GetRequiredService<InformationHolderToAvoidClosures>().ControlMessageProcessorAddress)
+                    .ToTransportAddress(sp.GetRequiredService<InformationHolderToAvoidClosures>()
+                        .ControlMessageProcessorAddress)
             ), "Transaction commit control message delay behavior");
 
         context.Pipeline.Register(new TransactionalSessionControlMessageExceptionBehavior(),
