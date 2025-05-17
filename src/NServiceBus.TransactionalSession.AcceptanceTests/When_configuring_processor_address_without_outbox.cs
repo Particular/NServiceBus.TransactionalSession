@@ -2,6 +2,7 @@ namespace NServiceBus.TransactionalSession.AcceptanceTests;
 
 using System;
 using AcceptanceTesting;
+using Configuration.AdvancedExtensibility;
 using NUnit.Framework;
 
 public class When_configuring_processor_address_without_outbox : NServiceBusAcceptanceTest
@@ -17,6 +18,7 @@ public class When_configuring_processor_address_without_outbox : NServiceBusAcce
                 .Run();
         });
 
+        Assert.That(exception, Is.Not.Null);
         Assert.That(exception.Message, Is.EqualTo(
             "A ProcessorEndpoint can only be specified for send-only endpoints with Outbox enabled"));
     }
@@ -28,13 +30,13 @@ public class When_configuring_processor_address_without_outbox : NServiceBusAcce
     class EndpointWithProcessorAddressButNoOutbox : EndpointConfigurationBuilder
     {
         public EndpointWithProcessorAddressButNoOutbox() =>
-            EndpointSetup<DefaultServer>((c, runDescriptor) =>
+            EndpointSetup<DefaultServer>(c =>
             {
                 // Configure TransactionalSession with a processor address but don't enable Outbox
                 var options = new TransactionalSessionOptions { ProcessorEndpoint = "AnotherEndpoint" };
 
-                var persistence = c.UsePersistence<CustomTestingPersistence>();
-                persistence.EnableTransactionalSession(options);
+                c.GetSettings().Get<PersistenceExtensions<CustomTestingPersistence>>()
+                    .EnableTransactionalSession(options);
 
                 // Notice: No c.EnableOutbox() call here
                 c.SendOnly();
