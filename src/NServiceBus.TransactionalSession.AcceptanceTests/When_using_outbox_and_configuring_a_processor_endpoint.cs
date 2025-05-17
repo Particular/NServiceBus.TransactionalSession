@@ -18,7 +18,7 @@ public class When_using_outbox_and_configuring_a_processor_endpoint : NServiceBu
                 .Run();
         });
 
-        Assert.That(exception, Is.Null);
+        Assert.That(exception, Is.Not.Null);
         Assert.That(exception.Message,
             Is.EqualTo("A ProcessorEndpoint can only be specified for send-only endpoints"));
     }
