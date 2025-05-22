@@ -44,7 +44,7 @@ public class When_outbox_commits_after_control_message : NServiceBusAcceptanceTe
             .Run();
 
         Assert.That(context.MessageReceived, Is.False);
-        Assert.That(context.Logs.ToArray().Any(m => m.Message.StartsWith("Failure to store the outbox record. This happens if you have exceeded the maximum commit duration")), Is.True);
+        Assert.That(context.Logs.ToArray().Any(m => m.Message.StartsWith("Failed to commit the transactional session. This might happen if the maximum commit duration is exceeded")), Is.True);
     }
 
     class Context : TransactionalSessionTestContext

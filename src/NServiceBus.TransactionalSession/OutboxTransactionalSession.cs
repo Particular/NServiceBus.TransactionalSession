@@ -54,11 +54,7 @@ sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
         }
         catch (Exception e) when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
-            Log.Warn(
-                isSendOnly
-                    ? $"Failed to commit the transactional session. This might happen if the maximum commit duration is exceeded or if the transactional session has not been enabled on the configured processor endpoint - {physicalQueueAddress}"
-                    : "Failed to commit the transactional session. This might happen if the maximum commit duration is exceeded",
-                e);
+            Log.Warn($"Failed to commit the transactional session. This might happen if the maximum commit duration is exceeded{(isSendOnly ? $" or if the transactional session has not been enabled on the configured processor endpoint - {physicalQueueAddress}" : "")}", e);
 
             throw;
         }

@@ -79,7 +79,7 @@ public class When_send_only_endpoint_uses_processor_without_transactional_sessio
             Assert.That(
                 context.Logs.ToArray().Any(m =>
                     m.Message.StartsWith(
-                        "Failure to store the outbox record. This happens if you have exceeded the maximum commit duration or if you have forgotten to enable transactional session in the processor endpoint - ")),
+                        "Failed to commit the transactional session. This might happen if the maximum commit duration is exceeded or if the transactional session has not been enabled on the configured processor endpoint - ")),
                 Is.True);
         }
     }
