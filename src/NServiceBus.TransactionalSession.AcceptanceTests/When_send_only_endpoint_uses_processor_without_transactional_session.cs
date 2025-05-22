@@ -1,7 +1,6 @@
 namespace NServiceBus.TransactionalSession.AcceptanceTests;
 
 using System;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
@@ -77,10 +76,9 @@ public class When_send_only_endpoint_uses_processor_without_transactional_sessio
         {
             Assert.That(context.MessageReceived, Is.False);
             Assert.That(
-                context.Logs.ToArray().Any(m =>
-                    m.Message.StartsWith(
-                        "Failed to commit the transactional session. This might happen if the maximum commit duration is exceeded or if the transactional session has not been enabled on the configured processor endpoint - ")),
-                Is.True);
+                context.TransactionalSessionException.Message,
+                Does.StartWith(
+                    "Failed to commit the transactional session. This might happen if the maximum commit duration is exceeded or if the transactional session has not been enabled on the configured processor endpoint - "));
         }
     }
 

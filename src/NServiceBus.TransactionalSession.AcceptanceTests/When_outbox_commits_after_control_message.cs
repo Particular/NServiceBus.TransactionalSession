@@ -1,7 +1,6 @@
 ﻿namespace NServiceBus.TransactionalSession.AcceptanceTests;
 
 using System;
-using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using AcceptanceTesting;
@@ -44,7 +43,7 @@ public class When_outbox_commits_after_control_message : NServiceBusAcceptanceTe
             .Run();
 
         Assert.That(context.MessageReceived, Is.False);
-        Assert.That(context.Logs.ToArray().Any(m => m.Message.StartsWith("Failed to commit the transactional session. This might happen if the maximum commit duration is exceeded")), Is.True);
+        Assert.That(context.TransactionalSessionException.Message, Does.StartWith("Failed to commit the transactional session. This might happen if the maximum commit duration is exceeded"));
     }
 
     class Context : TransactionalSessionTestContext

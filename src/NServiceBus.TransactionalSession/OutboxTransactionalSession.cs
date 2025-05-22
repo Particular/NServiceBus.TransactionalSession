@@ -10,7 +10,6 @@ using Routing;
 using Transport;
 using TransportTransportOperation = Transport.TransportOperation;
 using OutboxTransportOperation = Outbox.TransportOperation;
-using Logging;
 
 sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
     ICompletableSynchronizedStorageSession synchronizedStorageSession,
@@ -54,9 +53,7 @@ sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
         }
         catch (Exception e) when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
-            Log.Warn($"Failed to commit the transactional session. This might happen if the maximum commit duration is exceeded{(isSendOnly ? $" or if the transactional session has not been enabled on the configured processor endpoint - {physicalQueueAddress}" : "")}", e);
-
-            throw;
+            throw new Exception($"Failed to commit the transactional session. This might happen if the maximum commit duration is exceeded{(isSendOnly ? $" or if the transactional session has not been enabled on the configured processor endpoint - {physicalQueueAddress}" : "")}", e);
         }
     }
 
@@ -171,5 +168,4 @@ sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
 
     public const string RemainingCommitDurationHeaderName = "NServiceBus.TransactionalSession.RemainingCommitDuration";
     public const string CommitDelayIncrementHeaderName = "NServiceBus.TransactionalSession.CommitDelayIncrement";
-    static readonly ILog Log = LogManager.GetLogger<OutboxTransactionalSession>();
 }
