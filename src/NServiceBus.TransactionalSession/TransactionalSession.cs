@@ -93,7 +93,8 @@ public abstract class TransactionalSession : Feature
                     informationHolder.MessageSession,
                     sp.GetRequiredService<IMessageDispatcher>(),
                     sp.GetServices<IOpenSessionOptionsCustomization>(),
-                    physicalProcessorQueueAddress, informationHolder.IsSendOnly);
+                    physicalProcessorQueueAddress,
+                    informationHolder.IsSendOnly);
             }
             else
             {
