@@ -56,8 +56,8 @@ sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
         {
             Log.Warn(
                 isSendOnly
-                    ? $"Failure to store the outbox record. This happens if you have exceeded the maximum commit duration or if you have forgotten to enable transactional session in the processor endpoint - {physicalQueueAddress}"
-                    : "Failure to store the outbox record. This happens if you have exceeded the maximum commit duration",
+                    ? $"Failed to commit the transactional session. This might happen if the maximum commit duration is exceeded or if the transactional session has not been enabled on the configured processor endpoint - {physicalQueueAddress}"
+                    : "Failed to commit the transactional session. This might happen if the maximum commit duration is exceeded",
                 e);
 
             throw;
