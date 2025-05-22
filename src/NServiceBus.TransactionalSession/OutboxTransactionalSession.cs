@@ -17,7 +17,8 @@ sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
     IMessageSession messageSession,
     IMessageDispatcher dispatcher,
     IEnumerable<IOpenSessionOptionsCustomization> customizations,
-    string physicalQueueAddress, bool isSendOnly)
+    string physicalQueueAddress,
+    bool isSendOnly)
     : TransactionalSessionBase(synchronizedStorageSession, messageSession, dispatcher, customizations)
 {
     protected override async Task CommitInternal(CancellationToken cancellationToken = default)
@@ -48,7 +49,6 @@ sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
                 await outboxStorage.Store(outboxMessage, outboxTransaction, Context, cancellationToken)
                     .ConfigureAwait(false);
             }
-
 
             await outboxTransaction.Commit(cancellationToken).ConfigureAwait(false);
         }
