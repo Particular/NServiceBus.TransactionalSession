@@ -10,13 +10,14 @@ using Routing;
 using Transport;
 using TransportTransportOperation = Transport.TransportOperation;
 using OutboxTransportOperation = Outbox.TransportOperation;
+using Logging;
 
 sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
     ICompletableSynchronizedStorageSession synchronizedStorageSession,
     IMessageSession messageSession,
     IMessageDispatcher dispatcher,
     IEnumerable<IOpenSessionOptionsCustomization> customizations,
-    string physicalQueueAddress)
+    string physicalQueueAddress, bool isSendOnly)
     : TransactionalSessionBase(synchronizedStorageSession, messageSession, dispatcher, customizations)
 {
     protected override async Task CommitInternal(CancellationToken cancellationToken = default)
@@ -32,21 +33,35 @@ sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
         // disposing multiple times is safe
         synchronizedStorageSession.Dispose();
 
-        // The outbox record is only stored when there are operations to store. When there are no operations
-        // it doesn't make sense to store an empty outbox record and mark it as dispatched as long as we are not
-        // exposing the possibility to set the session ID from the outside. When the session ID is random and
-        // there are not outgoing messages there is no way to correlate the outbox record with the transactional
-        // session call and therefore the cost storing (within tx) and setting as dispatched (outside tx)
-        // the outbox record is not justified.
-        if (pendingOperations.HasOperations)
+        try
         {
-            var outboxMessage =
-                new OutboxMessage(SessionId, ConvertToOutboxOperations(pendingOperations.Operations));
-            await outboxStorage.Store(outboxMessage, outboxTransaction, Context, cancellationToken)
-                .ConfigureAwait(false);
-        }
+            // The outbox record is only stored when there are operations to store. When there are no operations
+            // it doesn't make sense to store an empty outbox record and mark it as dispatched as long as we are not
+            // exposing the possibility to set the session ID from the outside. When the session ID is random and
+            // there are not outgoing messages there is no way to correlate the outbox record with the transactional
+            // session call and therefore the cost storing (within tx) and setting as dispatched (outside tx)
+            // the outbox record is not justified.
+            if (pendingOperations.HasOperations)
+            {
+                var outboxMessage =
+                    new OutboxMessage(SessionId, ConvertToOutboxOperations(pendingOperations.Operations));
+                await outboxStorage.Store(outboxMessage, outboxTransaction, Context, cancellationToken)
+                    .ConfigureAwait(false);
+            }
 
-        await outboxTransaction.Commit(cancellationToken).ConfigureAwait(false);
+
+            await outboxTransaction.Commit(cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception e) when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
+        {
+            Log.Warn(
+                isSendOnly
+                    ? $"Failure to store the outbox record. This happens if you have exceeded the maximum commit duration or if you have forgotten to enable transactional session in the processor endpoint - {physicalQueueAddress}"
+                    : "Failure to store the outbox record. This happens if you have exceeded the maximum commit duration",
+                e);
+
+            throw;
+        }
     }
 
     async Task DispatchControlMessage(CancellationToken cancellationToken)
@@ -160,4 +175,5 @@ sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
 
     public const string RemainingCommitDurationHeaderName = "NServiceBus.TransactionalSession.RemainingCommitDuration";
     public const string CommitDelayIncrementHeaderName = "NServiceBus.TransactionalSession.CommitDelayIncrement";
+    static readonly ILog Log = LogManager.GetLogger<OutboxTransactionalSession>();
 }

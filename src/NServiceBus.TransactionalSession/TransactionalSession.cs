@@ -40,11 +40,9 @@ public abstract class TransactionalSession : Feature
 
         var outboxEnabled = context.Settings.IsFeatureActive(typeof(Outbox));
         QueueAddress processorAddress = null;
-
+        var isSendOnly = context.Settings.GetOrDefault<bool>("Endpoint.SendOnly");
         if (outboxEnabled)
         {
-            var isSendOnly = context.Settings.GetOrDefault<bool>("Endpoint.SendOnly");
-
             if (isSendOnly && string.IsNullOrWhiteSpace(transactionalSessionOptions.ProcessorEndpoint))
             {
                 throw new InvalidOperationException(
@@ -73,7 +71,8 @@ public abstract class TransactionalSession : Feature
         var informationHolder = new InformationHolderToAvoidClosures
         {
             IsOutboxEnabled = outboxEnabled,
-            ControlMessageProcessorAddress = processorAddress
+            ControlMessageProcessorAddress = processorAddress,
+            IsSendOnly = isSendOnly
         };
 
         context.Services.AddSingleton(informationHolder);
@@ -94,7 +93,7 @@ public abstract class TransactionalSession : Feature
                     informationHolder.MessageSession,
                     sp.GetRequiredService<IMessageDispatcher>(),
                     sp.GetServices<IOpenSessionOptionsCustomization>(),
-                    physicalProcessorQueueAddress);
+                    physicalProcessorQueueAddress, informationHolder.IsSendOnly);
             }
             else
             {
@@ -139,6 +138,7 @@ public abstract class TransactionalSession : Feature
         public IMessageSession MessageSession { get; set; }
         public QueueAddress ControlMessageProcessorAddress { get; init; }
         public bool IsOutboxEnabled { get; init; }
+        public bool IsSendOnly { get; set; }
     }
 
     class SessionCaptureTask(InformationHolderToAvoidClosures informationHolder) : FeatureStartupTask
