@@ -130,22 +130,19 @@ public class When_send_only_endpoint_uses_processor_without_transactional_sessio
             c.ConfigureTransport().TransportTransactionMode = TransportTransactionMode.ReceiveOnly;
             // Only enables the outbox and deliberately NOT enabling the transactional session
             c.EnableOutbox();
+
         });
 
         class UnblockCommitBehavior(Context testContext) : Behavior<ITransportReceiveContext>
         {
             public override async Task Invoke(ITransportReceiveContext context, Func<Task> next)
             {
-                if (context.Message.Headers.ContainsKey(OutboxTransactionalSession.RemainingCommitDurationHeaderName))
+                // This callback is set in the pipeline context so the outbox storage can retrieve it and unlock the transactional session commit operation
+                // allowing us to control in which order the outbox storage and the transactional session commit operations are executed.
+                context.Extensions.Set("TestOutboxStorage.StoreCallback", () =>
                 {
-                    context.Extensions.Set("TestOutboxStorage.StoreCallback", () =>
-                    {
-                        // unblock the outbox transaction from the TransactionalSession.Commit
-                        // we need to wait till the TransactionalSessionDelayControlMessageBehavior gave up on retrying and therefore
-                        // the outbox storage will store the current control message as a "tombstone".
-                        testContext.TransactionTaskCompletionSource.TrySetResult(true);
-                    });
-                }
+                    testContext.TransactionTaskCompletionSource.TrySetResult(true);
+                });
 
                 await next();
             }
