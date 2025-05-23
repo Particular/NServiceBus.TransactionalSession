@@ -39,12 +39,11 @@ public abstract class TransactionalSession : Feature
         context.RegisterStartupTask(sp => sp.GetRequiredService<SessionCaptureTask>());
 
         var outboxEnabled = context.Settings.IsFeatureActive(typeof(Outbox));
+        var isSendOnly = context.Settings.GetOrDefault<bool>("Endpoint.SendOnly");
         QueueAddress processorAddress = null;
 
         if (outboxEnabled)
         {
-            var isSendOnly = context.Settings.GetOrDefault<bool>("Endpoint.SendOnly");
-
             if (isSendOnly && string.IsNullOrWhiteSpace(transactionalSessionOptions.ProcessorEndpoint))
             {
                 throw new InvalidOperationException(
@@ -64,7 +63,6 @@ public abstract class TransactionalSession : Feature
         }
 
         if (!outboxEnabled && !string.IsNullOrEmpty(transactionalSessionOptions.ProcessorEndpoint))
-
         {
             throw new InvalidOperationException(
                 "A ProcessorEndpoint can only be specified for send-only endpoints with Outbox enabled");
@@ -73,7 +71,8 @@ public abstract class TransactionalSession : Feature
         var informationHolder = new InformationHolderToAvoidClosures
         {
             IsOutboxEnabled = outboxEnabled,
-            ControlMessageProcessorAddress = processorAddress
+            ControlMessageProcessorAddress = processorAddress,
+            IsSendOnly = isSendOnly
         };
 
         context.Services.AddSingleton(informationHolder);
@@ -94,7 +93,8 @@ public abstract class TransactionalSession : Feature
                     informationHolder.MessageSession,
                     sp.GetRequiredService<IMessageDispatcher>(),
                     sp.GetServices<IOpenSessionOptionsCustomization>(),
-                    physicalProcessorQueueAddress);
+                    physicalProcessorQueueAddress,
+                    informationHolder.IsSendOnly);
             }
             else
             {
@@ -139,6 +139,7 @@ public abstract class TransactionalSession : Feature
         public IMessageSession MessageSession { get; set; }
         public QueueAddress ControlMessageProcessorAddress { get; init; }
         public bool IsOutboxEnabled { get; init; }
+        public bool IsSendOnly { get; init; }
     }
 
     class SessionCaptureTask(InformationHolderToAvoidClosures informationHolder) : FeatureStartupTask

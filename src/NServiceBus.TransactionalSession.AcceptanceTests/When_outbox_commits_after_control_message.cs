@@ -43,7 +43,7 @@ public class When_outbox_commits_after_control_message : NServiceBusAcceptanceTe
             .Run();
 
         Assert.That(context.MessageReceived, Is.False);
-
+        Assert.That(context.TransactionalSessionException.Message, Does.StartWith("Failed to commit the transactional session. This might happen if the maximum commit duration is exceeded"));
     }
 
     class Context : TransactionalSessionTestContext
