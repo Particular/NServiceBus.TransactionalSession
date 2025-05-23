@@ -130,7 +130,6 @@ public class When_send_only_endpoint_uses_processor_without_transactional_sessio
             c.ConfigureTransport().TransportTransactionMode = TransportTransactionMode.ReceiveOnly;
             // Only enables the outbox and deliberately NOT enabling the transactional session
             c.EnableOutbox();
-
         });
 
         class UnblockCommitBehavior(Context testContext) : Behavior<ITransportReceiveContext>
