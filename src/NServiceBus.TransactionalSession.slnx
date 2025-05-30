@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="../.github/workflows/ci.yml" />
+    <File Path="../.github/workflows/release.yml" />
+    <File Path="Custom.Build.props" />
+  </Folder>
+  <Project Path="NServiceBus.TransactionalSession.AcceptanceTests/NServiceBus.TransactionalSession.AcceptanceTests.csproj" />
+  <Project Path="NServiceBus.TransactionalSession.CustomTestingPersistence/NServiceBus.TransactionalSession.CustomTestingPersistence.csproj" />
+  <Project Path="NServiceBus.TransactionalSession.Tests/NServiceBus.TransactionalSession.Tests.csproj" />
+  <Project Path="NServiceBus.TransactionalSession/NServiceBus.TransactionalSession.csproj" />
+</Solution>
