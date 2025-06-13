@@ -1,13 +1,12 @@
 ﻿namespace NServiceBus.TransactionalSession.AcceptanceTests;
 
 using System;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using AcceptanceTesting;
 using NUnit.Framework;
 using Pipeline;
-using NServiceBus.AcceptanceTesting.Customization;
+using AcceptanceTesting.Customization;
 
 public class When_using_outbox_and_audit_enabled : NServiceBusAcceptanceTest
 {
@@ -32,9 +31,9 @@ public class When_using_outbox_and_audit_enabled : NServiceBusAcceptanceTest
 
                 await transactionalSession.Open(options);
 
-                await transactionalSession.SendLocal(new SampleMessage(), CancellationToken.None);
+                await transactionalSession.SendLocal(new SampleMessage());
 
-                await transactionalSession.Commit(CancellationToken.None).ConfigureAwait(false);
+                await transactionalSession.Commit();
             }))
             .WithEndpoint<AuditSpyEndpoint>()
             .Done(c => c.TestComplete)
@@ -125,11 +124,7 @@ public class When_using_outbox_and_audit_enabled : NServiceBusAcceptanceTest
         }
     }
 
-    class SampleMessage : ICommand
-    {
-    }
+    class SampleMessage : ICommand;
 
-    class CompleteTestMessage : ICommand
-    {
-    }
+    class CompleteTestMessage : ICommand;
 }
