@@ -20,7 +20,11 @@ public class When_using_outbox_and_audit_enabled : NServiceBusAcceptanceTest
                 using var scope = ctx.ServiceProvider.CreateScope();
                 using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
-                var options = new CustomTestingPersistenceOpenSessionOptions { TransactionCommitTaskCompletionSource = ctx.TransactionCommitTaskCompletionSource };
+                var options = new CustomTestingPersistenceOpenSessionOptions
+                {
+                    TransactionCommitTaskCompletionSource = ctx.TransactionCommitTaskCompletionSource,
+                    CommitDelayIncrement = TimeSpan.FromSeconds(500)
+                };
 
                 if (!commitHappensAfterControlMessage)
                 {
