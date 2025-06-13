@@ -20,14 +20,12 @@ public class When_using_outbox_and_audit_enabled : NServiceBusAcceptanceTest
                 using var scope = ctx.ServiceProvider.CreateScope();
                 using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
-                var options = new CustomTestingPersistenceOpenSessionOptions { TransactionCommitTaskCompletionSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously) };
+                var options = new CustomTestingPersistenceOpenSessionOptions { TransactionCommitTaskCompletionSource = ctx.TransactionCommitTaskCompletionSource };
 
                 if (!commitHappensAfterControlMessage)
                 {
                     options.TransactionCommitTaskCompletionSource.SetResult(true);
                 }
-
-                ctx.TxCommitTcs = options.TransactionCommitTaskCompletionSource;
 
                 await transactionalSession.Open(options);
 
@@ -49,7 +47,7 @@ public class When_using_outbox_and_audit_enabled : NServiceBusAcceptanceTest
         public bool ControlMessageWasAudited { get; set; }
         public bool TestComplete { get; set; }
 
-        public TaskCompletionSource<bool> TxCommitTcs { get; set; }
+        public TaskCompletionSource<bool> TransactionCommitTaskCompletionSource { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     }
 
     class AnEndpoint : EndpointConfigurationBuilder
@@ -76,7 +74,7 @@ public class When_using_outbox_and_audit_enabled : NServiceBusAcceptanceTest
                 }
 
                 // unblock transaction once the receive pipeline "completed" once
-                testContext.TxCommitTcs.TrySetResult(true);
+                testContext.TransactionCommitTaskCompletionSource.TrySetResult(true);
             }
         }
 
