@@ -40,7 +40,7 @@ public abstract class TransactionalSession : Feature
 
         var outboxEnabled = context.Settings.IsFeatureActive(typeof(Outbox));
         var isSendOnly = context.Settings.GetOrDefault<bool>("Endpoint.SendOnly");
-        QueueAddress processorAddress = null;
+        QueueAddress? processorAddress = null;
 
         if (outboxEnabled)
         {
@@ -90,7 +90,7 @@ public abstract class TransactionalSession : Feature
                 transactionalSession = new OutboxTransactionalSession(
                     sp.GetRequiredService<IOutboxStorage>(),
                     sp.GetRequiredService<ICompletableSynchronizedStorageSession>(),
-                    informationHolder.MessageSession,
+                    informationHolder.MessageSession ?? throw new InvalidOperationException("Message session is not available"),
                     sp.GetRequiredService<IMessageDispatcher>(),
                     sp.GetServices<IOpenSessionOptionsCustomization>(),
                     physicalProcessorQueueAddress,
@@ -100,7 +100,7 @@ public abstract class TransactionalSession : Feature
             {
                 transactionalSession = new NonOutboxTransactionalSession(
                     sp.GetRequiredService<ICompletableSynchronizedStorageSession>(),
-                    informationHolder.MessageSession,
+                    informationHolder.MessageSession ?? throw new InvalidOperationException("Message session is not available"),
                     sp.GetRequiredService<IMessageDispatcher>(),
                     sp.GetServices<IOpenSessionOptionsCustomization>());
             }
@@ -136,8 +136,8 @@ public abstract class TransactionalSession : Feature
     // when the dependencies are around. Not ideal but it helps to avoid closures
     sealed class InformationHolderToAvoidClosures
     {
-        public IMessageSession MessageSession { get; set; }
-        public QueueAddress ControlMessageProcessorAddress { get; init; }
+        public IMessageSession? MessageSession { get; set; }
+        public QueueAddress? ControlMessageProcessorAddress { get; init; }
         public bool IsOutboxEnabled { get; init; }
         public bool IsSendOnly { get; init; }
     }

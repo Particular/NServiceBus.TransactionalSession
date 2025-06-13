@@ -2,6 +2,7 @@ namespace NServiceBus.TransactionalSession;
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 using Extensibility;
@@ -34,17 +35,47 @@ abstract class TransactionalSessionBase(ICompletableSynchronizedStorageSession s
         {
             if (!IsOpen)
             {
-                throw new InvalidOperationException(
-                    "The session has to be opened before accessing the SessionId.");
+                throw new InvalidOperationException("The session has to be opened before accessing the SessionId.");
             }
 
-            return openSessionOptions?.SessionId;
+            return openSessionOptions.SessionId;
         }
     }
 
-    protected ContextBag Context => openSessionOptions.Extensions;
+    protected ContextBag Context
+    {
+        get
+        {
+            if (!IsOpen)
+            {
+                throw new InvalidOperationException("The session has to be opened before accessing the Context.");
+            }
 
-    protected bool IsOpen => openSessionOptions != null;
+            return openSessionOptions.Extensions;
+        }
+    }
+
+    protected OpenSessionOptions Options
+    {
+        get
+        {
+            if (!IsOpen)
+            {
+                throw new InvalidOperationException("The session has to be opened before accessing the Options.");
+            }
+
+            return openSessionOptions;
+        }
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value, nameof(Options));
+
+            openSessionOptions = value;
+        }
+    }
+
+    [MemberNotNullWhen(true, nameof(openSessionOptions))]
+    protected bool IsOpen => openSessionOptions is not null;
 
     public async Task Commit(CancellationToken cancellationToken = default)
     {
@@ -55,6 +86,7 @@ abstract class TransactionalSessionBase(ICompletableSynchronizedStorageSession s
         committed = true;
     }
 
+    [MemberNotNull(nameof(Options))]
     public abstract Task Open(OpenSessionOptions options, CancellationToken cancellationToken = default);
 
     protected abstract Task CommitInternal(CancellationToken cancellationToken = default);
@@ -144,7 +176,7 @@ abstract class TransactionalSessionBase(ICompletableSynchronizedStorageSession s
     protected readonly IMessageDispatcher dispatcher = dispatcher;
     protected readonly IEnumerable<IOpenSessionOptionsCustomization> customizations = customizations;
     protected readonly PendingTransportOperations pendingOperations = new();
-    protected OpenSessionOptions openSessionOptions;
     protected bool disposed;
+    OpenSessionOptions? openSessionOptions;
     bool committed;
 }

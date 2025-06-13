@@ -46,6 +46,6 @@ namespace NServiceBus.TransactionalSession
     public class TransactionalSessionOptions : NServiceBus.Extensibility.ExtendableOptions
     {
         public TransactionalSessionOptions() { }
-        public string ProcessorEndpoint { get; init; }
+        public string? ProcessorEndpoint { get; init; }
     }
 }

@@ -49,7 +49,7 @@ sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
                     .ConfigureAwait(false);
             }
 
-            await outboxTransaction.Commit(cancellationToken).ConfigureAwait(false);
+            await outboxTransaction!.Commit(cancellationToken).ConfigureAwait(false);
         }
         catch (Exception e) when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
@@ -63,12 +63,12 @@ sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
         {
             { Headers.MessageId, SessionId },
             { Headers.ControlMessageHeader, bool.TrueString },
-            { RemainingCommitDurationHeaderName, openSessionOptions.MaximumCommitDuration.ToString() },
-            { CommitDelayIncrementHeaderName, openSessionOptions.CommitDelayIncrement.ToString() },
+            { RemainingCommitDurationHeaderName, Options.MaximumCommitDuration.ToString() },
+            { CommitDelayIncrementHeaderName, Options.CommitDelayIncrement.ToString() },
         };
-        if (openSessionOptions.HasMetadata)
+        if (Options.HasMetadata)
         {
-            foreach (KeyValuePair<string, string> keyValuePair in openSessionOptions.Metadata)
+            foreach (KeyValuePair<string, string> keyValuePair in Options.Metadata)
             {
                 headers.Add(keyValuePair.Key, keyValuePair.Value);
             }
@@ -121,7 +121,7 @@ sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
         switch (addressTag)
         {
             case MulticastAddressTag indirect:
-                options["EventType"] = indirect.MessageType.AssemblyQualifiedName;
+                options["EventType"] = indirect.MessageType.AssemblyQualifiedName ?? throw new InvalidOperationException("Message type cannot be null when using multicast routing.");
                 return;
             case UnicastAddressTag direct:
                 options["Destination"] = direct.Destination;
@@ -141,11 +141,11 @@ sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
             throw new InvalidOperationException($"This session is already open. {nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)} should only be called once.");
         }
 
-        openSessionOptions = options;
+        Options = options;
 
         foreach (var customization in customizations)
         {
-            customization.Apply(openSessionOptions);
+            customization.Apply(Options);
         }
 
         // Unfortunately this is the only way to make it possible for Transaction.Current to float up to the caller
@@ -164,7 +164,7 @@ sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
         }
     }
 
-    IOutboxTransaction outboxTransaction;
+    IOutboxTransaction? outboxTransaction;
 
     public const string RemainingCommitDurationHeaderName = "NServiceBus.TransactionalSession.RemainingCommitDuration";
     public const string CommitDelayIncrementHeaderName = "NServiceBus.TransactionalSession.CommitDelayIncrement";
