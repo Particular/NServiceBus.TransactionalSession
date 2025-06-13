@@ -30,11 +30,11 @@ sealed class NonOutboxTransactionalSession(ICompletableSynchronizedStorageSessio
             throw new InvalidOperationException($"This session is already open. {nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)} should only be called once.");
         }
 
-        openSessionOptions = options;
+        Options = options;
 
         foreach (var customization in customizations)
         {
-            customization.Apply(openSessionOptions);
+            customization.Apply(Options);
         }
 
         await synchronizedStorageSession.Open(null, new TransportTransaction(), Context, cancellationToken).ConfigureAwait(false);
