@@ -10,5 +10,5 @@ public class TransactionalSessionOptions : ExtendableOptions
     /// <summary>
     /// The endpoint that will be responsible for dispatching outbox messages on behalf of this endpoint.
     /// </summary>
-    public string ProcessorEndpoint { get; init; }
+    public string? ProcessorEndpoint { get; init; }
 }

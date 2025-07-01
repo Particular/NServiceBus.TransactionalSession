@@ -25,7 +25,7 @@ public abstract class OpenSessionOptions
     /// </summary>
     public IDictionary<string, string> Metadata => metadata ??= [];
 
-    internal bool HasMetadata => metadata != null;
+    internal bool HasMetadata => metadata is not null;
 
     /// <summary>
     /// The maximum duration the transaction is allowed to attempt to atomically commit.
@@ -40,5 +40,5 @@ public abstract class OpenSessionOptions
     /// <remarks>Defaults to <code>TimeSpan.FromSeconds(2)</code></remarks>
     public TimeSpan CommitDelayIncrement { get; set; } = TimeSpan.FromSeconds(2);
 
-    Dictionary<string, string> metadata;
+    Dictionary<string, string>? metadata;
 }
