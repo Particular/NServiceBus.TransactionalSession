@@ -3,11 +3,10 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
 using AcceptanceTesting;
 using AcceptanceTesting.Customization;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
-using Outbox;
 using Pipeline;
 
 public class When_outbox_entry_becomes_visible_after_tx_timeout : NServiceBusAcceptanceTest
@@ -60,14 +59,14 @@ public class When_outbox_entry_becomes_visible_after_tx_timeout : NServiceBusAcc
             EndpointSetup<TransactionSessionWithOutboxEndpoint>((c, r) =>
             {
                 c.ConfigureRouting().RouteToEndpoint(typeof(SomeMessage), typeof(ReceiverEndpoint));
-                c.Pipeline.Register(new StorageManipulationBehavior(), "configures the outbox to not see the commited values yet");
+                c.Pipeline.Register(new StorageManipulationBehavior(), "configures the outbox to not see the committed values yet");
             });
 
         class StorageManipulationBehavior : Behavior<ITransportReceiveContext>
         {
             public override Task Invoke(ITransportReceiveContext context, Func<Task> next)
             {
-                context.Extensions.Set<OutboxMessage>("TestOutboxStorage.GetResult", null); // no outbox record will be found
+                context.Extensions.Set(new CustomTestingOutboxStorageResult()); // no outbox record will be found
 
                 return next();
             }

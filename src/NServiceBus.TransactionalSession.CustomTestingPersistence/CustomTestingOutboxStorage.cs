@@ -16,9 +16,9 @@ sealed class CustomTestingOutboxStorage(CustomTestingDatabase database, string e
         context.TryGet<string>(CustomTestingPersistenceOpenSessionOptions.LoggerContextName, out var logContext);
         Logger.InfoFormat("{0} - Outbox.Get", logContext ?? "Pipeline");
 
-        if (context.TryGet("TestOutboxStorage.GetResult", out OutboxMessage customResult))
+        if (context.TryGet<CustomTestingOutboxStorageResult>(out var customResult))
         {
-            return Task.FromResult(customResult);
+            return Task.FromResult(customResult.Message);
         }
 
         var recordId = GetOutboxRecordId(messageId);
