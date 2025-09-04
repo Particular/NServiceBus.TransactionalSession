@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Persistence;
@@ -10,12 +11,15 @@ using Transport;
 sealed class NonOutboxTransactionalSession(ICompletableSynchronizedStorageSession synchronizedStorageSession,
     IMessageSession messageSession,
     IMessageDispatcher dispatcher,
-    IEnumerable<IOpenSessionOptionsCustomization> customizations)
+    IEnumerable<IOpenSessionOptionsCustomization> customizations,
+    TransactionalSessionMetrics metrics)
     : TransactionalSessionBase(synchronizedStorageSession, messageSession, dispatcher, customizations)
 {
     protected override async Task CommitInternal(CancellationToken cancellationToken = default)
     {
+        var startTicks = Stopwatch.GetTimestamp();
         await synchronizedStorageSession.CompleteAsync(cancellationToken).ConfigureAwait(false);
+        metrics.RecordCommitMetrics(true, startTicks, usingOutbox: false);
 
         await dispatcher.Dispatch(new TransportOperations(pendingOperations.Operations), new TransportTransaction(), cancellationToken).ConfigureAwait(false);
     }

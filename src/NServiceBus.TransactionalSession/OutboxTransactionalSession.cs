@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Outbox;
@@ -17,15 +18,19 @@ sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
     IMessageDispatcher dispatcher,
     IEnumerable<IOpenSessionOptionsCustomization> customizations,
     string physicalQueueAddress,
-    bool isSendOnly)
-    : TransactionalSessionBase(synchronizedStorageSession, messageSession, dispatcher, customizations)
+    bool isSendOnly,
+    TransactionalSessionMetrics metrics) : TransactionalSessionBase(synchronizedStorageSession, messageSession, dispatcher, customizations)
 {
     protected override async Task CommitInternal(CancellationToken cancellationToken = default)
     {
+        var startTicks = Stopwatch.GetTimestamp();
+
         if (pendingOperations.HasOperations)
         {
             await DispatchControlMessage(cancellationToken).ConfigureAwait(false);
         }
+
+        metrics.RecordDispatchMetrics(startTicks);
 
         await synchronizedStorageSession.CompleteAsync(cancellationToken).ConfigureAwait(false);
         // Disposing the session after complete to be compliant with the core behavior
@@ -50,9 +55,12 @@ sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
             }
 
             await outboxTransaction!.Commit(cancellationToken).ConfigureAwait(false);
+            metrics.RecordCommitMetrics(true, startTicks, usingOutbox: true);
+
         }
         catch (Exception e) when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
+            metrics.RecordCommitMetrics(false, startTicks, usingOutbox: true);
             throw new Exception($"Failed to commit the transactional session. This might happen if the maximum commit duration is exceeded{(isSendOnly ? $" or if the transactional session has not been enabled on the configured processor endpoint - {physicalQueueAddress}" : "")}", e);
         }
     }
@@ -65,6 +73,8 @@ sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
             { Headers.ControlMessageHeader, bool.TrueString },
             { RemainingCommitDurationHeaderName, Options.MaximumCommitDuration.ToString() },
             { CommitDelayIncrementHeaderName, Options.CommitDelayIncrement.ToString() },
+            { AttemptHeaderName, "1" },
+            { TimeSentHeaderName, DateTimeOffsetHelper.ToWireFormattedString(DateTimeOffset.UtcNow) }
         };
         if (Options.HasMetadata)
         {
@@ -168,4 +178,6 @@ sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
 
     public const string RemainingCommitDurationHeaderName = "NServiceBus.TransactionalSession.RemainingCommitDuration";
     public const string CommitDelayIncrementHeaderName = "NServiceBus.TransactionalSession.CommitDelayIncrement";
+    public const string AttemptHeaderName = "NServiceBus.TransactionalSession.CommitDelayAttempt";
+    public const string TimeSentHeaderName = "NServiceBus.TransactionalSession.TimeSent";
 }
