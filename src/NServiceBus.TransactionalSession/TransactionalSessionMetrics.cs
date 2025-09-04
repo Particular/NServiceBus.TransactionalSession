@@ -10,7 +10,7 @@ sealed class TransactionalSessionMetrics : IDisposable
     {
         this.endpointName = endpointName;
 
-        meter = meterFactory.Create("NServiceBus.TransactionalSession", "0.0.1");
+        meter = meterFactory.Create("NServiceBus.TransactionalSession", "0.2.0");
 
         commitDuration = meter.CreateHistogram<double>(
             "nservicebus.transactional_session.commit.duration",
