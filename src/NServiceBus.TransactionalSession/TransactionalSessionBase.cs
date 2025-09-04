@@ -158,7 +158,7 @@ abstract class TransactionalSessionBase(ICompletableSynchronizedStorageSession s
         await messageSession.Publish(messageConstructor, publishOptions, cancellationToken).ConfigureAwait(false);
     }
 
-    protected void ThrowIfDisposed()
+    void ThrowIfDisposed()
     {
         if (disposed)
         {
@@ -166,7 +166,7 @@ abstract class TransactionalSessionBase(ICompletableSynchronizedStorageSession s
         }
     }
 
-    protected void ThrowIfCommitted()
+    void ThrowIfCommitted()
     {
         if (committed)
         {
