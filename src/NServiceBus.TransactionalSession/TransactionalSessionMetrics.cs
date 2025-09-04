@@ -85,7 +85,7 @@ sealed class TransactionalSessionMetrics : IDisposable
 
         TagList tags;
         tags.Add("nservicebus.endpoint", endpointName);
-        tags.Add(new("nservicebus.transactional_session.control_message.outcome", success ? "success" : "failure"));
+        tags.Add("nservicebus.transactional_session.control_message.outcome", success ? "success" : "failure");
 
         totalAttempts.Record(currentAttempt, tags);
     }
