@@ -44,7 +44,6 @@ sealed class NonOutboxTransactionalSession(ICompletableSynchronizedStorageSessio
         if (disposing)
         {
             synchronizedStorageSession?.Dispose();
-            synchronizedStorageSession = null;
         }
 
         base.Dispose(disposing);
