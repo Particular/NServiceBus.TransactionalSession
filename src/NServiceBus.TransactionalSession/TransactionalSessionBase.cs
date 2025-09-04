@@ -24,17 +24,7 @@ abstract class TransactionalSessionBase(ICompletableSynchronizedStorageSession s
                 throw new InvalidOperationException("The session has to be opened before accessing the SynchronizedStorageSession.");
             }
 
-            if (committed)
-            {
-                throw new InvalidOperationException("The session has already been committed and accessing the SynchronizedStorageSession is not possible anymore.");
-            }
-
-            if (disposed)
-            {
-                throw new InvalidOperationException("The session has already been disposed and accessing the SynchronizedStorageSession is not possible anymore.");
-            }
-
-            return synchronizedStorageSession!;
+            return synchronizedStorageSession;
         }
     }
 
@@ -84,7 +74,7 @@ abstract class TransactionalSessionBase(ICompletableSynchronizedStorageSession s
     }
 
     [MemberNotNullWhen(true, nameof(openSessionOptions))]
-    protected bool IsOpen => openSessionOptions is not null;
+    bool IsOpen => openSessionOptions is not null;
 
     public async Task Commit(CancellationToken cancellationToken = default)
     {
@@ -96,7 +86,6 @@ abstract class TransactionalSessionBase(ICompletableSynchronizedStorageSession s
     }
 
     [MemberNotNull(nameof(Options))]
-    [MemberNotNull(nameof(synchronizedStorageSession))]
     public Task Open(OpenSessionOptions options, CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
@@ -112,11 +101,6 @@ abstract class TransactionalSessionBase(ICompletableSynchronizedStorageSession s
         foreach (var customization in customizations)
         {
             customization.Apply(Options);
-        }
-
-        if (synchronizedStorageSession is null)
-        {
-            throw new InvalidOperationException("The synchronized storage session is not available. Make sure the session is properly configured.");
         }
 
         return OpenInternal(cancellationToken);
@@ -191,9 +175,7 @@ abstract class TransactionalSessionBase(ICompletableSynchronizedStorageSession s
 
     public void Dispose()
     {
-        // Dispose of unmanaged resources.
         Dispose(true);
-        // Suppress finalization.
         GC.SuppressFinalize(this);
     }
 
@@ -207,7 +189,6 @@ abstract class TransactionalSessionBase(ICompletableSynchronizedStorageSession s
         disposed = true;
     }
 
-    protected ICompletableSynchronizedStorageSession? synchronizedStorageSession = synchronizedStorageSession;
     protected readonly IMessageDispatcher dispatcher = dispatcher;
     protected readonly PendingTransportOperations pendingOperations = new();
     protected bool disposed;

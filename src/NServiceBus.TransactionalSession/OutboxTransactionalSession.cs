@@ -55,7 +55,7 @@ sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
         // in case complete throws the synchronized storage session will get disposed by the dispose or the container
         // disposing multiple times is safe
         synchronizedStorageSession.Dispose();
-        synchronizedStorageSession = null;
+        synchronizedStorageSession = null!;
 
         try
         {
@@ -165,6 +165,7 @@ sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
     }
 
     IOutboxTransaction? outboxTransaction;
+    ICompletableSynchronizedStorageSession? synchronizedStorageSession = synchronizedStorageSession;
 
     public const string RemainingCommitDurationHeaderName = "NServiceBus.TransactionalSession.RemainingCommitDuration";
     public const string CommitDelayIncrementHeaderName = "NServiceBus.TransactionalSession.CommitDelayIncrement";

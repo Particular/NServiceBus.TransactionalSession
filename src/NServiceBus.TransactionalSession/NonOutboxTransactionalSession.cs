@@ -49,4 +49,6 @@ sealed class NonOutboxTransactionalSession(ICompletableSynchronizedStorageSessio
 
         base.Dispose(disposing);
     }
+
+    ICompletableSynchronizedStorageSession? synchronizedStorageSession = synchronizedStorageSession;
 }
