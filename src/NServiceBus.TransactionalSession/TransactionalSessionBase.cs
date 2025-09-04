@@ -21,11 +21,20 @@ abstract class TransactionalSessionBase(ICompletableSynchronizedStorageSession s
         {
             if (!IsOpen)
             {
-                throw new InvalidOperationException(
-                    "The session has to be opened before accessing the SynchronizedStorageSession.");
+                throw new InvalidOperationException("The session has to be opened before accessing the SynchronizedStorageSession.");
             }
 
-            return synchronizedStorageSession;
+            if (committed)
+            {
+                throw new InvalidOperationException("The session has already been committed and accessing the SynchronizedStorageSession is not possible anymore.");
+            }
+
+            if (disposed)
+            {
+                throw new InvalidOperationException("The session has already been disposed and accessing the SynchronizedStorageSession is not possible anymore.");
+            }
+
+            return synchronizedStorageSession!;
         }
     }
 
@@ -87,7 +96,33 @@ abstract class TransactionalSessionBase(ICompletableSynchronizedStorageSession s
     }
 
     [MemberNotNull(nameof(Options))]
-    public abstract Task Open(OpenSessionOptions options, CancellationToken cancellationToken = default);
+    [MemberNotNull(nameof(synchronizedStorageSession))]
+    public Task Open(OpenSessionOptions options, CancellationToken cancellationToken = default)
+    {
+        ThrowIfDisposed();
+        ThrowIfCommitted();
+
+        if (IsOpen)
+        {
+            throw new InvalidOperationException($"This session is already open. {nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)} should only be called once.");
+        }
+
+        Options = options;
+
+        foreach (var customization in customizations)
+        {
+            customization.Apply(Options);
+        }
+
+        if (synchronizedStorageSession is null)
+        {
+            throw new InvalidOperationException("The synchronized storage session is not available. Make sure the session is properly configured.");
+        }
+
+        return OpenInternal(cancellationToken);
+    }
+
+    protected abstract Task OpenInternal(CancellationToken cancellationToken = default);
 
     protected abstract Task CommitInternal(CancellationToken cancellationToken = default);
 
@@ -172,9 +207,8 @@ abstract class TransactionalSessionBase(ICompletableSynchronizedStorageSession s
         disposed = true;
     }
 
-    protected readonly ICompletableSynchronizedStorageSession synchronizedStorageSession = synchronizedStorageSession;
+    protected ICompletableSynchronizedStorageSession? synchronizedStorageSession = synchronizedStorageSession;
     protected readonly IMessageDispatcher dispatcher = dispatcher;
-    protected readonly IEnumerable<IOpenSessionOptionsCustomization> customizations = customizations;
     protected readonly PendingTransportOperations pendingOperations = new();
     protected bool disposed;
     OpenSessionOptions? openSessionOptions;

@@ -21,6 +21,24 @@ sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
     bool isSendOnly,
     TransactionalSessionMetrics metrics) : TransactionalSessionBase(synchronizedStorageSession, messageSession, dispatcher, customizations)
 {
+    protected override Task OpenInternal(CancellationToken cancellationToken = default)
+    {
+        // Unfortunately this is the only way to make it possible for Transaction.Current to float up to the caller
+        // to make sure SQLP and NHibernate work with the transaction scope
+        var outboxTransactionTask = outboxStorage.BeginTransaction(Context, cancellationToken);
+        return Open(outboxTransactionTask, cancellationToken);
+    }
+
+    async Task Open(Task<IOutboxTransaction> beginTransactionTask, CancellationToken cancellationToken)
+    {
+        outboxTransaction = await beginTransactionTask.ConfigureAwait(false);
+
+        if (!await synchronizedStorageSession!.TryOpen(outboxTransaction, Context, cancellationToken).ConfigureAwait(false))
+        {
+            throw new Exception("Outbox and synchronized storage persister are not compatible.");
+        }
+    }
+
     protected override async Task CommitInternal(CancellationToken cancellationToken = default)
     {
         var startTicks = Stopwatch.GetTimestamp();
@@ -32,11 +50,12 @@ sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
 
         metrics.RecordDispatchMetrics(startTicks);
 
-        await synchronizedStorageSession.CompleteAsync(cancellationToken).ConfigureAwait(false);
+        await synchronizedStorageSession!.CompleteAsync(cancellationToken).ConfigureAwait(false);
         // Disposing the session after complete to be compliant with the core behavior
         // in case complete throws the synchronized storage session will get disposed by the dispose or the container
         // disposing multiple times is safe
         synchronizedStorageSession.Dispose();
+        synchronizedStorageSession = null;
 
         try
         {
@@ -55,8 +74,12 @@ sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
             }
 
             await outboxTransaction!.Commit(cancellationToken).ConfigureAwait(false);
-            metrics.RecordCommitMetrics(true, startTicks, usingOutbox: true);
+            // Disposing the outbox transaction after commit to be compliant with the core behavior
+            // in case complete throws the synchronized storage session will get disposed by the dispose
+            outboxTransaction.Dispose();
+            outboxTransaction = null;
 
+            metrics.RecordCommitMetrics(true, startTicks, usingOutbox: true);
         }
         catch (Exception e) when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
@@ -104,7 +127,7 @@ sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
 
         if (disposing)
         {
-            synchronizedStorageSession.Dispose();
+            synchronizedStorageSession?.Dispose();
             outboxTransaction?.Dispose();
         }
 
@@ -138,39 +161,6 @@ sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
                 return;
             default:
                 throw new Exception($"Unknown routing strategy {addressTag.GetType().FullName}");
-        }
-    }
-
-    public override Task Open(OpenSessionOptions options, CancellationToken cancellationToken = default)
-    {
-        ThrowIfDisposed();
-        ThrowIfCommitted();
-
-        if (IsOpen)
-        {
-            throw new InvalidOperationException($"This session is already open. {nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)} should only be called once.");
-        }
-
-        Options = options;
-
-        foreach (var customization in customizations)
-        {
-            customization.Apply(Options);
-        }
-
-        // Unfortunately this is the only way to make it possible for Transaction.Current to float up to the caller
-        // to make sure SQLP and NHibernate work with the transaction scope
-        var outboxTransactionTask = outboxStorage.BeginTransaction(Context, cancellationToken);
-        return OpenInternal(outboxTransactionTask, cancellationToken);
-    }
-
-    async Task OpenInternal(Task<IOutboxTransaction> beginTransactionTask, CancellationToken cancellationToken)
-    {
-        outboxTransaction = await beginTransactionTask.ConfigureAwait(false);
-
-        if (!await synchronizedStorageSession.TryOpen(outboxTransaction, Context, cancellationToken).ConfigureAwait(false))
-        {
-            throw new Exception("Outbox and synchronized storage persister are not compatible.");
         }
     }
 
