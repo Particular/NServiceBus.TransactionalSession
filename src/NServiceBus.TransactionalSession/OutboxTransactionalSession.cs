@@ -55,7 +55,7 @@ sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
         // in case complete throws the synchronized storage session will get disposed by the dispose or the container
         // disposing multiple times is safe
         synchronizedStorageSession.Dispose();
-        synchronizedStorageSession = null!;
+        synchronizedStorageSession = null;
 
         try
         {
