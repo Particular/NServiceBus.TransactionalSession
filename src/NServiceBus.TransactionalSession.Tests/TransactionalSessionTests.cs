@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Extensibility;
 using Fakes;
+using Microsoft.Extensions.Diagnostics.Metrics.Testing;
 using NUnit.Framework;
 
 [TestFixture]
@@ -13,7 +14,7 @@ public class TransactionalSessionTests
     [Test]
     public async Task Open_should_use_session_id_from_options()
     {
-        using var session = new NonOutboxTransactionalSession(new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), []);
+        using var session = new NonOutboxTransactionalSession(new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), [], new TransactionalSessionMetrics(new TestMeterFactory(), "endpointName"));
 
         var openOptions = new FakeOpenSessionOptions();
         await session.Open(openOptions);
@@ -24,7 +25,7 @@ public class TransactionalSessionTests
     [Test]
     public async Task Open_should_throw_if_session_already_open()
     {
-        using var session = new NonOutboxTransactionalSession(new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), []);
+        using var session = new NonOutboxTransactionalSession(new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), [], new TransactionalSessionMetrics(new TestMeterFactory(), "endpointName"));
 
         await session.Open(new FakeOpenSessionOptions());
 
@@ -38,7 +39,7 @@ public class TransactionalSessionTests
     {
         var synchronizedStorageSession = new FakeSynchronizableStorageSession();
 
-        using var session = new NonOutboxTransactionalSession(synchronizedStorageSession, new FakeMessageSession(), new FakeDispatcher(), []);
+        using var session = new NonOutboxTransactionalSession(synchronizedStorageSession, new FakeMessageSession(), new FakeDispatcher(), [], new TransactionalSessionMetrics(new TestMeterFactory(), "endpointName"));
 
         var options = new FakeOpenSessionOptions();
         await session.Open(options);
@@ -59,7 +60,7 @@ public class TransactionalSessionTests
     public async Task Send_should_set_PendingOperations_collection_on_context()
     {
         var messageSession = new FakeMessageSession();
-        using var session = new NonOutboxTransactionalSession(new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), []);
+        using var session = new NonOutboxTransactionalSession(new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), [], new TransactionalSessionMetrics(new TestMeterFactory(), "endpointName"));
 
         await session.Open(new FakeOpenSessionOptions());
         await session.Send(new object());
@@ -71,7 +72,7 @@ public class TransactionalSessionTests
     public async Task Publish_should_set_PendingOperations_collection_on_context()
     {
         var messageSession = new FakeMessageSession();
-        using var session = new NonOutboxTransactionalSession(new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), []);
+        using var session = new NonOutboxTransactionalSession(new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), [], new TransactionalSessionMetrics(new TestMeterFactory(), "endpointName"));
 
         await session.Open(new FakeOpenSessionOptions());
         await session.Publish(new object());
@@ -83,7 +84,7 @@ public class TransactionalSessionTests
     public void Send_should_throw_exception_when_session_not_opened()
     {
         var messageSession = new FakeMessageSession();
-        using var session = new NonOutboxTransactionalSession(new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), []);
+        using var session = new NonOutboxTransactionalSession(new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), [], new TransactionalSessionMetrics(new TestMeterFactory(), "endpointName"));
 
         var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Send(new object()));
 
@@ -95,7 +96,7 @@ public class TransactionalSessionTests
     public void Publish_should_throw_exception_when_session_not_opened()
     {
         var messageSession = new FakeMessageSession();
-        using var session = new NonOutboxTransactionalSession(new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), []);
+        using var session = new NonOutboxTransactionalSession(new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), [], new TransactionalSessionMetrics(new TestMeterFactory(), "endpointName"));
 
         var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Publish(new object()));
 
@@ -108,7 +109,7 @@ public class TransactionalSessionTests
     {
         var dispatcher = new FakeDispatcher();
         var synchronizableSession = new FakeSynchronizableStorageSession();
-        using var session = new NonOutboxTransactionalSession(synchronizableSession, new FakeMessageSession(), dispatcher, []);
+        using var session = new NonOutboxTransactionalSession(synchronizableSession, new FakeMessageSession(), dispatcher, [], new TransactionalSessionMetrics(new TestMeterFactory(), "endpointName"));
 
         await session.Open(new FakeOpenSessionOptions());
         var sendOptions = new SendOptions();
@@ -132,13 +133,44 @@ public class TransactionalSessionTests
     }
 
     [Test]
+    public async Task Commit_should_emit_metrics()
+    {
+        var dispatcher = new FakeDispatcher();
+        var synchronizableSession = new FakeSynchronizableStorageSession();
+        var meterFactory = new TestMeterFactory();
+        var commitDuration = new MetricCollector<double>(meterFactory,
+            "NServiceBus.TransactionalSession",
+            "nservicebus.transactional_session.commit.duration");
+        var endpointName = "endpointName";
+        using var session = new NonOutboxTransactionalSession(synchronizableSession, new FakeMessageSession(), dispatcher, [], new TransactionalSessionMetrics(meterFactory, endpointName));
+
+        await session.Open(new FakeOpenSessionOptions());
+        var sendOptions = new SendOptions();
+        string messageId = Guid.NewGuid().ToString();
+        sendOptions.SetMessageId(messageId);
+        var messageObj = new object();
+        await session.Send(messageObj, sendOptions);
+        await session.Commit();
+
+        var commitDurationSnapshot = commitDuration.GetMeasurementSnapshot();
+        Assert.Multiple(() =>
+        {
+            Assert.That(commitDurationSnapshot.Count, Is.EqualTo(1));
+            Assert.That(commitDurationSnapshot[0].Value, Is.GreaterThan(0));
+            Assert.That(commitDurationSnapshot[0].Tags["nservicebus.endpoint"], Is.EqualTo(endpointName));
+            Assert.That(commitDurationSnapshot[0].Tags["nservicebus.transactional_session.commit.outcome"], Is.EqualTo("success"));
+            Assert.That(commitDurationSnapshot[0].Tags["nservicebus.transactional_session.mode"], Is.EqualTo("non_outbox"));
+        });
+    }
+
+    [Test]
     public async Task Commit_should_not_send_message_when_storage_tx_fails()
     {
         var dispatcher = new FakeDispatcher();
         var storageSession = new FakeSynchronizableStorageSession();
         storageSession.CompleteCallback = () => throw new Exception("session complete exception");
 
-        using var session = new NonOutboxTransactionalSession(storageSession, new FakeMessageSession(), dispatcher, []);
+        using var session = new NonOutboxTransactionalSession(storageSession, new FakeMessageSession(), dispatcher, [], new TransactionalSessionMetrics(new TestMeterFactory(), "endpointName"));
 
         await session.Open(new FakeOpenSessionOptions());
         await session.Send(new object());
@@ -152,7 +184,7 @@ public class TransactionalSessionTests
     {
         var synchronizedStorageSession = new FakeSynchronizableStorageSession();
 
-        var session = new NonOutboxTransactionalSession(synchronizedStorageSession, new FakeMessageSession(), new FakeDispatcher(), []);
+        var session = new NonOutboxTransactionalSession(synchronizedStorageSession, new FakeMessageSession(), new FakeDispatcher(), [], new TransactionalSessionMetrics(new TestMeterFactory(), "endpointName"));
         var options = new FakeOpenSessionOptions();
         await session.Open(options);
 
