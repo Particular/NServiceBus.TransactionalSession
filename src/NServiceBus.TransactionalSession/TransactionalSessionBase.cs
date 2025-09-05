@@ -21,8 +21,7 @@ abstract class TransactionalSessionBase(ICompletableSynchronizedStorageSession s
         {
             if (!IsOpen)
             {
-                throw new InvalidOperationException(
-                    "The session has to be opened before accessing the SynchronizedStorageSession.");
+                throw new InvalidOperationException("The session has to be opened before accessing the SynchronizedStorageSession.");
             }
 
             return synchronizedStorageSession;
@@ -75,7 +74,7 @@ abstract class TransactionalSessionBase(ICompletableSynchronizedStorageSession s
     }
 
     [MemberNotNullWhen(true, nameof(openSessionOptions))]
-    protected bool IsOpen => openSessionOptions is not null;
+    bool IsOpen => openSessionOptions is not null;
 
     public async Task Commit(CancellationToken cancellationToken = default)
     {
@@ -87,7 +86,27 @@ abstract class TransactionalSessionBase(ICompletableSynchronizedStorageSession s
     }
 
     [MemberNotNull(nameof(Options))]
-    public abstract Task Open(OpenSessionOptions options, CancellationToken cancellationToken = default);
+    public Task Open(OpenSessionOptions options, CancellationToken cancellationToken = default)
+    {
+        ThrowIfDisposed();
+        ThrowIfCommitted();
+
+        if (IsOpen)
+        {
+            throw new InvalidOperationException($"This session is already open. {nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)} should only be called once.");
+        }
+
+        Options = options;
+
+        foreach (var customization in customizations)
+        {
+            customization.Apply(Options);
+        }
+
+        return OpenInternal(cancellationToken);
+    }
+
+    protected abstract Task OpenInternal(CancellationToken cancellationToken = default);
 
     protected abstract Task CommitInternal(CancellationToken cancellationToken = default);
 
@@ -123,7 +142,7 @@ abstract class TransactionalSessionBase(ICompletableSynchronizedStorageSession s
         await messageSession.Publish(messageConstructor, publishOptions, cancellationToken).ConfigureAwait(false);
     }
 
-    protected void ThrowIfDisposed()
+    void ThrowIfDisposed()
     {
         if (disposed)
         {
@@ -131,7 +150,7 @@ abstract class TransactionalSessionBase(ICompletableSynchronizedStorageSession s
         }
     }
 
-    protected void ThrowIfCommitted()
+    void ThrowIfCommitted()
     {
         if (committed)
         {
@@ -156,9 +175,7 @@ abstract class TransactionalSessionBase(ICompletableSynchronizedStorageSession s
 
     public void Dispose()
     {
-        // Dispose of unmanaged resources.
         Dispose(true);
-        // Suppress finalization.
         GC.SuppressFinalize(this);
     }
 
@@ -172,9 +189,7 @@ abstract class TransactionalSessionBase(ICompletableSynchronizedStorageSession s
         disposed = true;
     }
 
-    protected readonly ICompletableSynchronizedStorageSession synchronizedStorageSession = synchronizedStorageSession;
     protected readonly IMessageDispatcher dispatcher = dispatcher;
-    protected readonly IEnumerable<IOpenSessionOptionsCustomization> customizations = customizations;
     protected readonly PendingTransportOperations pendingOperations = new();
     protected bool disposed;
     OpenSessionOptions? openSessionOptions;

@@ -15,7 +15,17 @@ sealed class CustomTestingSynchronizedStorageSession : ICompletableSynchronizedS
 {
     AcceptanceTestingTransaction Transaction { get; set; }
 
-    public void Dispose() => Transaction = null;
+    public void Dispose()
+    {
+        if (Transaction == null)
+        {
+            return;
+        }
+
+        Logger.InfoFormat("{0} - StorageSession.Dispose", logContext ?? "Pipeline");
+
+        Transaction = null;
+    }
 
     public ValueTask<bool> TryOpen(IOutboxTransaction transaction, ContextBag context,
         CancellationToken cancellationToken = default)
@@ -75,6 +85,7 @@ sealed class CustomTestingSynchronizedStorageSession : ICompletableSynchronizedS
     public void Enlist(Action action) => Transaction.Enlist(action);
 
     bool ownsTransaction;
+    string logContext;
 
     sealed class EnlistmentNotification(AcceptanceTestingTransaction transaction) : IEnlistmentNotification
     {
@@ -102,6 +113,5 @@ sealed class CustomTestingSynchronizedStorageSession : ICompletableSynchronizedS
         public void InDoubt(Enlistment enlistment) => enlistment.Done();
     }
 
-    string logContext;
     static readonly ILog Logger = LogManager.GetLogger<CustomTestingSynchronizedStorageSession>();
 }
