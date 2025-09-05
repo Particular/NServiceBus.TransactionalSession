@@ -166,7 +166,58 @@ public class OutboxTransactionalSessionTests
     }
 
     [Test]
-    public async Task Commit_should_emit_metrics()
+    public async Task Commit_should_emit_dispatch_metrics_when_need_to_send_messages()
+    {
+        var messageSession = new FakeMessageSession();
+        var dispatcher = new FakeDispatcher();
+        var synchronizedSession = new FakeSynchronizableStorageSession();
+        string queueAddress = "queue address";
+        var meterFactory = new TestMeterFactory();
+        var dispatchDuration = new MetricCollector<double>(meterFactory,
+            "NServiceBus.TransactionalSession",
+            "nservicebus.transactional_session.dispatch.duration");
+        var endpointName = "endpointName";
+        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), synchronizedSession, messageSession, dispatcher, [], queueAddress, isSendOnly: false, new TransactionalSessionMetrics(meterFactory, endpointName));
+
+        await session.Open(new FakeOpenSessionOptions());
+        var sendOptions = new SendOptions();
+        string messageId = Guid.NewGuid().ToString();
+        sendOptions.SetMessageId(messageId);
+        await session.Send(new object(), sendOptions);
+        await session.Commit();
+
+        var dispatchDurationSnapshot = dispatchDuration.GetMeasurementSnapshot();
+        Assert.Multiple(() =>
+        {
+            Assert.That(dispatchDurationSnapshot.Count, Is.EqualTo(1));
+            Assert.That(dispatchDurationSnapshot[0].Value, Is.GreaterThan(0));
+            Assert.That(dispatchDurationSnapshot[0].Tags["nservicebus.endpoint"], Is.EqualTo(endpointName));
+        });
+    }
+
+    [Test]
+    public async Task Commit_should_not_emit_dispatch_metrics_when_no_messages_to_send()
+    {
+        var messageSession = new FakeMessageSession();
+        var dispatcher = new FakeDispatcher();
+        var synchronizedSession = new FakeSynchronizableStorageSession();
+        string queueAddress = "queue address";
+        var meterFactory = new TestMeterFactory();
+        var dispatchDuration = new MetricCollector<double>(meterFactory,
+            "NServiceBus.TransactionalSession",
+            "nservicebus.transactional_session.dispatch.duration");
+        var endpointName = "endpointName";
+        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), synchronizedSession, messageSession, dispatcher, [], queueAddress, isSendOnly: false, new TransactionalSessionMetrics(meterFactory, endpointName));
+
+        await session.Open(new FakeOpenSessionOptions());
+        await session.Commit();
+
+        var dispatchDurationSnapshot = dispatchDuration.GetMeasurementSnapshot();
+        Assert.That(dispatchDurationSnapshot.Count, Is.EqualTo(0));
+    }
+
+    [Test]
+    public async Task Commit_should_emit_commit_metrics()
     {
         var messageSession = new FakeMessageSession();
         var dispatcher = new FakeDispatcher();
@@ -176,9 +227,6 @@ public class OutboxTransactionalSessionTests
         var commitDuration = new MetricCollector<double>(meterFactory,
             "NServiceBus.TransactionalSession",
             "nservicebus.transactional_session.commit.duration");
-        var dispatchDuration = new MetricCollector<double>(meterFactory,
-            "NServiceBus.TransactionalSession",
-            "nservicebus.transactional_session.dispatch.duration");
         var endpointName = "endpointName";
         using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), synchronizedSession, messageSession, dispatcher, [], queueAddress, isSendOnly: false, new TransactionalSessionMetrics(meterFactory, endpointName));
 
@@ -197,14 +245,6 @@ public class OutboxTransactionalSessionTests
             Assert.That(commitDurationSnapshot[0].Tags["nservicebus.endpoint"], Is.EqualTo(endpointName));
             Assert.That(commitDurationSnapshot[0].Tags["nservicebus.transactional_session.commit.outcome"], Is.EqualTo("success"));
             Assert.That(commitDurationSnapshot[0].Tags["nservicebus.transactional_session.mode"], Is.EqualTo("outbox"));
-        });
-
-        var dispatchDurationSnapshot = dispatchDuration.GetMeasurementSnapshot();
-        Assert.Multiple(() =>
-        {
-            Assert.That(dispatchDurationSnapshot.Count, Is.EqualTo(1));
-            Assert.That(dispatchDurationSnapshot[0].Value, Is.GreaterThan(0));
-            Assert.That(dispatchDurationSnapshot[0].Tags["nservicebus.endpoint"], Is.EqualTo(endpointName));
         });
     }
 

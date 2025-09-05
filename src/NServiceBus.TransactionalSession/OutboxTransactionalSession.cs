@@ -46,9 +46,8 @@ sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
         if (pendingOperations.HasOperations)
         {
             await DispatchControlMessage(cancellationToken).ConfigureAwait(false);
+            metrics.RecordDispatchMetrics(startTicks);
         }
-
-        metrics.RecordDispatchMetrics(startTicks);
 
         await synchronizedStorageSession!.CompleteAsync(cancellationToken).ConfigureAwait(false);
         // Disposing the session after complete to be compliant with the core behavior

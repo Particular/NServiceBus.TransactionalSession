@@ -20,7 +20,7 @@ sealed class TransactionalSessionMetrics : IDisposable
         dispatchDuration = meter.CreateHistogram<double>(
             "nservicebus.transactional_session.dispatch.duration",
             unit: "s",
-            description: "Duration of transactional session dispatch operations.");
+            description: "Duration of transactional session non-business dispatch operations.");
 
         totalAttempts = meter.CreateHistogram<long>(
             "nservicebus.transactional_session.control_message.attempts",
