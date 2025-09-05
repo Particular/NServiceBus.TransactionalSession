@@ -1,32 +1,32 @@
 namespace NServiceBus.TransactionalSession;
 
 using System;
-using System.Collections.Generic;
-using DelayedDelivery;
 using System.Threading.Tasks;
+using DelayedDelivery;
 using Logging;
 using Pipeline;
 using Routing;
 using Transport;
 
 class TransactionalSessionDelayControlMessageBehavior(IMessageDispatcher dispatcher,
-    string physicalQueueAddress)
+    string physicalQueueAddress, TransactionalSessionMetrics metrics)
     : IBehavior<IIncomingPhysicalMessageContext, IIncomingPhysicalMessageContext>
 {
     public async Task Invoke(IIncomingPhysicalMessageContext context,
         Func<IIncomingPhysicalMessageContext, Task> next)
     {
-        if (!context.Message.Headers.TryGetValue(OutboxTransactionalSession.RemainingCommitDurationHeaderName,
-                out var remainingCommitDurationHeader)
-            || !context.Message.Headers.TryGetValue(OutboxTransactionalSession.CommitDelayIncrementHeaderName,
-                out var commitDelayIncrementHeader))
+        if (!context.Extensions.TryGet<DispatchMessage>(out var dispatchMessage))
         {
             await next(context).ConfigureAwait(false);
             return;
         }
 
-        var remainingCommitDuration = TimeSpan.Parse(remainingCommitDurationHeader);
-        var commitDelayIncrement = TimeSpan.Parse(commitDelayIncrementHeader);
+        var remainingCommitDuration = dispatchMessage.RemainingCommitDuration;
+        var commitDelayIncrement = dispatchMessage.CommitDelayIncrement;
+        int currentAttempt = dispatchMessage.Attempt;
+        var nextAttempt = currentAttempt + 1;
+
+        metrics.RecordTransitTime(dispatchMessage.TimeSent);
 
         var messageId = context.MessageId;
         if (remainingCommitDuration <= TimeSpan.Zero)
@@ -37,11 +37,15 @@ class TransactionalSessionDelayControlMessageBehavior(IMessageDispatcher dispatc
                     "Consuming transaction commit control message for message ID '{0}' because the maximum commit duration has elapsed. If this occurs repeatedly, consider increasing the {1} setting on the session.", messageId, nameof(OpenSessionOptions.MaximumCommitDuration));
             }
 
+            metrics.RecordControlMessageOutcome(currentAttempt, false);
+
             return;
         }
 
         var newCommitDelay = commitDelayIncrement.Add(commitDelayIncrement);
         commitDelayIncrement = newCommitDelay > remainingCommitDuration ? remainingCommitDuration : newCommitDelay;
+
+        TimeSpan newRemainingTime = remainingCommitDuration - commitDelayIncrement;
 
         if (Log.IsInfoEnabled)
         {
@@ -50,12 +54,8 @@ class TransactionalSessionDelayControlMessageBehavior(IMessageDispatcher dispatc
                 messageId, Math.Abs(commitDelayIncrement.TotalSeconds), nameof(OpenSessionOptions.CommitDelayIncrement));
         }
 
-        var headers = new Dictionary<string, string>(context.Message.Headers)
-        {
-            [OutboxTransactionalSession.RemainingCommitDurationHeaderName] =
-                (remainingCommitDuration - commitDelayIncrement).ToString(),
-            [OutboxTransactionalSession.CommitDelayIncrementHeaderName] = commitDelayIncrement.ToString()
-        };
+        var headers = context.Message.ToHeaders(nextAttempt, newRemainingTime, commitDelayIncrement);
+
         await dispatcher.Dispatch(new TransportOperations(
                 new TransportOperation(
                     new OutgoingMessage(messageId, headers, ReadOnlyMemory<byte>.Empty),

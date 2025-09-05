@@ -4,6 +4,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Extensibility;
+using Logging;
 using Outbox;
 using TransactionalSession;
 
@@ -13,6 +14,8 @@ sealed class CustomTestingOutboxTransaction : IOutboxTransaction
 
     public CustomTestingOutboxTransaction(ContextBag contextBag)
     {
+        context = contextBag;
+
         if (contextBag.TryGet(out CustomTestingPersistenceOpenSessionOptions options))
         {
             CommitTaskCompletionSource = options.TransactionCommitTaskCompletionSource;
@@ -23,10 +26,24 @@ sealed class CustomTestingOutboxTransaction : IOutboxTransaction
 
     public AcceptanceTestingTransaction Transaction { get; private set; }
 
-    public void Dispose() => Transaction = null;
+    public void Dispose()
+    {
+        if (Transaction == null)
+        {
+            return;
+        }
+
+        context.TryGet<string>(CustomTestingPersistenceOpenSessionOptions.LoggerContextName, out var logContext);
+        Logger.InfoFormat("{0} - Outbox.TransactionDispose", logContext ?? "Pipeline");
+
+        Transaction = null;
+    }
 
     public async Task Commit(CancellationToken cancellationToken = default)
     {
+        context.TryGet<string>(CustomTestingPersistenceOpenSessionOptions.LoggerContextName, out var logContext);
+        Logger.InfoFormat("{0} - Outbox.TransactionCommit", logContext ?? "Pipeline");
+
         if (CommitTaskCompletionSource != null)
         {
             await CommitTaskCompletionSource.Task.ConfigureAwait(false);
@@ -36,4 +53,8 @@ sealed class CustomTestingOutboxTransaction : IOutboxTransaction
     }
 
     public void Enlist(Action action) => Transaction.Enlist(action);
+
+    readonly ContextBag context;
+
+    static readonly ILog Logger = LogManager.GetLogger<CustomTestingOutboxStorage>();
 }

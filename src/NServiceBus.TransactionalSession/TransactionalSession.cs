@@ -1,6 +1,7 @@
 namespace NServiceBus.TransactionalSession;
 
 using System;
+using System.Diagnostics.Metrics;
 using System.Threading;
 using System.Threading.Tasks;
 using Features;
@@ -72,11 +73,25 @@ public abstract class TransactionalSession : Feature
         {
             IsOutboxEnabled = outboxEnabled,
             ControlMessageProcessorAddress = processorAddress,
-            IsSendOnly = isSendOnly
+            IsSendOnly = isSendOnly,
+            EndpointName = context.Settings.EndpointName()
         };
+
+        context.Services.AddSingleton(static sp =>
+        {
+            var informationHolder = sp.GetRequiredService<InformationHolderToAvoidClosures>();
+
+            var transactionalSessionMetrics = new TransactionalSessionMetrics(
+                sp.GetRequiredService<IMeterFactory>(),
+                informationHolder.EndpointName!
+            );
+
+            return transactionalSessionMetrics;
+        });
 
         context.Services.AddSingleton(informationHolder);
         context.Services.AddSingleton(transactionalSessionOptions);
+        context.Services.AddSingleton(informationHolder);
         context.Services.AddScoped(static sp =>
         {
             var informationHolder = sp.GetRequiredService<InformationHolderToAvoidClosures>();
@@ -94,7 +109,8 @@ public abstract class TransactionalSession : Feature
                     sp.GetRequiredService<IMessageDispatcher>(),
                     sp.GetServices<IOpenSessionOptionsCustomization>(),
                     physicalProcessorQueueAddress,
-                    informationHolder.IsSendOnly);
+                    informationHolder.IsSendOnly,
+                    sp.GetRequiredService<TransactionalSessionMetrics>());
             }
             else
             {
@@ -102,7 +118,8 @@ public abstract class TransactionalSession : Feature
                     sp.GetRequiredService<ICompletableSynchronizedStorageSession>(),
                     informationHolder.MessageSession ?? throw new InvalidOperationException("Message session is not available"),
                     sp.GetRequiredService<IMessageDispatcher>(),
-                    sp.GetServices<IOpenSessionOptionsCustomization>());
+                    sp.GetServices<IOpenSessionOptionsCustomization>(),
+                    sp.GetRequiredService<TransactionalSessionMetrics>());
             }
 
             return transactionalSession;
@@ -125,10 +142,12 @@ public abstract class TransactionalSession : Feature
                 sp.GetRequiredService<IMessageDispatcher>(),
                 sp.GetRequiredService<ITransportAddressResolver>()
                     .ToTransportAddress(sp.GetRequiredService<InformationHolderToAvoidClosures>()
-                        .ControlMessageProcessorAddress)
+                        .ControlMessageProcessorAddress),
+                sp.GetRequiredService<TransactionalSessionMetrics>()
             ), "Transaction commit control message delay behavior");
 
-        context.Pipeline.Register(new TransactionalSessionControlMessageExceptionBehavior(),
+        context.Pipeline.Register(static sp =>
+                new TransactionalSessionControlMessageExceptionBehavior(sp.GetRequiredService<TransactionalSessionMetrics>()),
             "Transaction commit control message delay acknowledgement behavior");
     }
 
@@ -140,6 +159,7 @@ public abstract class TransactionalSession : Feature
         public QueueAddress? ControlMessageProcessorAddress { get; init; }
         public bool IsOutboxEnabled { get; init; }
         public bool IsSendOnly { get; init; }
+        public string? EndpointName { get; set; }
     }
 
     class SessionCaptureTask(InformationHolderToAvoidClosures informationHolder) : FeatureStartupTask

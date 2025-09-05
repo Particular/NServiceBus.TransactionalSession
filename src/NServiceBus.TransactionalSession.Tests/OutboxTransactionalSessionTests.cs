@@ -5,8 +5,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using Extensibility;
 using Fakes;
-using Transport;
+using Microsoft.Extensions.Diagnostics.Metrics.Testing;
 using NUnit.Framework;
+using Transport;
 
 [TestFixture]
 public class OutboxTransactionalSessionTests
@@ -14,7 +15,7 @@ public class OutboxTransactionalSessionTests
     [Test]
     public async Task Open_should_use_session_id_from_options()
     {
-        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), [], "queue address", isSendOnly: false);
+        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), [], "queue address", isSendOnly: false, new TransactionalSessionMetrics(new TestMeterFactory(), "endpointName"));
 
         var openOptions = new FakeOpenSessionOptions();
         await session.Open(openOptions);
@@ -25,7 +26,7 @@ public class OutboxTransactionalSessionTests
     [Test]
     public async Task Open_should_throw_if_session_already_open()
     {
-        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), [], "queue address", isSendOnly: false);
+        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), [], "queue address", isSendOnly: false, new TransactionalSessionMetrics(new TestMeterFactory(), "endpointName"));
 
         await session.Open(new FakeOpenSessionOptions());
 
@@ -40,7 +41,7 @@ public class OutboxTransactionalSessionTests
         var synchronizedStorageSession = new FakeSynchronizableStorageSession();
         var outboxStorage = new FakeOutboxStorage();
 
-        using var session = new OutboxTransactionalSession(outboxStorage, synchronizedStorageSession, new FakeMessageSession(), new FakeDispatcher(), [], "queue address", isSendOnly: false);
+        using var session = new OutboxTransactionalSession(outboxStorage, synchronizedStorageSession, new FakeMessageSession(), new FakeDispatcher(), [], "queue address", isSendOnly: false, new TransactionalSessionMetrics(new TestMeterFactory(), "endpointName"));
 
         await session.Open(new FakeOpenSessionOptions());
 
@@ -57,7 +58,7 @@ public class OutboxTransactionalSessionTests
         var synchronizedStorageSession = new FakeSynchronizableStorageSession();
         synchronizedStorageSession.TryOpenCallback = (_, _) => false;
 
-        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), synchronizedStorageSession, new FakeMessageSession(), new FakeDispatcher(), [], "queue address", isSendOnly: false);
+        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), synchronizedStorageSession, new FakeMessageSession(), new FakeDispatcher(), [], "queue address", isSendOnly: false, new TransactionalSessionMetrics(new TestMeterFactory(), "endpointName"));
 
         var exception = Assert.ThrowsAsync<Exception>(async () => await session.Open(new FakeOpenSessionOptions()));
 
@@ -68,7 +69,7 @@ public class OutboxTransactionalSessionTests
     public async Task Send_should_set_PendingOperations_collection_on_context()
     {
         var messageSession = new FakeMessageSession();
-        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), [], "queue address", isSendOnly: false);
+        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), [], "queue address", isSendOnly: false, new TransactionalSessionMetrics(new TestMeterFactory(), "endpointName"));
 
         await session.Open(new FakeOpenSessionOptions());
         await session.Send(new object());
@@ -80,7 +81,7 @@ public class OutboxTransactionalSessionTests
     public async Task Publish_should_set_PendingOperations_collection_on_context()
     {
         var messageSession = new FakeMessageSession();
-        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), [], "queue address", isSendOnly: false);
+        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), [], "queue address", isSendOnly: false, new TransactionalSessionMetrics(new TestMeterFactory(), "endpointName"));
 
         await session.Open(new FakeOpenSessionOptions());
         await session.Publish(new object());
@@ -92,7 +93,7 @@ public class OutboxTransactionalSessionTests
     public void Send_should_throw_exception_when_session_not_opened()
     {
         var messageSession = new FakeMessageSession();
-        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), [], "queue address", isSendOnly: false);
+        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), [], "queue address", isSendOnly: false, new TransactionalSessionMetrics(new TestMeterFactory(), "endpointName"));
 
         var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Send(new object()));
 
@@ -104,7 +105,7 @@ public class OutboxTransactionalSessionTests
     public void Publish_should_throw_exception_when_session_not_opened()
     {
         var messageSession = new FakeMessageSession();
-        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), [], "queue address", isSendOnly: false);
+        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), messageSession, new FakeDispatcher(), [], "queue address", isSendOnly: false, new TransactionalSessionMetrics(new TestMeterFactory(), "endpointName"));
 
         var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Publish(new object()));
 
@@ -120,8 +121,7 @@ public class OutboxTransactionalSessionTests
         var outboxStorage = new FakeOutboxStorage();
         var synchronizedSession = new FakeSynchronizableStorageSession();
         string queueAddress = "queue address";
-
-        using var session = new OutboxTransactionalSession(outboxStorage, synchronizedSession, messageSession, dispatcher, [], queueAddress, isSendOnly: false);
+        using var session = new OutboxTransactionalSession(outboxStorage, synchronizedSession, messageSession, dispatcher, [], queueAddress, isSendOnly: false, new TransactionalSessionMetrics(new TestMeterFactory(), "endpointName"));
 
         await session.Open(new FakeOpenSessionOptions());
         var sendOptions = new SendOptions();
@@ -139,6 +139,8 @@ public class OutboxTransactionalSessionTests
             Assert.That(controlMessage.RequiredDispatchConsistency, Is.EqualTo(DispatchConsistency.Isolated));
             Assert.That(controlMessage.Message.MessageId, Is.EqualTo(session.SessionId));
             Assert.That(controlMessage.Message.Headers[Headers.ControlMessageHeader], Is.EqualTo(bool.TrueString));
+            Assert.That(controlMessage.Message.Headers[OutboxTransactionalSession.TimeSentHeaderName], Is.Not.Empty);
+            Assert.That(controlMessage.Message.Headers[OutboxTransactionalSession.AttemptHeaderName], Is.EqualTo("1"));
             Assert.That(controlMessage.Message.Body.IsEmpty, Is.True);
             Assert.That(controlMessage.Destination, Is.EqualTo(queueAddress));
 
@@ -164,6 +166,89 @@ public class OutboxTransactionalSessionTests
     }
 
     [Test]
+    public async Task Commit_should_emit_dispatch_metrics_when_need_to_send_messages()
+    {
+        var messageSession = new FakeMessageSession();
+        var dispatcher = new FakeDispatcher();
+        var synchronizedSession = new FakeSynchronizableStorageSession();
+        string queueAddress = "queue address";
+        var meterFactory = new TestMeterFactory();
+        var dispatchDuration = new MetricCollector<double>(meterFactory,
+            "NServiceBus.TransactionalSession",
+            "nservicebus.transactional_session.dispatch.duration");
+        var endpointName = "endpointName";
+        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), synchronizedSession, messageSession, dispatcher, [], queueAddress, isSendOnly: false, new TransactionalSessionMetrics(meterFactory, endpointName));
+
+        await session.Open(new FakeOpenSessionOptions());
+        var sendOptions = new SendOptions();
+        string messageId = Guid.NewGuid().ToString();
+        sendOptions.SetMessageId(messageId);
+        await session.Send(new object(), sendOptions);
+        await session.Commit();
+
+        var dispatchDurationSnapshot = dispatchDuration.GetMeasurementSnapshot();
+        Assert.Multiple(() =>
+        {
+            Assert.That(dispatchDurationSnapshot.Count, Is.EqualTo(1));
+            Assert.That(dispatchDurationSnapshot[0].Value, Is.GreaterThan(0));
+            Assert.That(dispatchDurationSnapshot[0].Tags["nservicebus.endpoint"], Is.EqualTo(endpointName));
+        });
+    }
+
+    [Test]
+    public async Task Commit_should_not_emit_dispatch_metrics_when_no_messages_to_send()
+    {
+        var messageSession = new FakeMessageSession();
+        var dispatcher = new FakeDispatcher();
+        var synchronizedSession = new FakeSynchronizableStorageSession();
+        string queueAddress = "queue address";
+        var meterFactory = new TestMeterFactory();
+        var dispatchDuration = new MetricCollector<double>(meterFactory,
+            "NServiceBus.TransactionalSession",
+            "nservicebus.transactional_session.dispatch.duration");
+        var endpointName = "endpointName";
+        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), synchronizedSession, messageSession, dispatcher, [], queueAddress, isSendOnly: false, new TransactionalSessionMetrics(meterFactory, endpointName));
+
+        await session.Open(new FakeOpenSessionOptions());
+        await session.Commit();
+
+        var dispatchDurationSnapshot = dispatchDuration.GetMeasurementSnapshot();
+        Assert.That(dispatchDurationSnapshot.Count, Is.EqualTo(0));
+    }
+
+    [Test]
+    public async Task Commit_should_emit_commit_metrics()
+    {
+        var messageSession = new FakeMessageSession();
+        var dispatcher = new FakeDispatcher();
+        var synchronizedSession = new FakeSynchronizableStorageSession();
+        string queueAddress = "queue address";
+        var meterFactory = new TestMeterFactory();
+        var commitDuration = new MetricCollector<double>(meterFactory,
+            "NServiceBus.TransactionalSession",
+            "nservicebus.transactional_session.commit.duration");
+        var endpointName = "endpointName";
+        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), synchronizedSession, messageSession, dispatcher, [], queueAddress, isSendOnly: false, new TransactionalSessionMetrics(meterFactory, endpointName));
+
+        await session.Open(new FakeOpenSessionOptions());
+        var sendOptions = new SendOptions();
+        string messageId = Guid.NewGuid().ToString();
+        sendOptions.SetMessageId(messageId);
+        await session.Send(new object(), sendOptions);
+        await session.Commit();
+
+        var commitDurationSnapshot = commitDuration.GetMeasurementSnapshot();
+        Assert.Multiple(() =>
+        {
+            Assert.That(commitDurationSnapshot.Count, Is.EqualTo(1));
+            Assert.That(commitDurationSnapshot[0].Value, Is.GreaterThan(0));
+            Assert.That(commitDurationSnapshot[0].Tags["nservicebus.endpoint"], Is.EqualTo(endpointName));
+            Assert.That(commitDurationSnapshot[0].Tags["nservicebus.transactional_session.commit.outcome"], Is.EqualTo("success"));
+            Assert.That(commitDurationSnapshot[0].Tags["nservicebus.transactional_session.mode"], Is.EqualTo("outbox"));
+        });
+    }
+
+    [Test]
     public async Task Commit_should_not_send_control_message_when_there_are_no_outgoing_operations_and_not_store_the_outbox_record()
     {
         var messageSession = new FakeMessageSession();
@@ -171,8 +256,9 @@ public class OutboxTransactionalSessionTests
         var outboxStorage = new FakeOutboxStorage();
         var synchronizedSession = new FakeSynchronizableStorageSession();
         string queueAddress = "queue address";
+        string endpointName = "endpointName";
 
-        using var session = new OutboxTransactionalSession(outboxStorage, synchronizedSession, messageSession, dispatcher, [], queueAddress, isSendOnly: false);
+        using var session = new OutboxTransactionalSession(outboxStorage, synchronizedSession, messageSession, dispatcher, [], queueAddress, isSendOnly: false, new TransactionalSessionMetrics(new TestMeterFactory(), endpointName));
 
         await session.Open(new FakeOpenSessionOptions());
         // no outgoing operations
@@ -196,7 +282,7 @@ public class OutboxTransactionalSessionTests
         var dispatcher = new FakeDispatcher();
         var outboxStorage = new FakeOutboxStorage { StoreCallback = (_, _, _) => throw new Exception("some error") };
         var completableSynchronizedStorageSession = new FakeSynchronizableStorageSession();
-        using var session = new OutboxTransactionalSession(outboxStorage, completableSynchronizedStorageSession, messageSession, dispatcher, [], "queue address", isSendOnly: false);
+        using var session = new OutboxTransactionalSession(outboxStorage, completableSynchronizedStorageSession, messageSession, dispatcher, [], "queue address", isSendOnly: false, new TransactionalSessionMetrics(new TestMeterFactory(), "endpointName"));
 
         await session.Open(new FakeOpenSessionOptions());
         await session.Send(new object());
@@ -217,13 +303,53 @@ public class OutboxTransactionalSessionTests
     }
 
     [Test]
+    public async Task Commit_should_emit_metrics_when_outbox_fails()
+    {
+        var messageSession = new FakeMessageSession();
+        var dispatcher = new FakeDispatcher();
+        var outboxStorage = new FakeOutboxStorage { StoreCallback = (_, _, _) => throw new Exception("some error") };
+        var completableSynchronizedStorageSession = new FakeSynchronizableStorageSession();
+        var meterFactory = new TestMeterFactory();
+        var commitDuration = new MetricCollector<double>(meterFactory,
+            "NServiceBus.TransactionalSession",
+            "nservicebus.transactional_session.commit.duration");
+        var dispatchDuration = new MetricCollector<double>(meterFactory,
+            "NServiceBus.TransactionalSession",
+            "nservicebus.transactional_session.dispatch.duration");
+        var endpointName = "endpointName";
+        using var session = new OutboxTransactionalSession(outboxStorage, completableSynchronizedStorageSession, messageSession, dispatcher, [], "queue address", isSendOnly: false, new TransactionalSessionMetrics(meterFactory, endpointName));
+
+        await session.Open(new FakeOpenSessionOptions());
+        await session.Send(new object());
+        Assert.ThrowsAsync<Exception>(async () => await session.Commit());
+
+        var commitDurationSnapshot = commitDuration.GetMeasurementSnapshot();
+        Assert.Multiple(() =>
+        {
+            Assert.That(commitDurationSnapshot.Count, Is.EqualTo(1));
+            Assert.That(commitDurationSnapshot[0].Value, Is.GreaterThan(0));
+            Assert.That(commitDurationSnapshot[0].Tags["nservicebus.endpoint"], Is.EqualTo(endpointName));
+            Assert.That(commitDurationSnapshot[0].Tags["nservicebus.transactional_session.commit.outcome"], Is.EqualTo("failure"));
+            Assert.That(commitDurationSnapshot[0].Tags["nservicebus.transactional_session.mode"], Is.EqualTo("outbox"));
+        });
+
+        var dispatchDurationSnapshot = dispatchDuration.GetMeasurementSnapshot();
+        Assert.Multiple(() =>
+        {
+            Assert.That(dispatchDurationSnapshot.Count, Is.EqualTo(1));
+            Assert.That(dispatchDurationSnapshot[0].Value, Is.GreaterThan(0));
+            Assert.That(dispatchDurationSnapshot[0].Tags["nservicebus.endpoint"], Is.EqualTo(endpointName));
+        });
+    }
+
+    [Test]
     public async Task Commit_should_complete_synchronized_storage_session_before_outbox_store()
     {
         var messageSession = new FakeMessageSession();
         var dispatcher = new FakeDispatcher();
         var outboxStorage = new FakeOutboxStorage { StoreCallback = (_, _, _) => throw new Exception("some error") };
         var completableSynchronizedStorageSession = new FakeSynchronizableStorageSession();
-        using var session = new OutboxTransactionalSession(outboxStorage, completableSynchronizedStorageSession, messageSession, dispatcher, [], "queue address", isSendOnly: false);
+        using var session = new OutboxTransactionalSession(outboxStorage, completableSynchronizedStorageSession, messageSession, dispatcher, [], "queue address", isSendOnly: false, new TransactionalSessionMetrics(new TestMeterFactory(), "endpointName"));
 
         await session.Open(new FakeOpenSessionOptions());
         await session.Send(new object());
@@ -247,8 +373,7 @@ public class OutboxTransactionalSessionTests
 
         var messageSession = new FakeMessageSession();
         var dispatcher = new FakeDispatcher();
-        var outboxStorage = new FakeOutboxStorage();
-        using var session = new OutboxTransactionalSession(outboxStorage, new FakeSynchronizableStorageSession(), messageSession, dispatcher, [], "queue address", isSendOnly: false);
+        using var session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), messageSession, dispatcher, [], "queue address", isSendOnly: false, new TransactionalSessionMetrics(new TestMeterFactory(), "endpointName"));
 
         var options = new FakeOpenSessionOptions
         {
@@ -269,6 +394,8 @@ public class OutboxTransactionalSessionTests
             Assert.That(controlMessage.Message.Headers[Headers.ControlMessageHeader], Is.EqualTo(bool.TrueString));
             Assert.That(controlMessage.Message.Headers[OutboxTransactionalSession.CommitDelayIncrementHeaderName], Is.EqualTo(expectedDelayIncrement.ToString("c")));
             Assert.That(controlMessage.Message.Headers[OutboxTransactionalSession.RemainingCommitDurationHeaderName], Is.EqualTo(expectedMaximumCommitDuration.ToString("c")));
+            Assert.That(controlMessage.Message.Headers[OutboxTransactionalSession.TimeSentHeaderName], Is.Not.Empty);
+            Assert.That(controlMessage.Message.Headers[OutboxTransactionalSession.AttemptHeaderName], Is.EqualTo("1"));
             Assert.That(controlMessage.Message.Headers["metadata-key"], Is.EqualTo(expectedMetadataValue), "metadata should be propagated to headers");
             Assert.That(controlMessage.Message.Headers.ContainsKey("extensions-key"), Is.False, "extensions should not be propagated to headers");
         });
@@ -277,7 +404,7 @@ public class OutboxTransactionalSessionTests
     [Test]
     public void Operations_should_throw_when_already_disposed()
     {
-        ITransactionalSession session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), [], "queue address", isSendOnly: false);
+        ITransactionalSession session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), [], "queue address", isSendOnly: false, new TransactionalSessionMetrics(new TestMeterFactory(), "endpointName"));
 
         session.Dispose();
 
@@ -292,7 +419,7 @@ public class OutboxTransactionalSessionTests
     [Test]
     public async Task Operations_should_throw_when_already_committed()
     {
-        ITransactionalSession session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), [], "queue address", isSendOnly: false);
+        ITransactionalSession session = new OutboxTransactionalSession(new FakeOutboxStorage(), new FakeSynchronizableStorageSession(), new FakeMessageSession(), new FakeDispatcher(), [], "queue address", isSendOnly: false, new TransactionalSessionMetrics(new TestMeterFactory(), "endpointName"));
 
         await session.Open(new FakeOpenSessionOptions());
         await session.Commit();
@@ -313,7 +440,7 @@ public class OutboxTransactionalSessionTests
         var synchronizedStorageSession = new FakeSynchronizableStorageSession();
         var outboxStorage = new FakeOutboxStorage();
 
-        var session = new OutboxTransactionalSession(outboxStorage, synchronizedStorageSession, new FakeMessageSession(), new FakeDispatcher(), [], "queue address", isSendOnly: false);
+        var session = new OutboxTransactionalSession(outboxStorage, synchronizedStorageSession, new FakeMessageSession(), new FakeDispatcher(), [], "queue address", isSendOnly: false, new TransactionalSessionMetrics(new TestMeterFactory(), "endpointName"));
         await session.Open(new FakeOpenSessionOptions());
 
         session.Dispose();

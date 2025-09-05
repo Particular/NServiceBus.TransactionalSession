@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Outbox;
@@ -17,21 +18,43 @@ sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
     IMessageDispatcher dispatcher,
     IEnumerable<IOpenSessionOptionsCustomization> customizations,
     string physicalQueueAddress,
-    bool isSendOnly)
-    : TransactionalSessionBase(synchronizedStorageSession, messageSession, dispatcher, customizations)
+    bool isSendOnly,
+    TransactionalSessionMetrics metrics) : TransactionalSessionBase(synchronizedStorageSession, messageSession, dispatcher, customizations)
 {
+    protected override Task OpenInternal(CancellationToken cancellationToken = default)
+    {
+        // Unfortunately this is the only way to make it possible for Transaction.Current to float up to the caller
+        // to make sure SQLP and NHibernate work with the transaction scope
+        var outboxTransactionTask = outboxStorage.BeginTransaction(Context, cancellationToken);
+        return Open(outboxTransactionTask, cancellationToken);
+    }
+
+    async Task Open(Task<IOutboxTransaction> beginTransactionTask, CancellationToken cancellationToken)
+    {
+        outboxTransaction = await beginTransactionTask.ConfigureAwait(false);
+
+        if (!await synchronizedStorageSession!.TryOpen(outboxTransaction, Context, cancellationToken).ConfigureAwait(false))
+        {
+            throw new Exception("Outbox and synchronized storage persister are not compatible.");
+        }
+    }
+
     protected override async Task CommitInternal(CancellationToken cancellationToken = default)
     {
+        var startTicks = Stopwatch.GetTimestamp();
+
         if (pendingOperations.HasOperations)
         {
             await DispatchControlMessage(cancellationToken).ConfigureAwait(false);
+            metrics.RecordDispatchMetrics(startTicks);
         }
 
-        await synchronizedStorageSession.CompleteAsync(cancellationToken).ConfigureAwait(false);
+        await synchronizedStorageSession!.CompleteAsync(cancellationToken).ConfigureAwait(false);
         // Disposing the session after complete to be compliant with the core behavior
         // in case complete throws the synchronized storage session will get disposed by the dispose or the container
         // disposing multiple times is safe
         synchronizedStorageSession.Dispose();
+        synchronizedStorageSession = null;
 
         try
         {
@@ -50,9 +73,16 @@ sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
             }
 
             await outboxTransaction!.Commit(cancellationToken).ConfigureAwait(false);
+            // Disposing the outbox transaction after commit to be compliant with the core behavior
+            // in case complete throws the synchronized storage session will get disposed by the dispose
+            outboxTransaction.Dispose();
+            outboxTransaction = null;
+
+            metrics.RecordCommitMetrics(true, startTicks, usingOutbox: true);
         }
         catch (Exception e) when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
+            metrics.RecordCommitMetrics(false, startTicks, usingOutbox: true);
             throw new Exception($"Failed to commit the transactional session. This might happen if the maximum commit duration is exceeded{(isSendOnly ? $" or if the transactional session has not been enabled on the configured processor endpoint - {physicalQueueAddress}" : "")}", e);
         }
     }
@@ -65,6 +95,8 @@ sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
             { Headers.ControlMessageHeader, bool.TrueString },
             { RemainingCommitDurationHeaderName, Options.MaximumCommitDuration.ToString() },
             { CommitDelayIncrementHeaderName, Options.CommitDelayIncrement.ToString() },
+            { AttemptHeaderName, "1" },
+            { TimeSentHeaderName, DateTimeOffsetHelper.ToWireFormattedString(DateTimeOffset.UtcNow) }
         };
         if (Options.HasMetadata)
         {
@@ -94,7 +126,7 @@ sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
 
         if (disposing)
         {
-            synchronizedStorageSession.Dispose();
+            synchronizedStorageSession?.Dispose();
             outboxTransaction?.Dispose();
         }
 
@@ -131,41 +163,11 @@ sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
         }
     }
 
-    public override Task Open(OpenSessionOptions options, CancellationToken cancellationToken = default)
-    {
-        ThrowIfDisposed();
-        ThrowIfCommitted();
-
-        if (IsOpen)
-        {
-            throw new InvalidOperationException($"This session is already open. {nameof(ITransactionalSession)}.{nameof(ITransactionalSession.Open)} should only be called once.");
-        }
-
-        Options = options;
-
-        foreach (var customization in customizations)
-        {
-            customization.Apply(Options);
-        }
-
-        // Unfortunately this is the only way to make it possible for Transaction.Current to float up to the caller
-        // to make sure SQLP and NHibernate work with the transaction scope
-        var outboxTransactionTask = outboxStorage.BeginTransaction(Context, cancellationToken);
-        return OpenInternal(outboxTransactionTask, cancellationToken);
-    }
-
-    async Task OpenInternal(Task<IOutboxTransaction> beginTransactionTask, CancellationToken cancellationToken)
-    {
-        outboxTransaction = await beginTransactionTask.ConfigureAwait(false);
-
-        if (!await synchronizedStorageSession.TryOpen(outboxTransaction, Context, cancellationToken).ConfigureAwait(false))
-        {
-            throw new Exception("Outbox and synchronized storage persister are not compatible.");
-        }
-    }
-
     IOutboxTransaction? outboxTransaction;
+    ICompletableSynchronizedStorageSession? synchronizedStorageSession = synchronizedStorageSession;
 
     public const string RemainingCommitDurationHeaderName = "NServiceBus.TransactionalSession.RemainingCommitDuration";
     public const string CommitDelayIncrementHeaderName = "NServiceBus.TransactionalSession.CommitDelayIncrement";
+    public const string AttemptHeaderName = "NServiceBus.TransactionalSession.CommitDelayAttempt";
+    public const string TimeSentHeaderName = "NServiceBus.TransactionalSession.TimeSent";
 }
