@@ -6,7 +6,7 @@ namespace NServiceBus.TransactionalSession
     {
         void Apply(NServiceBus.TransactionalSession.OpenSessionOptions options);
     }
-    public interface ITransactionalSession : System.IDisposable
+    public interface ITransactionalSession : System.IAsyncDisposable, System.IDisposable
     {
         string SessionId { get; }
         NServiceBus.Persistence.ISynchronizedStorageSession SynchronizedStorageSession { get; }
