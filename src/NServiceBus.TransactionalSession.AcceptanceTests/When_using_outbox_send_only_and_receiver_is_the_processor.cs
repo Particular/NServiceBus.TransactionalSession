@@ -16,8 +16,8 @@ public class When_using_outbox_send_only_and_receiver_is_the_processor : NServic
         var context = await Scenario.Define<Context>()
             .WithEndpoint<SendOnlyEndpoint>(s => s.When(async (_, ctx) =>
             {
-                using var scope = ctx.ServiceProvider.CreateScope();
-                using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+                await using var scope = ctx.ServiceProvider.CreateAsyncScope();
+                await using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
                 await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions());
 
                 var options = new SendOptions();

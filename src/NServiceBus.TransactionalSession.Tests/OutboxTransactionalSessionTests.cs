@@ -434,8 +434,10 @@ public class OutboxTransactionalSessionTests
         Assert.That(commitException.Message, Does.Contain("This session has already been committed. Complete all session operations before calling `Commit` or use a new session."));
     }
 
-    [Test]
-    public async Task Dispose_should_dispose_synchronized_storage_and_outbox_transaction()
+    [Theory]
+    [TestCase(true)]
+    [TestCase(false)]
+    public async Task Dispose_should_dispose_synchronized_storage_and_outbox_transaction(bool async)
     {
         var synchronizedStorageSession = new FakeSynchronizableStorageSession();
         var outboxStorage = new FakeOutboxStorage();
@@ -443,7 +445,14 @@ public class OutboxTransactionalSessionTests
         var session = new OutboxTransactionalSession(outboxStorage, synchronizedStorageSession, new FakeMessageSession(), new FakeDispatcher(), [], "queue address", isSendOnly: false, new TransactionalSessionMetrics(new TestMeterFactory(), "endpointName"));
         await session.Open(new FakeOpenSessionOptions());
 
-        session.Dispose();
+        if (async)
+        {
+            await session.DisposeAsync();
+        }
+        else
+        {
+            session.Dispose();
+        }
 
         Assert.Multiple(() =>
         {

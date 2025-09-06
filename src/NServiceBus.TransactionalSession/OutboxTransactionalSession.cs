@@ -128,9 +128,28 @@ sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
         {
             synchronizedStorageSession?.Dispose();
             outboxTransaction?.Dispose();
+
+            synchronizedStorageSession = null;
+            outboxTransaction = null;
         }
 
         base.Dispose(disposing);
+    }
+
+    protected override async ValueTask DisposeAsyncCore()
+    {
+        if (synchronizedStorageSession is not null)
+        {
+            await synchronizedStorageSession.DisposeAsync().ConfigureAwait(false);
+        }
+
+        if (outboxTransaction is not null)
+        {
+            await outboxTransaction.DisposeAsync().ConfigureAwait(false);
+        }
+
+        synchronizedStorageSession = null;
+        outboxTransaction = null;
     }
 
     static OutboxTransportOperation[] ConvertToOutboxOperations(TransportTransportOperation[] operations)

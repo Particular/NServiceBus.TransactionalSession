@@ -179,8 +179,10 @@ public class TransactionalSessionTests
         Assert.That(dispatcher.Dispatched, Is.Empty, "should not have dispatched message");
     }
 
-    [Test]
-    public async Task Dispose_should_dispose_synchronized_storage_session()
+    [Theory]
+    [TestCase(true)]
+    [TestCase(false)]
+    public async Task Dispose_should_dispose_synchronized_storage_session(bool async)
     {
         var synchronizedStorageSession = new FakeSynchronizableStorageSession();
 
@@ -188,7 +190,14 @@ public class TransactionalSessionTests
         var options = new FakeOpenSessionOptions();
         await session.Open(options);
 
-        session.Dispose();
+        if (async)
+        {
+            await session.DisposeAsync();
+        }
+        else
+        {
+            session.Dispose();
+        }
 
         Assert.That(synchronizedStorageSession.Disposed, Is.True);
     }

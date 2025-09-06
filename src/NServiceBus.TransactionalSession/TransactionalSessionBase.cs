@@ -179,6 +179,16 @@ abstract class TransactionalSessionBase(ICompletableSynchronizedStorageSession s
         GC.SuppressFinalize(this);
     }
 
+    public async ValueTask DisposeAsync()
+    {
+        await DisposeAsyncCore().ConfigureAwait(false);
+        Dispose(false);
+        GC.SuppressFinalize(this);
+    }
+
+#pragma warning disable PS0018
+    protected virtual ValueTask DisposeAsyncCore() => ValueTask.CompletedTask;
+
     protected virtual void Dispose(bool disposing)
     {
         if (disposed)

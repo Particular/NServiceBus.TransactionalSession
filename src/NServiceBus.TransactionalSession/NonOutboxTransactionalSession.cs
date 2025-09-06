@@ -44,9 +44,21 @@ sealed class NonOutboxTransactionalSession(ICompletableSynchronizedStorageSessio
         if (disposing)
         {
             synchronizedStorageSession?.Dispose();
+
+            synchronizedStorageSession = null;
         }
 
         base.Dispose(disposing);
+    }
+
+    protected override async ValueTask DisposeAsyncCore()
+    {
+        if (synchronizedStorageSession is not null)
+        {
+            await synchronizedStorageSession.DisposeAsync().ConfigureAwait(false);
+        }
+
+        synchronizedStorageSession = null;
     }
 
     ICompletableSynchronizedStorageSession? synchronizedStorageSession = synchronizedStorageSession;

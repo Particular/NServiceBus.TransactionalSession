@@ -39,6 +39,12 @@ sealed class CustomTestingOutboxTransaction : IOutboxTransaction
         Transaction = null;
     }
 
+    public ValueTask DisposeAsync()
+    {
+        Dispose();
+        return ValueTask.CompletedTask;
+    }
+
     public async Task Commit(CancellationToken cancellationToken = default)
     {
         context.TryGet<string>(CustomTestingPersistenceOpenSessionOptions.LoggerContextName, out var logContext);
