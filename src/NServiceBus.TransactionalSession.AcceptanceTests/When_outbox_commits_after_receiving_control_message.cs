@@ -18,8 +18,8 @@ public class When_outbox_commits_after_receiving_control_message : NServiceBusAc
             .WithEndpoint<SenderEndpoint>(e => e
                 .When(async (_, context) =>
                 {
-                    using var scope = context.ServiceProvider.CreateScope();
-                    using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+                    await using var scope = context.ServiceProvider.CreateAsyncScope();
+                    await using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
                     var options = new CustomTestingPersistenceOpenSessionOptions
                     {

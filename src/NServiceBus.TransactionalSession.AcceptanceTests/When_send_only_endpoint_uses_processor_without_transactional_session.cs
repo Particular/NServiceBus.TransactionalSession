@@ -33,14 +33,14 @@ public class When_send_only_endpoint_uses_processor_without_transactional_sessio
     //
     // This helps developers identify and fix the configuration issue that
     // may only manifest under production load conditions.
-    [Test()]
+    [Test]
     public async Task Should_log_specific_warning_about_missing_processor_configuration()
     {
         var context = await Scenario.Define<Context>()
             .WithEndpoint<SendOnlyEndpoint>(s => s.When(async (_, ctx) =>
             {
-                using var scope = ctx.ServiceProvider.CreateScope();
-                using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+                await using var scope = ctx.ServiceProvider.CreateAsyncScope();
+                await using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
                 try
                 {

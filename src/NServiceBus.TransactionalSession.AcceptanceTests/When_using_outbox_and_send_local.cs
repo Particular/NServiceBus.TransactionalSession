@@ -17,8 +17,8 @@ public class When_using_outbox_and_send_local : NServiceBusAcceptanceTest
         await Scenario.Define<Context>()
             .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
             {
-                using var scope = ctx.ServiceProvider.CreateScope();
-                using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+                await using var scope = ctx.ServiceProvider.CreateAsyncScope();
+                await using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
                 await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions());
 
                 await transactionalSession.SendLocal(new SampleMessage(), CancellationToken.None);
@@ -35,8 +35,8 @@ public class When_using_outbox_and_send_local : NServiceBusAcceptanceTest
         var result = await Scenario.Define<Context>()
             .WithEndpoint<AnEndpoint>(s => s.When(async (statelessSession, ctx) =>
             {
-                using (var scope = ctx.ServiceProvider.CreateScope())
-                using (var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>())
+                await using (var scope = ctx.ServiceProvider.CreateAsyncScope())
+                await using (var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>())
                 {
                     await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions());
 
@@ -62,8 +62,8 @@ public class When_using_outbox_and_send_local : NServiceBusAcceptanceTest
         var result = await Scenario.Define<Context>()
             .WithEndpoint<AnEndpoint>(s => s.When(async (statelessSession, ctx) =>
             {
-                using (var scope = ctx.ServiceProvider.CreateScope())
-                using (var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>())
+                await using (var scope = ctx.ServiceProvider.CreateAsyncScope())
+                await using (var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>())
                 {
                     await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions());
                     // No messages sent
@@ -90,8 +90,8 @@ public class When_using_outbox_and_send_local : NServiceBusAcceptanceTest
         var result = await Scenario.Define<Context>()
             .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
             {
-                using var scope = ctx.ServiceProvider.CreateScope();
-                using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+                await using var scope = ctx.ServiceProvider.CreateAsyncScope();
+                await using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
                 await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions());
 
@@ -113,8 +113,8 @@ public class When_using_outbox_and_send_local : NServiceBusAcceptanceTest
         var result = await Scenario.Define<Context>()
             .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
             {
-                using var scope = ctx.ServiceProvider.CreateScope();
-                using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+                await using var scope = ctx.ServiceProvider.CreateAsyncScope();
+                await using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
                 await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions
                 {

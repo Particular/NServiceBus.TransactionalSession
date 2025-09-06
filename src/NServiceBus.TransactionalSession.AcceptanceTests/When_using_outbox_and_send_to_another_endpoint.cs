@@ -16,8 +16,8 @@ public class When_using_outbox_and_send_to_another_endpoint : NServiceBusAccepta
         var context = await Scenario.Define<Context>()
             .WithEndpoint<FullEndpointWithTransactionalSession>(s => s.When(async (_, ctx) =>
             {
-                using var scope = ctx.ServiceProvider.CreateScope();
-                using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+                await using var scope = ctx.ServiceProvider.CreateAsyncScope();
+                await using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
                 await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions());
 
                 var options = new SendOptions();

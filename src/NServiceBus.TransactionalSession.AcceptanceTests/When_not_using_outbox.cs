@@ -13,8 +13,8 @@ public class When_not_using_outbox : NServiceBusAcceptanceTest
         var result = await Scenario.Define<Context>()
             .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
             {
-                using var scope = ctx.ServiceProvider.CreateScope();
-                using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+                await using var scope = ctx.ServiceProvider.CreateAsyncScope();
+                await using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
                 await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions());
 
@@ -34,8 +34,8 @@ public class When_not_using_outbox : NServiceBusAcceptanceTest
         var result = await Scenario.Define<Context>()
             .WithEndpoint<AnEndpoint>(s => s.When(async (messageSession, ctx) =>
             {
-                using (var scope = ctx.ServiceProvider.CreateScope())
-                using (var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>())
+                await using (var scope = ctx.ServiceProvider.CreateAsyncScope())
+                await using (var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>())
                 {
                     await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions());
 

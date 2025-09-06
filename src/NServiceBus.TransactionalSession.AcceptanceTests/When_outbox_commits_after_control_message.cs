@@ -16,8 +16,8 @@ public class When_outbox_commits_after_control_message : NServiceBusAcceptanceTe
         var context = await Scenario.Define<Context>()
             .WithEndpoint<SenderEndpoint>(e => e.When(async (_, ctx) =>
             {
-                using var scope = ctx.ServiceProvider.CreateScope();
-                using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+                await using var scope = ctx.ServiceProvider.CreateAsyncScope();
+                await using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
                 try
                 {

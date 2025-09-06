@@ -19,8 +19,8 @@ public class When_outbox_entry_becomes_visible_after_tx_timeout : NServiceBusAcc
                 .DoNotFailOnErrorMessages()
                 .When(async (_, ctx) =>
                 {
-                    using var scope = ctx.ServiceProvider.CreateScope();
-                    using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+                    await using var scope = ctx.ServiceProvider.CreateAsyncScope();
+                    await using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
                     var options = new CustomTestingPersistenceOpenSessionOptions { MaximumCommitDuration = TimeSpan.Zero };
                     await transactionalSession.Open(options);
