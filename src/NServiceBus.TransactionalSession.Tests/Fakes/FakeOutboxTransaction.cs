@@ -11,6 +11,12 @@ class FakeOutboxTransaction : IOutboxTransaction
 
     public void Dispose() => Disposed = true;
 
+    public ValueTask DisposeAsync()
+    {
+        Dispose();
+        return ValueTask.CompletedTask;
+    }
+
     public Task Commit(CancellationToken cancellationToken = new())
     {
         Committed = true;

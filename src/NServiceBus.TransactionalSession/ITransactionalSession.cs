@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 /// <summary>
 /// A transactional session that provides basic message operations.
 /// </summary>
-public interface ITransactionalSession : IDisposable
+public interface ITransactionalSession : IDisposable, IAsyncDisposable
 {
     /// <summary>
     /// Opens the transaction session.
