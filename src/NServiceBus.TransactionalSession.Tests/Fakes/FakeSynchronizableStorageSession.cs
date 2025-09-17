@@ -20,6 +20,13 @@ class FakeSynchronizableStorageSession : ICompletableSynchronizedStorageSession
 
     public void Dispose() => Disposed = true;
 
+    public ValueTask DisposeAsync()
+    {
+        Dispose();
+
+        return ValueTask.CompletedTask;
+    }
+
     public ValueTask<bool> TryOpen(IOutboxTransaction transaction, ContextBag context,
         CancellationToken cancellationToken = new())
     {
