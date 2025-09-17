@@ -27,6 +27,13 @@ sealed class CustomTestingSynchronizedStorageSession : ICompletableSynchronizedS
         Transaction = null;
     }
 
+    public ValueTask DisposeAsync()
+    {
+        Dispose();
+
+        return ValueTask.CompletedTask;
+    }
+
     public ValueTask<bool> TryOpen(IOutboxTransaction transaction, ContextBag context,
         CancellationToken cancellationToken = default)
     {
