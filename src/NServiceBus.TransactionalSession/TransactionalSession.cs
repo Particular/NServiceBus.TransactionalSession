@@ -39,7 +39,7 @@ public abstract class TransactionalSession : Feature
         context.Services.AddTransient<SessionCaptureTask>();
         context.RegisterStartupTask(sp => sp.GetRequiredService<SessionCaptureTask>());
 
-        var outboxEnabled = context.Settings.IsFeatureActive(typeof(Outbox));
+        var outboxEnabled = context.Settings.IsFeatureActive<Outbox>();
         var isSendOnly = context.Settings.GetOrDefault<bool>("Endpoint.SendOnly");
         QueueAddress? processorAddress = null;
 
