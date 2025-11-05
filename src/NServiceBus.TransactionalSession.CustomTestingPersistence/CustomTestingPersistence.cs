@@ -1,10 +1,11 @@
 namespace NServiceBus.AcceptanceTesting;
 
-using Features;
 using Persistence;
 
-public class CustomTestingPersistence : PersistenceDefinition
+public class CustomTestingPersistence : PersistenceDefinition, IPersistenceDefinitionFactory<CustomTestingPersistence>
 {
-    internal CustomTestingPersistence() =>
-        Supports<StorageType.Outbox>(s => s.EnableFeatureByDefault<CustomTestingOutboxPersistence>());
+    CustomTestingPersistence() =>
+        Supports<StorageType.Outbox, CustomTestingOutboxPersistence>();
+
+    static CustomTestingPersistence IPersistenceDefinitionFactory<CustomTestingPersistence>.Create() => new();
 }

@@ -33,6 +33,6 @@ public static class TransactionalSessionConfigurationExtensions
             settings.Set(CustomTestingOutboxPersistence.ProcessorEndpointKey, transactionalSessionOptions.ProcessorEndpoint);
         }
 
-        settings.EnableFeatureByDefault<CustomTestingPersistenceTransactionalSession>();
+        settings.EnableFeature<CustomTestingPersistenceTransactionalSession>();
     }
 }
