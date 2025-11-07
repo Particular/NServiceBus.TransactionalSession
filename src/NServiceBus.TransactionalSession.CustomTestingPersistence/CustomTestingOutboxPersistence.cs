@@ -10,7 +10,7 @@ sealed class CustomTestingOutboxPersistence : Feature
 
     public CustomTestingOutboxPersistence()
     {
-        EnableByDefault<CustomTestingSynchronizedStorageFeature>();
+        Enable<CustomTestingSynchronizedStorageFeature>();
         DependsOn<Outbox>();
     }
 
