@@ -26,9 +26,7 @@ public static class EndpointCustomizationConfigurationExtensions
 
         types = types.Union(GetNestedTypeRecursive(endpointConfiguration.BuilderType.DeclaringType, endpointConfiguration.BuilderType));
 
-        types = types.Union(endpointConfiguration.TypesToInclude);
-
-        return types.Where(t => !endpointConfiguration.TypesToExclude.Contains(t)).ToList();
+        return types.Union(endpointConfiguration.TypesToInclude);
     }
 
     static IEnumerable<Type> GetNestedTypeRecursive(Type rootType, Type builderType)
