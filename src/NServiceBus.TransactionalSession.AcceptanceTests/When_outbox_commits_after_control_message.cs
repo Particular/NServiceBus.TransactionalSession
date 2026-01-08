@@ -50,7 +50,6 @@ public class When_outbox_commits_after_control_message : NServiceBusAcceptanceTe
     {
         public bool MessageReceived { get; set; }
         public Exception TransactionalSessionException { get; set; }
-        public TaskCompletionSource<bool> TransactionTaskCompletionSource { get; set; }
     }
 
     class SenderEndpoint : EndpointConfigurationBuilder

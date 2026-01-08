@@ -85,7 +85,6 @@ public class When_send_only_endpoint_uses_processor_without_transactional_sessio
     class Context : TransactionalSessionTestContext
     {
         public bool MessageReceived { get; set; }
-        public TaskCompletionSource<bool> TransactionTaskCompletionSource { get; set; }
         public Exception TransactionalSessionException { get; set; }
     }
 
