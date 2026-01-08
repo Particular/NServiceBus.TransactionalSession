@@ -11,17 +11,15 @@ using NUnit.Framework;
 public class When_outbox_commits_after_control_message : NServiceBusAcceptanceTest
 {
     [Test]
-    public async Task Should_throw_exception_to_session_user()
-    {
-        var context = await Scenario.Define<Context>()
-            .WithEndpoint<SenderEndpoint>(e => e.When(async (_, ctx) =>
-            {
-                await using var scope = ctx.ServiceProvider.CreateAsyncScope();
-                await using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
-
-                try
+    public async Task Should_throw_exception_to_session_user() =>
+        await Assert.ThatAsync(async () =>
+        {
+            await Scenario.Define<Context>()
+                .WithEndpoint<SenderEndpoint>(e => e.When(async (_, ctx) =>
                 {
-                    ctx.TransactionTaskCompletionSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                    await using var scope = ctx.ServiceProvider.CreateAsyncScope();
+                    await using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+
                     var options = new CustomTestingPersistenceOpenSessionOptions
                     {
                         CommitDelayIncrement = TimeSpan.FromSeconds(1),
@@ -32,26 +30,12 @@ public class When_outbox_commits_after_control_message : NServiceBusAcceptanceTe
                     await transactionalSession.Open(options);
                     await transactionalSession.Send(new SomeMessage());
                     await transactionalSession.Commit();
-                }
-                catch (Exception exception)
-                {
-                    ctx.TransactionalSessionException = exception;
-                }
-            }))
-            .WithEndpoint<ReceiverEndpoint>()
-            .Done(c => c.TransactionalSessionException != null)
-            .Run();
+                }))
+                .WithEndpoint<ReceiverEndpoint>()
+                .Run();
+        }, Throws.Exception.Message.StartsWith("Failed to commit the transactional session. This might happen if the maximum commit duration is exceeded"));
 
-        Assert.That(context.MessageReceived, Is.False);
-        Assert.That(context.TransactionalSessionException.Message, Does.StartWith("Failed to commit the transactional session. This might happen if the maximum commit duration is exceeded"));
-    }
-
-    class Context : TransactionalSessionTestContext
-    {
-        public bool MessageReceived { get; set; }
-        public Exception TransactionalSessionException { get; set; }
-        public TaskCompletionSource<bool> TransactionTaskCompletionSource { get; set; }
-    }
+    class Context : TransactionalSessionTestContext;
 
     class SenderEndpoint : EndpointConfigurationBuilder
     {
@@ -90,13 +74,11 @@ public class When_outbox_commits_after_control_message : NServiceBusAcceptanceTe
         {
             public Task Handle(SomeMessage message, IMessageHandlerContext context)
             {
-                testContext.MessageReceived = true;
+                testContext.MarkAsFailed(new InvalidOperationException("Message should not be processed"));
                 return Task.CompletedTask;
             }
         }
     }
 
-    class SomeMessage : IMessage
-    {
-    }
+    class SomeMessage : IMessage;
 }

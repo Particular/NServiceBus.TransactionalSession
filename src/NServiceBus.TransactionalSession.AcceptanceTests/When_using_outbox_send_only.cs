@@ -31,7 +31,6 @@ public class When_using_outbox_send_only : NServiceBusAcceptanceTest
             }))
             .WithEndpoint<AnotherEndpoint>()
             .WithEndpoint<ProcessorEndpoint>()
-            .Done(c => c.MessageReceived)
             .Run();
 
         Assert.That(context.MessageReceived, Is.True);
@@ -90,7 +89,7 @@ public class When_using_outbox_send_only : NServiceBusAcceptanceTest
             public Task Handle(SampleMessage message, IMessageHandlerContext context)
             {
                 testContext.MessageReceived = true;
-
+                testContext.MarkAsCompleted();
                 return Task.CompletedTask;
             }
         }
@@ -101,7 +100,5 @@ public class When_using_outbox_send_only : NServiceBusAcceptanceTest
         public ProcessorEndpoint() => EndpointSetup<TransactionSessionWithOutboxEndpoint>();
     }
 
-    class SampleMessage : ICommand
-    {
-    }
+    class SampleMessage : ICommand;
 }

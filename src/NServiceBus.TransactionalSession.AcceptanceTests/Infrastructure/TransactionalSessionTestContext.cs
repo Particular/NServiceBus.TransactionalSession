@@ -3,6 +3,7 @@ namespace NServiceBus.TransactionalSession.AcceptanceTests;
 using System;
 using System.Collections.Concurrent;
 using System.Reflection;
+using System.Threading.Tasks;
 using AcceptanceTesting;
 
 public class TransactionalSessionTestContext : ScenarioContext
@@ -28,6 +29,8 @@ public class TransactionalSessionTestContext : ScenarioContext
             return serviceProvider;
         }
     }
+
+    public TaskCompletionSource<bool> TransactionTaskCompletionSource { get; set; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public void RegisterServiceProvider(IServiceProvider serviceProvider, string endpointName) => serviceProviders[endpointName] = serviceProvider;
 

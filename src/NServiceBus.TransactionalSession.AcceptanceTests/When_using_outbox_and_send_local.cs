@@ -12,8 +12,7 @@ using Pipeline;
 public class When_using_outbox_and_send_local : NServiceBusAcceptanceTest
 {
     [Test]
-    public async Task Should_send_messages_on_transactional_session_commit()
-    {
+    public async Task Should_send_messages_on_transactional_session_commit() =>
         await Scenario.Define<Context>()
             .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
             {
@@ -25,9 +24,7 @@ public class When_using_outbox_and_send_local : NServiceBusAcceptanceTest
 
                 await transactionalSession.Commit(CancellationToken.None).ConfigureAwait(false);
             }))
-            .Done(c => c.MessageReceived)
             .Run();
-    }
 
     [Test]
     public async Task Should_not_send_messages_if_session_is_not_committed()
@@ -49,11 +46,11 @@ public class When_using_outbox_and_send_local : NServiceBusAcceptanceTest
             .Done(c => c.CompleteMessageReceived)
             .Run();
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(result.CompleteMessageReceived, Is.True);
             Assert.That(result.MessageReceived, Is.False);
-        });
+        }
     }
 
     [Test]
@@ -73,15 +70,14 @@ public class When_using_outbox_and_send_local : NServiceBusAcceptanceTest
                 //Send immediately dispatched message to finish the test
                 await statelessSession.SendLocal(new CompleteTestMessage());
             }))
-            .Done(c => c.CompleteMessageReceived)
             .Run();
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(result.CompleteMessageReceived, Is.True);
             Assert.That(result.MessageReceived, Is.False);
             Assert.That(result.ControlMessageReceived, Is.False);
-        });
+        }
     }
 
     [Test]
@@ -100,7 +96,6 @@ public class When_using_outbox_and_send_local : NServiceBusAcceptanceTest
                 sendOptions.RouteToThisEndpoint();
                 await transactionalSession.Send(new SampleMessage(), sendOptions, CancellationToken.None);
             }))
-            .Done(c => c.MessageReceived)
             .Run();
 
         Assert.That(result.MessageReceived, Is.True);
@@ -130,11 +125,11 @@ public class When_using_outbox_and_send_local : NServiceBusAcceptanceTest
             .Done(c => c.EndpointsStarted)
             .Run();
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(result.AmbientTransactionFoundBeforeAwait, Is.True, "The ambient transaction was not visible before the await");
             Assert.That(result.AmbientTransactionFoundAfterAwait, Is.True, "The ambient transaction was not visible after the await");
-        });
+        }
     }
 
     class Context : TransactionalSessionTestContext
@@ -158,7 +153,7 @@ public class When_using_outbox_and_send_local : NServiceBusAcceptanceTest
             public Task Handle(SampleMessage message, IMessageHandlerContext context)
             {
                 testContext.MessageReceived = true;
-
+                testContext.MarkAsCompleted();
                 return Task.CompletedTask;
             }
         }
@@ -168,7 +163,7 @@ public class When_using_outbox_and_send_local : NServiceBusAcceptanceTest
             public Task Handle(CompleteTestMessage message, IMessageHandlerContext context)
             {
                 testContext.CompleteMessageReceived = true;
-
+                testContext.MarkAsCompleted();
                 return Task.CompletedTask;
             }
         }
@@ -187,11 +182,7 @@ public class When_using_outbox_and_send_local : NServiceBusAcceptanceTest
         }
     }
 
-    class SampleMessage : ICommand
-    {
-    }
+    class SampleMessage : ICommand;
 
-    class CompleteTestMessage : ICommand
-    {
-    }
+    class CompleteTestMessage : ICommand;
 }

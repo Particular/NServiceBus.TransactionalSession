@@ -12,8 +12,7 @@ using Pipeline;
 public class When_outbox_commits_after_receiving_control_message : NServiceBusAcceptanceTest
 {
     [Test]
-    public async Task Should_retry_till_outbox_transaction_committed()
-    {
+    public async Task Should_retry_till_outbox_transaction_committed() =>
         await Scenario.Define<Context>()
             .WithEndpoint<SenderEndpoint>(e => e
                 .When(async (_, context) =>
@@ -23,9 +22,8 @@ public class When_outbox_commits_after_receiving_control_message : NServiceBusAc
 
                     var options = new CustomTestingPersistenceOpenSessionOptions
                     {
-                        TransactionCommitTaskCompletionSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously)
+                        TransactionCommitTaskCompletionSource = context.TransactionTaskCompletionSource
                     };
-                    context.TxCommitTcs = options.TransactionCommitTaskCompletionSource;
 
                     await transactionalSession.Open(options);
                     await transactionalSession.Send(new SomeMessage());
@@ -35,14 +33,13 @@ public class When_outbox_commits_after_receiving_control_message : NServiceBusAc
                     await transactionalSession.Commit();
                 }))
             .WithEndpoint<ReceiverEndpoint>()
-            .Done(c => c.MessageReceiveCounter == 3)
-            .Run(TimeSpan.FromSeconds(15));
-    }
+            .Run();
 
     class Context : TransactionalSessionTestContext
     {
-        public int MessageReceiveCounter;
-        public TaskCompletionSource<bool> TxCommitTcs { get; set; }
+        int messageReceiveCounter;
+
+        public void MaybeCompleted() => MarkAsCompleted(Interlocked.Increment(ref messageReceiveCounter) == 3);
     }
 
     class SenderEndpoint : EndpointConfigurationBuilder
@@ -70,7 +67,7 @@ public class When_outbox_commits_after_receiving_control_message : NServiceBusAc
                 }
 
                 // unblock transaction once the receive pipeline "completed" once
-                testContext.TxCommitTcs.TrySetResult(true);
+                testContext.TransactionTaskCompletionSource.TrySetResult(true);
             }
         }
     }
@@ -83,13 +80,11 @@ public class When_outbox_commits_after_receiving_control_message : NServiceBusAc
         {
             public Task Handle(SomeMessage message, IMessageHandlerContext context)
             {
-                Interlocked.Increment(ref testContext.MessageReceiveCounter);
+                testContext.MaybeCompleted();
                 return Task.CompletedTask;
             }
         }
     }
 
-    class SomeMessage : IMessage
-    {
-    }
+    class SomeMessage : IMessage;
 }

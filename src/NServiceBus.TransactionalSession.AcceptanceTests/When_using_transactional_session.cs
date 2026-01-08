@@ -33,7 +33,6 @@ public class When_using_transactional_session : NServiceBusAcceptanceTest
 
                 await transactionalSession.Commit(CancellationToken.None).ConfigureAwait(false);
             }))
-            .Done(c => c.MessageReceived)
             .Run();
 
         // due to transactional session control messages also going through the incoming pipeline we run the same scenario again
@@ -43,7 +42,6 @@ public class When_using_transactional_session : NServiceBusAcceptanceTest
             {
                 await session.SendLocal(new SomeMessage(), CancellationToken.None);
             }))
-            .Done(c => c.MessageReceived)
             .Run();
 
         var transactionalSessionOrder = string.Join(Environment.NewLine, FilterLogs(transactionalContext, "TransactionalSession - "));
@@ -53,19 +51,15 @@ public class When_using_transactional_session : NServiceBusAcceptanceTest
     }
 
     static IReadOnlyCollection<string> FilterLogs(ScenarioContext scenarioContext, string filter) =>
-        scenarioContext.Logs
+        [.. scenarioContext.Logs
             .Where(l => l.Level == LogLevel.Info && l.LoggerName.Contains("CustomTesting"))
             .Where(l => l.Message.StartsWith(filter))
             // Filtering out the Get since tx session doesn't do a Get in the pipeline and potentially multiple times
             .Where(l => !l.Message.Contains("Outbox.Get"))
             .OrderBy(l => l.Timestamp.Ticks)
-            .Select(l => l.Message.Replace(filter, string.Empty))
-            .ToArray();
+            .Select(l => l.Message.Replace(filter, string.Empty))];
 
-    class Context : TransactionalSessionTestContext
-    {
-        public bool MessageReceived { get; set; }
-    }
+    class Context : TransactionalSessionTestContext;
 
     class AnEndpoint : EndpointConfigurationBuilder
     {
@@ -88,14 +82,11 @@ public class When_using_transactional_session : NServiceBusAcceptanceTest
         {
             public Task Handle(SomeMessage message, IMessageHandlerContext context)
             {
-                testContext.MessageReceived = true;
-
+                testContext.MarkAsCompleted();
                 return Task.CompletedTask;
             }
         }
     }
 
-    class SomeMessage : ICommand
-    {
-    }
+    class SomeMessage : ICommand;
 }

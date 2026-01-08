@@ -34,24 +34,15 @@ public class When_send_only_endpoint_uses_processor_without_transactional_sessio
     // This helps developers identify and fix the configuration issue that
     // may only manifest under production load conditions.
     [Test]
-    public async Task Should_log_specific_warning_about_missing_processor_configuration()
-    {
-        var context = await Scenario.Define<Context>()
-            .WithEndpoint<SendOnlyEndpoint>(s => s.When(async (_, ctx) =>
-            {
-                await using var scope = ctx.ServiceProvider.CreateAsyncScope();
-                await using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
-
-                try
+    public async Task Should_log_specific_warning_about_missing_processor_configuration() =>
+        await Assert.ThatAsync(async () =>
+            await Scenario.Define<Context>()
+                .WithEndpoint<SendOnlyEndpoint>(s => s.When(async (_, ctx) =>
                 {
-                    ctx.TransactionTaskCompletionSource =
-                        new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-                    var options = new CustomTestingPersistenceOpenSessionOptions
-                    {
-                        CommitDelayIncrement = TimeSpan.FromSeconds(1),
-                        MaximumCommitDuration = TimeSpan.FromSeconds(8),
-                        TransactionCommitTaskCompletionSource = ctx.TransactionTaskCompletionSource
-                    };
+                    await using var scope = ctx.ServiceProvider.CreateAsyncScope();
+                    await using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+
+                    var options = new CustomTestingPersistenceOpenSessionOptions { CommitDelayIncrement = TimeSpan.FromSeconds(1), MaximumCommitDuration = TimeSpan.FromSeconds(8), TransactionCommitTaskCompletionSource = ctx.TransactionTaskCompletionSource };
 
                     await transactionalSession.Open(options);
                     var sendOptions = new SendOptions();
@@ -61,33 +52,12 @@ public class When_send_only_endpoint_uses_processor_without_transactional_sessio
                     await transactionalSession.Send(new SampleMessage(), sendOptions);
 
                     await transactionalSession.Commit(CancellationToken.None);
-                }
-                catch (Exception exception)
-                {
-                    ctx.TransactionalSessionException = exception;
-                }
-            }))
-            .WithEndpoint<AnotherEndpoint>()
-            .WithEndpoint<ProcessorEndpoint>()
-            .Done(c => c.TransactionalSessionException != null)
-            .Run();
+                }))
+                .WithEndpoint<AnotherEndpoint>()
+                .WithEndpoint<ProcessorEndpoint>()
+                .Run(), Throws.Exception.Message.StartsWith("Failed to commit the transactional session. This might happen if the maximum commit duration is exceeded"));
 
-        using (Assert.EnterMultipleScope())
-        {
-            Assert.That(context.MessageReceived, Is.False);
-            Assert.That(
-                context.TransactionalSessionException.Message,
-                Does.StartWith(
-                    "Failed to commit the transactional session. This might happen if the maximum commit duration is exceeded or if the transactional session has not been enabled on the configured processor endpoint - "));
-        }
-    }
-
-    class Context : TransactionalSessionTestContext
-    {
-        public bool MessageReceived { get; set; }
-        public TaskCompletionSource<bool> TransactionTaskCompletionSource { get; set; }
-        public Exception TransactionalSessionException { get; set; }
-    }
+    class Context : TransactionalSessionTestContext;
 
     class SendOnlyEndpoint : EndpointConfigurationBuilder
     {
@@ -113,8 +83,7 @@ public class When_send_only_endpoint_uses_processor_without_transactional_sessio
         {
             public Task Handle(SampleMessage message, IMessageHandlerContext context)
             {
-                testContext.MessageReceived = true;
-
+                testContext.MarkAsFailed(new InvalidOperationException("Message should not be processed"));
                 return Task.CompletedTask;
             }
         }
@@ -148,7 +117,5 @@ public class When_send_only_endpoint_uses_processor_without_transactional_sessio
         }
     }
 
-    class SampleMessage : ICommand
-    {
-    }
+    class SampleMessage : ICommand;
 }

@@ -29,7 +29,6 @@ public class When_using_outbox_and_send_to_another_endpoint : NServiceBusAccepta
                 await transactionalSession.Commit(CancellationToken.None);
             }))
             .WithEndpoint<AnotherEndpoint>()
-            .Done(c => c.MessageReceived)
             .Run();
 
         Assert.That(context.MessageReceived, Is.True);
@@ -54,12 +53,10 @@ public class When_using_outbox_and_send_to_another_endpoint : NServiceBusAccepta
             public Task Handle(SampleMessage message, IMessageHandlerContext context)
             {
                 testContext.MessageReceived = true;
-
+                testContext.MarkAsCompleted();
                 return Task.CompletedTask;
             }
         }
     }
-    class SampleMessage : ICommand
-    {
-    }
+    class SampleMessage : ICommand;
 }
