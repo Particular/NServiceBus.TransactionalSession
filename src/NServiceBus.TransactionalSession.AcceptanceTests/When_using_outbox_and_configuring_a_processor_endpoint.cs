@@ -11,11 +11,9 @@ public class When_using_outbox_and_configuring_a_processor_endpoint : NServiceBu
     public void Should_throw_when_processor_address_is_specified()
     {
         var exception = Assert.ThrowsAsync<InvalidOperationException>(async () =>
-        {
             await Scenario.Define<Context>()
                 .WithEndpoint<NonSendOnlyEndpointConfiguredToUseAProcessorEndpoint>()
-                .Run();
-        });
+                .Run());
 
         Assert.That(exception, Is.Not.Null);
         Assert.That(exception.Message,
