@@ -11,21 +11,17 @@ public class When_configuring_processor_address_without_outbox : NServiceBusAcce
     public void Should_throw_when_processor_address_specified_without_outbox()
     {
         var exception = Assert.ThrowsAsync<InvalidOperationException>(async () =>
-        {
             await Scenario.Define<Context>()
                 .WithEndpoint<EndpointWithProcessorAddressButNoOutbox>()
                 .Done(c => false) // Will never complete normally
-                .Run();
-        });
+                .Run());
 
         Assert.That(exception, Is.Not.Null);
         Assert.That(exception.Message, Is.EqualTo(
             "A ProcessorEndpoint can only be specified for send-only endpoints with Outbox enabled"));
     }
 
-    class Context : TransactionalSessionTestContext
-    {
-    }
+    class Context : TransactionalSessionTestContext;
 
     class EndpointWithProcessorAddressButNoOutbox : EndpointConfigurationBuilder
     {

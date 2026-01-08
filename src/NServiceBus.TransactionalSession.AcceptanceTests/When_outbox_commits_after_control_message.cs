@@ -96,7 +96,5 @@ public class When_outbox_commits_after_control_message : NServiceBusAcceptanceTe
         }
     }
 
-    class SomeMessage : IMessage
-    {
-    }
+    class SomeMessage : IMessage;
 }

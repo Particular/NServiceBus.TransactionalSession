@@ -95,7 +95,5 @@ public class When_using_transactional_session : NServiceBusAcceptanceTest
         }
     }
 
-    class SomeMessage : ICommand
-    {
-    }
+    class SomeMessage : ICommand;
 }

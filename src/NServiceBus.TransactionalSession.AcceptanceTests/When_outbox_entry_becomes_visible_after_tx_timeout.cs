@@ -87,7 +87,5 @@ public class When_outbox_entry_becomes_visible_after_tx_timeout : NServiceBusAcc
         }
     }
 
-    class SomeMessage : IMessage
-    {
-    }
+    class SomeMessage : IMessage;
 }

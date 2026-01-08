@@ -59,7 +59,5 @@ public class When_using_outbox_and_send_to_another_endpoint : NServiceBusAccepta
             }
         }
     }
-    class SampleMessage : ICommand
-    {
-    }
+    class SampleMessage : ICommand;
 }

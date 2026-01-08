@@ -187,11 +187,7 @@ public class When_using_outbox_and_send_local : NServiceBusAcceptanceTest
         }
     }
 
-    class SampleMessage : ICommand
-    {
-    }
+    class SampleMessage : ICommand;
 
-    class CompleteTestMessage : ICommand
-    {
-    }
+    class CompleteTestMessage : ICommand;
 }

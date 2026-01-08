@@ -69,7 +69,5 @@ public class When_using_outbox_send_only_and_receiver_is_the_processor : NServic
         }
     }
 
-    class SampleMessage : ICommand
-    {
-    }
+    class SampleMessage : ICommand;
 }

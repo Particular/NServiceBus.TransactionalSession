@@ -86,11 +86,7 @@ public class When_not_using_outbox : NServiceBusAcceptanceTest
         }
     }
 
-    class SampleMessage : ICommand
-    {
-    }
+    class SampleMessage : ICommand;
 
-    class CompleteTestMessage : ICommand
-    {
-    }
+    class CompleteTestMessage : ICommand;
 }

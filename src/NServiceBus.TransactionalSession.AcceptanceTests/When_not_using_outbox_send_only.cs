@@ -59,7 +59,5 @@ public class When_not_using_outbox_send_only : NServiceBusAcceptanceTest
         }
     }
 
-    class SampleMessage : ICommand
-    {
-    }
+    class SampleMessage : ICommand;
 }
