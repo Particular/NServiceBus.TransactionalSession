@@ -35,7 +35,7 @@ public class When_outbox_entry_becomes_visible_after_tx_timeout : NServiceBusAcc
                 .WithEndpoint<ReceiverEndpoint>()
                 .Run());
 
-        Assert.That(exception, Is.InstanceOf<MessageFailedException>().And.Not.InstanceOf<InvalidOperationException>().With.Message.Not.Contain("should not be processed"), "message should never be dispatched");
+        Assert.That(exception, Is.InstanceOf<MessageFailedException>().And.Not.InstanceOf<InvalidOperationException>().With.Message.Not.Contain("Message should not be processed"), "message should never be dispatched");
         var failedMessage = (exception as MessageFailedException)?.FailedMessage;
         using (Assert.EnterMultipleScope())
         {
@@ -81,7 +81,7 @@ public class When_outbox_entry_becomes_visible_after_tx_timeout : NServiceBusAcc
         {
             public Task Handle(SomeMessage message, IMessageHandlerContext context)
             {
-                testContext.MarkAsFailed(new InvalidOperationException("message should not be processed"));
+                testContext.MarkAsFailed(new InvalidOperationException("Message should not be processed"));
                 return Task.CompletedTask;
             }
         }

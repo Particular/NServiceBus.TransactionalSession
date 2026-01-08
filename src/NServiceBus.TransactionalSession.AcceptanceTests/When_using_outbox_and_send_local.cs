@@ -12,8 +12,7 @@ using Pipeline;
 public class When_using_outbox_and_send_local : NServiceBusAcceptanceTest
 {
     [Test]
-    public async Task Should_send_messages_on_transactional_session_commit()
-    {
+    public async Task Should_send_messages_on_transactional_session_commit() =>
         await Scenario.Define<Context>()
             .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
             {
@@ -25,9 +24,7 @@ public class When_using_outbox_and_send_local : NServiceBusAcceptanceTest
 
                 await transactionalSession.Commit(CancellationToken.None).ConfigureAwait(false);
             }))
-            .Done(c => c.MessageReceived)
             .Run();
-    }
 
     [Test]
     public async Task Should_not_send_messages_if_session_is_not_committed()
@@ -73,7 +70,6 @@ public class When_using_outbox_and_send_local : NServiceBusAcceptanceTest
                 //Send immediately dispatched message to finish the test
                 await statelessSession.SendLocal(new CompleteTestMessage());
             }))
-            .Done(c => c.CompleteMessageReceived)
             .Run();
 
         using (Assert.EnterMultipleScope())
@@ -100,7 +96,6 @@ public class When_using_outbox_and_send_local : NServiceBusAcceptanceTest
                 sendOptions.RouteToThisEndpoint();
                 await transactionalSession.Send(new SampleMessage(), sendOptions, CancellationToken.None);
             }))
-            .Done(c => c.MessageReceived)
             .Run();
 
         Assert.That(result.MessageReceived, Is.True);
@@ -158,7 +153,7 @@ public class When_using_outbox_and_send_local : NServiceBusAcceptanceTest
             public Task Handle(SampleMessage message, IMessageHandlerContext context)
             {
                 testContext.MessageReceived = true;
-
+                testContext.MarkAsCompleted();
                 return Task.CompletedTask;
             }
         }
@@ -168,7 +163,7 @@ public class When_using_outbox_and_send_local : NServiceBusAcceptanceTest
             public Task Handle(CompleteTestMessage message, IMessageHandlerContext context)
             {
                 testContext.CompleteMessageReceived = true;
-
+                testContext.MarkAsCompleted();
                 return Task.CompletedTask;
             }
         }

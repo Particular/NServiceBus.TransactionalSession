@@ -14,7 +14,6 @@ public class When_using_outbox_and_configuring_a_processor_endpoint : NServiceBu
         {
             await Scenario.Define<Context>()
                 .WithEndpoint<NonSendOnlyEndpointConfiguredToUseAProcessorEndpoint>()
-                .Done(c => false) // Will never complete normally
                 .Run();
         });
 
