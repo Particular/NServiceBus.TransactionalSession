@@ -48,11 +48,11 @@ public class When_not_using_outbox : NServiceBusAcceptanceTest
             .Done(c => c.CompleteMessageReceived)
             .Run();
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(result.CompleteMessageReceived, Is.True);
             Assert.That(result.MessageReceived, Is.False);
-        });
+        }
     }
 
     class Context : TransactionalSessionTestContext

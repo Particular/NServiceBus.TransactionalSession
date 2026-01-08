@@ -49,11 +49,11 @@ public class When_using_outbox_and_send_local : NServiceBusAcceptanceTest
             .Done(c => c.CompleteMessageReceived)
             .Run();
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(result.CompleteMessageReceived, Is.True);
             Assert.That(result.MessageReceived, Is.False);
-        });
+        }
     }
 
     [Test]
@@ -76,12 +76,12 @@ public class When_using_outbox_and_send_local : NServiceBusAcceptanceTest
             .Done(c => c.CompleteMessageReceived)
             .Run();
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(result.CompleteMessageReceived, Is.True);
             Assert.That(result.MessageReceived, Is.False);
             Assert.That(result.ControlMessageReceived, Is.False);
-        });
+        }
     }
 
     [Test]
@@ -130,11 +130,11 @@ public class When_using_outbox_and_send_local : NServiceBusAcceptanceTest
             .Done(c => c.EndpointsStarted)
             .Run();
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(result.AmbientTransactionFoundBeforeAwait, Is.True, "The ambient transaction was not visible before the await");
             Assert.That(result.AmbientTransactionFoundAfterAwait, Is.True, "The ambient transaction was not visible after the await");
-        });
+        }
     }
 
     class Context : TransactionalSessionTestContext
