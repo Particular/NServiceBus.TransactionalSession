@@ -44,8 +44,6 @@ public class When_send_only_endpoint_uses_processor_without_transactional_sessio
 
                 try
                 {
-                    ctx.TransactionTaskCompletionSource =
-                        new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
                     var options = new CustomTestingPersistenceOpenSessionOptions
                     {
                         CommitDelayIncrement = TimeSpan.FromSeconds(1),

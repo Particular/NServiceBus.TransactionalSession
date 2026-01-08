@@ -21,7 +21,6 @@ public class When_outbox_commits_after_control_message : NServiceBusAcceptanceTe
 
                 try
                 {
-                    ctx.TransactionTaskCompletionSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
                     var options = new CustomTestingPersistenceOpenSessionOptions
                     {
                         CommitDelayIncrement = TimeSpan.FromSeconds(1),

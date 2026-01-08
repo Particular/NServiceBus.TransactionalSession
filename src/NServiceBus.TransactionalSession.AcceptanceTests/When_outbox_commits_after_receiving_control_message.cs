@@ -22,9 +22,8 @@ public class When_outbox_commits_after_receiving_control_message : NServiceBusAc
 
                     var options = new CustomTestingPersistenceOpenSessionOptions
                     {
-                        TransactionCommitTaskCompletionSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously)
+                        TransactionCommitTaskCompletionSource = context.TransactionTaskCompletionSource
                     };
-                    context.TxCommitTcs = options.TransactionCommitTaskCompletionSource;
 
                     await transactionalSession.Open(options);
                     await transactionalSession.Send(new SomeMessage());
@@ -39,7 +38,6 @@ public class When_outbox_commits_after_receiving_control_message : NServiceBusAc
     class Context : TransactionalSessionTestContext
     {
         int messageReceiveCounter;
-        public TaskCompletionSource<bool> TxCommitTcs { get; set; }
 
         public void MaybeCompleted() => MarkAsCompleted(Interlocked.Increment(ref messageReceiveCounter) == 3);
     }
@@ -69,7 +67,7 @@ public class When_outbox_commits_after_receiving_control_message : NServiceBusAc
                 }
 
                 // unblock transaction once the receive pipeline "completed" once
-                testContext.TxCommitTcs.TrySetResult(true);
+                testContext.TransactionTaskCompletionSource.TrySetResult(true);
             }
         }
     }
