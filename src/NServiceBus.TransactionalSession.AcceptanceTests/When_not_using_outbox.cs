@@ -22,7 +22,6 @@ public class When_not_using_outbox : NServiceBusAcceptanceTest
 
                 await transactionalSession.Commit();
             }))
-            .Done(c => c.MessageReceived)
             .Run();
 
         Assert.That(result.MessageReceived, Is.True);
@@ -45,7 +44,6 @@ public class When_not_using_outbox : NServiceBusAcceptanceTest
                 //Send immediately dispatched message to finish the test
                 await messageSession.SendLocal(new CompleteTestMessage());
             }))
-            .Done(c => c.CompleteMessageReceived)
             .Run();
 
         using (Assert.EnterMultipleScope())
@@ -70,7 +68,7 @@ public class When_not_using_outbox : NServiceBusAcceptanceTest
             public Task Handle(SampleMessage message, IMessageHandlerContext context)
             {
                 testContext.MessageReceived = true;
-
+                testContext.MarkAsCompleted();
                 return Task.CompletedTask;
             }
         }
@@ -80,7 +78,7 @@ public class When_not_using_outbox : NServiceBusAcceptanceTest
             public Task Handle(CompleteTestMessage message, IMessageHandlerContext context)
             {
                 testContext.CompleteMessageReceived = true;
-
+                testContext.MarkAsCompleted();
                 return Task.CompletedTask;
             }
         }

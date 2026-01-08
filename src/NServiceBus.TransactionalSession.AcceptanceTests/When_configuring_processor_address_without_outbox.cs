@@ -13,7 +13,6 @@ public class When_configuring_processor_address_without_outbox : NServiceBusAcce
         var exception = Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await Scenario.Define<Context>()
                 .WithEndpoint<EndpointWithProcessorAddressButNoOutbox>()
-                .Done(c => false) // Will never complete normally
                 .Run());
 
         Assert.That(exception, Is.Not.Null);

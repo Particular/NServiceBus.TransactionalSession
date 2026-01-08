@@ -38,7 +38,6 @@ public class When_using_outbox_and_audit_enabled : NServiceBusAcceptanceTest
                 await transactionalSession.Commit();
             }))
             .WithEndpoint<AuditSpyEndpoint>()
-            .Done(c => c.TestComplete)
             .Run();
 
         Assert.That(context.SampleMessageAudited, Is.True);
@@ -49,7 +48,6 @@ public class When_using_outbox_and_audit_enabled : NServiceBusAcceptanceTest
     {
         public bool SampleMessageAudited { get; set; }
         public bool ControlMessageWasAudited { get; set; }
-        public bool TestComplete { get; set; }
     }
 
     class AnEndpoint : EndpointConfigurationBuilder
@@ -116,7 +114,7 @@ public class When_using_outbox_and_audit_enabled : NServiceBusAcceptanceTest
 
                 if (messageType.Contains(nameof(CompleteTestMessage)))
                 {
-                    testContext.TestComplete = true;
+                    testContext.MarkAsCompleted();
                 }
 
                 return Task.CompletedTask;

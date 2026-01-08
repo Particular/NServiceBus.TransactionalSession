@@ -28,7 +28,6 @@ public class When_not_using_outbox_send_only : NServiceBusAcceptanceTest
                 await transactionalSession.Commit();
             }))
             .WithEndpoint<AnotherEndpoint>()
-            .Done(c => c.MessageReceived)
             .Run();
 
         Assert.That(result.MessageReceived, Is.True);
@@ -53,7 +52,7 @@ public class When_not_using_outbox_send_only : NServiceBusAcceptanceTest
             public Task Handle(SampleMessage message, IMessageHandlerContext context)
             {
                 testContext.MessageReceived = true;
-
+                testContext.MarkAsCompleted();
                 return Task.CompletedTask;
             }
         }
