@@ -1,10 +1,10 @@
 ﻿namespace NServiceBus.TransactionalSession.AcceptanceTests;
 
 using System;
-using System.Linq;
 using System.Threading.Tasks;
 using AcceptanceTesting;
 using AcceptanceTesting.Customization;
+using AcceptanceTesting.Support;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using Pipeline;
@@ -12,44 +12,44 @@ using Pipeline;
 public class When_outbox_entry_becomes_visible_after_tx_timeout : NServiceBusAcceptanceTest
 {
     [Test]
-    public async Task Should_fail_to_process_control_message()
+    public void Should_fail_to_process_control_message()
     {
-        var context = await Scenario.Define<Context>()
-            .WithEndpoint<SenderEndpoint>(e => e
-                .DoNotFailOnErrorMessages()
-                .When(async (_, ctx) =>
-                {
-                    await using var scope = ctx.ServiceProvider.CreateAsyncScope();
-                    await using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+        Context context = null;
+        var exception = Assert.CatchAsync(async () =>
+            await Scenario.Define<Context>(ctx => context = ctx)
+                .WithEndpoint<SenderEndpoint>(e => e
+                    .When(async (_, ctx) =>
+                    {
+                        await using var scope = ctx.ServiceProvider.CreateAsyncScope();
+                        await using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
-                    var options = new CustomTestingPersistenceOpenSessionOptions { MaximumCommitDuration = TimeSpan.Zero };
-                    await transactionalSession.Open(options);
+                        var options = new CustomTestingPersistenceOpenSessionOptions { MaximumCommitDuration = TimeSpan.Zero };
+                        await transactionalSession.Open(options);
 
-                    await transactionalSession.Send(new SomeMessage());
+                        ctx.TransactionalSessionId = transactionalSession.SessionId;
 
-                    await transactionalSession.Commit();
+                        await transactionalSession.Send(new SomeMessage());
 
-                    ctx.TransactionalSessionId = transactionalSession.SessionId;
-                }))
-            .WithEndpoint<ReceiverEndpoint>()
-            .Done(c => c.FailedMessages.Count > 0)
-            .Run(TimeSpan.FromSeconds(90));
+                        await transactionalSession.Commit();
+                    }))
+                .WithEndpoint<ReceiverEndpoint>()
+                .Run());
 
-        Assert.That(context.MessageReceived, Is.False, "message should never be dispatched");
-        var failedMessage = context.FailedMessages.Single().Value.Single();
-        Assert.Multiple(() =>
+        Assert.That(exception, Is.InstanceOf<MessageFailedException>().And.Not.InstanceOf<InvalidOperationException>().With.Message.Not.Contain("should not be processed"), "message should never be dispatched");
+        var failedMessage = (exception as MessageFailedException)?.FailedMessage;
+        using (Assert.EnterMultipleScope())
         {
             // message should fail because it can't create an outbox record for the control message since the sender has already created the record and this causes a concurrency exception
             // once the failed control message retries, the outbox record should be correctly found by the storage and the contained messages will be dispatched.
-            Assert.That(failedMessage.Exception.Message.Contains($"Outbox message with id '{context.TransactionalSessionId}' "), Is.True);
+            Assert.That(failedMessage, Is.Not.Null);
+            Assert.That(failedMessage.Exception.Message, Does.Contain($"Outbox message with id '{context.TransactionalSessionId}' "));
             Assert.That(failedMessage.MessageId, Is.EqualTo(context.TransactionalSessionId));
-        });
+        }
 
     }
 
     class Context : TransactionalSessionTestContext
     {
-        public bool MessageReceived { get; set; }
         public string TransactionalSessionId { get; set; }
     }
 
@@ -81,7 +81,7 @@ public class When_outbox_entry_becomes_visible_after_tx_timeout : NServiceBusAcc
         {
             public Task Handle(SomeMessage message, IMessageHandlerContext context)
             {
-                testContext.MessageReceived = true;
+                testContext.MarkAsFailed(new InvalidOperationException("message should not be processed"));
                 return Task.CompletedTask;
             }
         }

@@ -12,8 +12,7 @@ using Pipeline;
 public class When_outbox_commits_after_receiving_control_message : NServiceBusAcceptanceTest
 {
     [Test]
-    public async Task Should_retry_till_outbox_transaction_committed()
-    {
+    public async Task Should_retry_till_outbox_transaction_committed() =>
         await Scenario.Define<Context>()
             .WithEndpoint<SenderEndpoint>(e => e
                 .When(async (_, context) =>
@@ -35,14 +34,14 @@ public class When_outbox_commits_after_receiving_control_message : NServiceBusAc
                     await transactionalSession.Commit();
                 }))
             .WithEndpoint<ReceiverEndpoint>()
-            .Done(c => c.MessageReceiveCounter == 3)
-            .Run(TimeSpan.FromSeconds(15));
-    }
+            .Run();
 
     class Context : TransactionalSessionTestContext
     {
-        public int MessageReceiveCounter;
+        int messageReceiveCounter;
         public TaskCompletionSource<bool> TxCommitTcs { get; set; }
+
+        public void MaybeCompleted() => MarkAsCompleted(Interlocked.Increment(ref messageReceiveCounter) == 3);
     }
 
     class SenderEndpoint : EndpointConfigurationBuilder
@@ -83,13 +82,11 @@ public class When_outbox_commits_after_receiving_control_message : NServiceBusAc
         {
             public Task Handle(SomeMessage message, IMessageHandlerContext context)
             {
-                Interlocked.Increment(ref testContext.MessageReceiveCounter);
+                testContext.MaybeCompleted();
                 return Task.CompletedTask;
             }
         }
     }
 
-    class SomeMessage : IMessage
-    {
-    }
+    class SomeMessage : IMessage;
 }
