@@ -95,6 +95,25 @@ public class TransactionalSessionDelayControlMessageBehaviorTests
     }
 
     [Test]
+    public void Should_decrement_remaining_time_even_when_commit_delay_increment_is_zero()
+    {
+        const string queueAddress = "queue address";
+
+        var dispatcher = new FakeDispatcher();
+        var behavior = new TransactionalSessionDelayControlMessageBehavior(dispatcher, queueAddress, new TransactionalSessionMetrics(new TestMeterFactory(), "endpointName"));
+
+        var messageContext = new TestableIncomingPhysicalMessageContext();
+        messageContext.Extensions.Set(new DispatchMessage(1, TimeSpan.Zero, TimeSpan.FromSeconds(30), timeSent: DateTimeOffset.UtcNow.AddSeconds(-10)));
+
+        Assert.ThrowsAsync<ConsumeMessageException>(async () => await behavior.Invoke(messageContext, _ => Task.CompletedTask));
+
+        var controlMessage = dispatcher.Dispatched.Single().outgoingMessages.UnicastTransportOperations.Single();
+        var newRemainingDuration = TimeSpan.Parse(controlMessage.Message.Headers[OutboxTransactionalSession.RemainingCommitDurationHeaderName]);
+
+        Assert.That(newRemainingDuration, Is.LessThan(TimeSpan.FromSeconds(30)), "remaining commit duration should decrease using actual elapsed time even when CommitDelayIncrement is zero");
+    }
+
+    [Test]
     public async Task Should_emit_metrics_when_message_beyond_remaining_commit_duration_and_attempts_unrecognized()
     {
         var dispatcher = new FakeDispatcher();

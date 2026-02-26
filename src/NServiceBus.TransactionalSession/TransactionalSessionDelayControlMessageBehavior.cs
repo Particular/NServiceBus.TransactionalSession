@@ -45,7 +45,10 @@ class TransactionalSessionDelayControlMessageBehavior(IMessageDispatcher dispatc
         var newCommitDelay = commitDelayIncrement.Add(commitDelayIncrement);
         commitDelayIncrement = newCommitDelay > remainingCommitDuration ? remainingCommitDuration : newCommitDelay;
 
-        TimeSpan newRemainingTime = remainingCommitDuration - commitDelayIncrement;
+        var actualElapsed = dispatchMessage.TimeSent.HasValue
+            ? DateTimeOffset.UtcNow - dispatchMessage.TimeSent.Value
+            : commitDelayIncrement;
+        TimeSpan newRemainingTime = remainingCommitDuration - actualElapsed;
 
         if (Log.IsInfoEnabled)
         {

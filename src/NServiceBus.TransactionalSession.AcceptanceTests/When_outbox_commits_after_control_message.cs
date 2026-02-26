@@ -11,7 +11,9 @@ using NUnit.Framework;
 public class When_outbox_commits_after_control_message : NServiceBusAcceptanceTest
 {
     [Test]
-    public async Task Should_throw_exception_to_session_user() =>
+    [TestCase(0)]
+    [TestCase(1)]
+    public async Task Should_throw_exception_to_session_user(int commitDelayIncrement) =>
         await Assert.ThatAsync(async () =>
         {
             await Scenario.Define<Context>()
@@ -22,7 +24,7 @@ public class When_outbox_commits_after_control_message : NServiceBusAcceptanceTe
 
                     var options = new CustomTestingPersistenceOpenSessionOptions
                     {
-                        CommitDelayIncrement = TimeSpan.FromSeconds(1),
+                        CommitDelayIncrement = TimeSpan.FromSeconds(commitDelayIncrement),
                         MaximumCommitDuration = TimeSpan.FromSeconds(8),
                         TransactionCommitTaskCompletionSource = ctx.TransactionTaskCompletionSource
                     };
