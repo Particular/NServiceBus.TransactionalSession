@@ -7,6 +7,7 @@ using AcceptanceTesting;
 using AcceptanceTesting.Customization;
 using Pipeline;
 using NUnit.Framework;
+using System.Threading;
 
 public class When_outbox_commits_after_control_message : NServiceBusAcceptanceTest
 {
@@ -34,6 +35,20 @@ public class When_outbox_commits_after_control_message : NServiceBusAcceptanceTe
                 .WithEndpoint<ReceiverEndpoint>()
                 .Run();
         }, Throws.Exception.Message.StartsWith("Failed to commit the transactional session. This might happen if the maximum commit duration is exceeded"));
+
+    [Test]
+    [TestCase<int>(-1)]
+    [TestCase<int>(0)]
+    public void Should_throw_exception_to_session_user_when_commit_delay_increment_is_negative(int commitDelayIncrement) => Task.FromResult(
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+        {
+            var options = new CustomTestingPersistenceOpenSessionOptions
+            {
+                CommitDelayIncrement = TimeSpan.FromSeconds(commitDelayIncrement),
+                MaximumCommitDuration = TimeSpan.FromSeconds(8)
+            };
+        })
+    );
 
     class Context : TransactionalSessionTestContext;
 
