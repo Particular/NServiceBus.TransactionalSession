@@ -1,4 +1,3 @@
-// filepath: /Users/nix/dev/NServiceBus.TransactionalSession/src/NServiceBus.TransactionalSession.Tests/OpenSessionOptionsTests.cs
 namespace NServiceBus.TransactionalSession.Tests;
 
 using System;

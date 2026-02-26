@@ -7,7 +7,6 @@ using AcceptanceTesting;
 using AcceptanceTesting.Customization;
 using Pipeline;
 using NUnit.Framework;
-using System.Threading;
 
 public class When_outbox_commits_after_control_message : NServiceBusAcceptanceTest
 {
