@@ -6,8 +6,8 @@ using NUnit.Framework;
 public class OpenSessionOptionsTests
 {
     [Test]
-    [TestCase<int>(-1)]
-    [TestCase<int>(0)]
+    [TestCase(-1)]
+    [TestCase(0)]
     public void Should_throw_exception_when_commit_delay_increment_is_less_than_or_equal_to_zero(int commitDelayIncrement) =>
         Assert.Throws<ArgumentOutOfRangeException>(() =>
         {
