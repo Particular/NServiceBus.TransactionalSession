@@ -26,6 +26,7 @@ public class DefaultServer : IEndpointSetupTemplate
         var storageDir = Path.Combine(Path.GetTempPath(), "learn", TestContext.CurrentContext.Test.ID);
 
         endpointConfiguration.UseTransport(new AcceptanceTestingTransport { StorageLocation = storageDir });
+        endpointConfiguration.PurgeOnStartup(true);
 
         var persistence = endpointConfiguration.UsePersistence<CustomTestingPersistence>();
 
