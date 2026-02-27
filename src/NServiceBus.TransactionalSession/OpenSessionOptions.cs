@@ -37,8 +37,12 @@ public abstract class OpenSessionOptions
     /// <summary>
     /// The time increment used to delay the commit of the transactional session when the outbox record is not yet in the storage.
     /// </summary>
-    /// <remarks>Defaults to <code>TimeSpan.FromSeconds(2)</code></remarks>
-    public TimeSpan CommitDelayIncrement { get; set; } = TimeSpan.FromSeconds(2);
+    /// <remarks>Defaults to <code>TimeSpan.FromSeconds(2)</code>. Value must be greater than <code>TimeSpan.Zero</code>.</remarks>
+    public TimeSpan CommitDelayIncrement
+    {
+        get;
+        set => field = (value > TimeSpan.Zero) ? value : throw new ArgumentOutOfRangeException(nameof(CommitDelayIncrement), "CommitDelayIncrement must be a non-negative TimeSpan.");
+    } = TimeSpan.FromSeconds(2);
 
     Dictionary<string, string>? metadata;
 }
