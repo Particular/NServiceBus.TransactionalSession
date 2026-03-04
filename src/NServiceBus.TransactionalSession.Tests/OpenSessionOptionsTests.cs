@@ -6,6 +6,17 @@ using NUnit.Framework;
 public class OpenSessionOptionsTests
 {
     [Test]
+    public void Should_not_throw_exception_when_commit_delay_increment_is_greater_than_zero() =>
+        Assert.DoesNotThrow(() =>
+        {
+            var options = new CustomTestingPersistenceOpenSessionOptions
+            {
+                CommitDelayIncrement = TimeSpan.FromTicks(1),
+                MaximumCommitDuration = TimeSpan.FromSeconds(8)
+            };
+        });
+
+    [Test]
     [TestCase(-1)]
     [TestCase(0)]
     public void Should_throw_exception_when_commit_delay_increment_is_less_than_or_equal_to_zero(int commitDelayIncrement) =>
@@ -17,6 +28,7 @@ public class OpenSessionOptionsTests
                 MaximumCommitDuration = TimeSpan.FromSeconds(8)
             };
         });
-    class CustomTestingPersistenceOpenSessionOptions : OpenSessionOptions { }
+
+    class CustomTestingPersistenceOpenSessionOptions : OpenSessionOptions;
 }
 

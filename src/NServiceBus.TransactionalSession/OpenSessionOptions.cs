@@ -41,7 +41,12 @@ public abstract class OpenSessionOptions
     public TimeSpan CommitDelayIncrement
     {
         get;
-        set => field = (value > TimeSpan.Zero) ? value : throw new ArgumentOutOfRangeException(nameof(CommitDelayIncrement), "CommitDelayIncrement must be a non-negative TimeSpan.");
+        set
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(value, TimeSpan.Zero, nameof(CommitDelayIncrement));
+            field = value;
+        }
+
     } = TimeSpan.FromSeconds(2);
 
     Dictionary<string, string>? metadata;
