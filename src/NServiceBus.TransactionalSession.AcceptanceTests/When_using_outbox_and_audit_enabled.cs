@@ -23,7 +23,8 @@ public class When_using_outbox_and_audit_enabled : NServiceBusAcceptanceTest
                 var options = new CustomTestingPersistenceOpenSessionOptions
                 {
                     TransactionCommitTaskCompletionSource = ctx.TransactionCommitTaskCompletionSource,
-                    CommitDelayIncrement = TimeSpan.FromSeconds(500)
+                    CommitDelayIncrement = TimeSpan.FromSeconds(500),
+                    MaximumCommitDuration = TimeSpan.FromSeconds(2)
                 };
 
                 if (!commitHappensAfterControlMessage)
@@ -48,6 +49,7 @@ public class When_using_outbox_and_audit_enabled : NServiceBusAcceptanceTest
     class Context : TransactionalSessionTestContext
     {
         public bool SampleMessageAudited { get; set; }
+        public bool CompleteTestMessageAudited { get; set; }
         public bool ControlMessageWasAudited { get; set; }
         public bool TestComplete { get; set; }
 
@@ -117,6 +119,11 @@ public class When_using_outbox_and_audit_enabled : NServiceBusAcceptanceTest
                 }
 
                 if (messageType.Contains(nameof(CompleteTestMessage)))
+                {
+                    testContext.CompleteTestMessageAudited = true;
+                }
+
+                if (testContext.SampleMessageAudited && testContext.CompleteTestMessageAudited)
                 {
                     testContext.TestComplete = true;
                 }
