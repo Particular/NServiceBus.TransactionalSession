@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+using Logging;
+using Microsoft.Extensions.Logging;
 using Outbox;
 using Persistence;
 using Routing;
@@ -19,7 +21,10 @@ sealed class OutboxTransactionalSession(IOutboxStorage outboxStorage,
     IEnumerable<IOpenSessionOptionsCustomization> customizations,
     string physicalQueueAddress,
     bool isSendOnly,
-    TransactionalSessionMetrics metrics) : TransactionalSessionBase(synchronizedStorageSession, messageSession, dispatcher, customizations)
+    TransactionalSessionMetrics metrics,
+    EndpointLoggingScope endpointLoggingScope,
+    ILogger<OutboxTransactionalSession> logger)
+    : TransactionalSessionBase(synchronizedStorageSession, messageSession, dispatcher, customizations, endpointLoggingScope, logger)
 {
     protected override Task OpenInternal(CancellationToken cancellationToken = default)
     {
