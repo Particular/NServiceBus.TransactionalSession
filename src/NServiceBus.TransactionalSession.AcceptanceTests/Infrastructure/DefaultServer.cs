@@ -31,8 +31,6 @@ public class DefaultServer : IEndpointSetupTemplate
 
         if (runDescriptor.ScenarioContext is TransactionalSessionTestContext testContext)
         {
-            endpointConfiguration.RegisterStartupTask(sp => new CaptureServiceProviderStartupTask(sp, testContext, endpointCustomization.EndpointName));
-
             persistence.UseDatabase(testContext.Database);
         }
 

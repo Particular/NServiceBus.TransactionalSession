@@ -15,9 +15,9 @@ public class When_outbox_commits_after_receiving_control_message : NServiceBusAc
     public async Task Should_retry_till_outbox_transaction_committed() =>
         await Scenario.Define<Context>()
             .WithEndpoint<SenderEndpoint>(e => e
-                .When(async (_, context) =>
+                .ServiceResolve(async (provider, context, ct) =>
                 {
-                    await using var scope = context.ServiceProvider.CreateAsyncScope();
+                    await using var scope = provider.CreateAsyncScope();
                     await using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
                     var options = new CustomTestingPersistenceOpenSessionOptions
@@ -25,13 +25,13 @@ public class When_outbox_commits_after_receiving_control_message : NServiceBusAc
                         TransactionCommitTaskCompletionSource = context.TransactionTaskCompletionSource
                     };
 
-                    await transactionalSession.Open(options);
-                    await transactionalSession.Send(new SomeMessage());
-                    await transactionalSession.Send(new SomeMessage());
-                    await transactionalSession.Send(new SomeMessage());
+                    await transactionalSession.Open(options, ct);
+                    await transactionalSession.Send(new SomeMessage(), ct);
+                    await transactionalSession.Send(new SomeMessage(), ct);
+                    await transactionalSession.Send(new SomeMessage(), ct);
 
-                    await transactionalSession.Commit();
-                }))
+                    await transactionalSession.Commit(ct);
+                }, afterStart: true))
             .WithEndpoint<ReceiverEndpoint>()
             .Run();
 

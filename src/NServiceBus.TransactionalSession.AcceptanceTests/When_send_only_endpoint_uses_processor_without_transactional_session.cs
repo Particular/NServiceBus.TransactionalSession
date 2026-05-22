@@ -37,22 +37,22 @@ public class When_send_only_endpoint_uses_processor_without_transactional_sessio
     public async Task Should_log_specific_warning_about_missing_processor_configuration() =>
         await Assert.ThatAsync(async () =>
             await Scenario.Define<Context>()
-                .WithEndpoint<SendOnlyEndpoint>(s => s.When(async (_, ctx) =>
+                .WithEndpoint<SendOnlyEndpoint>(s => s.ServiceResolve(async (provider, ctx, ct) =>
                 {
-                    await using var scope = ctx.ServiceProvider.CreateAsyncScope();
+                    await using var scope = provider.CreateAsyncScope();
                     await using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
                     var options = new CustomTestingPersistenceOpenSessionOptions { CommitDelayIncrement = TimeSpan.FromSeconds(1), MaximumCommitDuration = TimeSpan.FromSeconds(8), TransactionCommitTaskCompletionSource = ctx.TransactionTaskCompletionSource };
 
-                    await transactionalSession.Open(options);
+                    await transactionalSession.Open(options, ct);
                     var sendOptions = new SendOptions();
 
                     sendOptions.SetDestination(Conventions.EndpointNamingConvention.Invoke(typeof(AnotherEndpoint)));
 
-                    await transactionalSession.Send(new SampleMessage(), sendOptions);
+                    await transactionalSession.Send(new SampleMessage(), sendOptions, ct);
 
-                    await transactionalSession.Commit(CancellationToken.None);
-                }))
+                    await transactionalSession.Commit(ct);
+                }, afterStart: true))
                 .WithEndpoint<AnotherEndpoint>()
                 .WithEndpoint<ProcessorEndpoint>()
                 .Run(), Throws.Exception.Message.StartsWith("Failed to commit the transactional session. This might happen if the maximum commit duration is exceeded"));

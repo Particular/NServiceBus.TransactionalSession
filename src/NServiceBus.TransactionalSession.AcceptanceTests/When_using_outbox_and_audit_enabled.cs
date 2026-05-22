@@ -15,9 +15,9 @@ public class When_using_outbox_and_audit_enabled : NServiceBusAcceptanceTest
     public async Task Should_not_audit_the_control_message(bool commitHappensAfterControlMessage)
     {
         var context = await Scenario.Define<Context>()
-            .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
+            .WithEndpoint<AnEndpoint>(s => s.ServiceResolve(async (provider, ctx, ct) =>
             {
-                await using var scope = ctx.ServiceProvider.CreateAsyncScope();
+                await using var scope = provider.CreateAsyncScope();
                 await using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
                 var options = new CustomTestingPersistenceOpenSessionOptions
@@ -32,12 +32,12 @@ public class When_using_outbox_and_audit_enabled : NServiceBusAcceptanceTest
                     options.TransactionCommitTaskCompletionSource.SetResult(true);
                 }
 
-                await transactionalSession.Open(options);
+                await transactionalSession.Open(options, ct);
 
-                await transactionalSession.SendLocal(new SampleMessage());
+                await transactionalSession.SendLocal(new SampleMessage(), ct);
 
-                await transactionalSession.Commit();
-            }))
+                await transactionalSession.Commit(ct);
+            }, afterStart: true))
             .WithEndpoint<AuditSpyEndpoint>()
             .Run();
 

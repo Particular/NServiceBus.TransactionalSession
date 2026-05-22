@@ -18,20 +18,20 @@ public class When_outbox_entry_becomes_visible_after_tx_timeout : NServiceBusAcc
         var exception = Assert.CatchAsync(async () =>
             await Scenario.Define<Context>(ctx => context = ctx)
                 .WithEndpoint<SenderEndpoint>(e => e
-                    .When(async (_, ctx) =>
+                    .ServiceResolve(async (provider, ctx, ct) =>
                     {
-                        await using var scope = ctx.ServiceProvider.CreateAsyncScope();
+                        await using var scope = provider.CreateAsyncScope();
                         await using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
                         var options = new CustomTestingPersistenceOpenSessionOptions { MaximumCommitDuration = TimeSpan.Zero };
-                        await transactionalSession.Open(options);
+                        await transactionalSession.Open(options, ct);
 
                         ctx.TransactionalSessionId = transactionalSession.SessionId;
 
-                        await transactionalSession.Send(new SomeMessage());
+                        await transactionalSession.Send(new SomeMessage(), ct);
 
-                        await transactionalSession.Commit();
-                    }))
+                        await transactionalSession.Commit(ct);
+                    }, afterStart: true))
                 .WithEndpoint<ReceiverEndpoint>()
                 .Run());
 

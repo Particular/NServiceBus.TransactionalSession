@@ -17,9 +17,9 @@ public class When_using_transactional_session : NServiceBusAcceptanceTest
     public async Task Should_follow_interaction_order_of_core()
     {
         var transactionalContext = await Scenario.Define<Context>()
-            .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
+            .WithEndpoint<AnEndpoint>(s => s.ServiceResolve(async (provider, ctx, ct) =>
             {
-                await using var scope = ctx.ServiceProvider.CreateAsyncScope();
+                await using var scope = provider.CreateAsyncScope();
                 await using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
                 await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions
                 {
@@ -27,12 +27,12 @@ public class When_using_transactional_session : NServiceBusAcceptanceTest
                     {
                         {CustomTestingPersistenceOpenSessionOptions.LoggerContextName, "TransactionalSession"}
                     }
-                });
+                }, ct);
 
-                await transactionalSession.SendLocal(new SomeMessage(), CancellationToken.None);
+                await transactionalSession.SendLocal(new SomeMessage(), ct);
 
-                await transactionalSession.Commit(CancellationToken.None).ConfigureAwait(false);
-            }))
+                await transactionalSession.Commit(ct).ConfigureAwait(false);
+            }, afterStart: true))
             .Run();
 
         // due to transactional session control messages also going through the incoming pipeline we run the same scenario again

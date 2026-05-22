@@ -17,20 +17,20 @@ public class When_using_endpoint_logging_scope : NServiceBusAcceptanceTest
     public async Task Should_enrich_logs_with_endpoint_scope_during_session_operations()
     {
         var result = await Scenario.Define<Context>(ctx => ctx.IncludeLoggingScopes = true)
-            .WithEndpoint<EndpointWithScope>(s => s.When(async (_, ctx) =>
+            .WithEndpoint<EndpointWithScope>(s => s.ServiceResolve(async (provider, ctx, ct) =>
             {
-                var logger = ctx.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("SessionScopeLogger");
+                var logger = provider.GetRequiredService<ILoggerFactory>().CreateLogger("SessionScopeLogger");
 
-                await using var scope = ctx.ServiceProvider.CreateAsyncScope();
+                await using var scope = provider.CreateAsyncScope();
                 await using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
-                await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions());
+                await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions(), ct);
 
                 logger.LogInformation("Log inside transactional session scope");
 
-                await transactionalSession.SendLocal(new CompleteTestMessage());
-                await transactionalSession.Commit();
-            }))
+                await transactionalSession.SendLocal(new CompleteTestMessage(), ct);
+                await transactionalSession.Commit(ct);
+            }, afterStart: true))
             .Run();
 
         using (Assert.EnterMultipleScope())
@@ -49,15 +49,15 @@ public class When_using_endpoint_logging_scope : NServiceBusAcceptanceTest
     public async Task Should_not_duplicate_scope_when_pipeline_also_calls_begin_endpoint_scope()
     {
         var result = await Scenario.Define<Context>(ctx => ctx.IncludeLoggingScopes = true)
-            .WithEndpoint<EndpointWithBehavior>(s => s.When(async (_, ctx) =>
+            .WithEndpoint<EndpointWithBehavior>(s => s.ServiceResolve(async (provider, ctx, ct) =>
             {
-                await using var scope = ctx.ServiceProvider.CreateAsyncScope();
+                await using var scope = provider.CreateAsyncScope();
                 await using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
-                await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions());
-                await transactionalSession.SendLocal(new CompleteTestMessage());
-                await transactionalSession.Commit();
-            }))
+                await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions(), ct);
+                await transactionalSession.SendLocal(new CompleteTestMessage(), ct);
+                await transactionalSession.Commit(ct);
+            }, afterStart: true))
             .Run();
 
         Assert.That(result.MessageReceived, Is.True);

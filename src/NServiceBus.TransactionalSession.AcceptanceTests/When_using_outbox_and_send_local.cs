@@ -14,35 +14,37 @@ public class When_using_outbox_and_send_local : NServiceBusAcceptanceTest
     [Test]
     public async Task Should_send_messages_on_transactional_session_commit() =>
         await Scenario.Define<Context>()
-            .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
+            .WithEndpoint<AnEndpoint>(s => s.ServiceResolve(async (provider, ctx, ct) =>
             {
-                await using var scope = ctx.ServiceProvider.CreateAsyncScope();
+                await using var scope = provider.CreateAsyncScope();
                 await using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
-                await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions());
+                await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions(), ct);
 
-                await transactionalSession.SendLocal(new SampleMessage(), CancellationToken.None);
+                await transactionalSession.SendLocal(new SampleMessage(), ct);
 
-                await transactionalSession.Commit(CancellationToken.None).ConfigureAwait(false);
-            }))
+                await transactionalSession.Commit(ct).ConfigureAwait(false);
+            }, afterStart: true))
             .Run();
 
     [Test]
     public async Task Should_not_send_messages_if_session_is_not_committed()
     {
         var result = await Scenario.Define<Context>()
-            .WithEndpoint<AnEndpoint>(s => s.When(async (statelessSession, ctx) =>
+            .WithEndpoint<AnEndpoint>(s =>
             {
-                await using (var scope = ctx.ServiceProvider.CreateAsyncScope())
-                await using (var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>())
+                s.ServiceResolve(async (provider, ctx, ct) =>
                 {
-                    await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions());
+                    await using var scope = provider.CreateAsyncScope();
+                    await using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+                    await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions(), ct);
 
-                    await transactionalSession.SendLocal(new SampleMessage());
-                }
-
-                //Send immediately dispatched message to finish the test
-                await statelessSession.SendLocal(new CompleteTestMessage());
-            }))
+                    await transactionalSession.SendLocal(new SampleMessage(), ct);
+                }, afterStart: true);
+                s.When(async (messageSession, ctx) =>
+                {
+                    await messageSession.SendLocal(new CompleteTestMessage());
+                });
+            })
             .Done(c => c.CompleteMessageReceived)
             .Run();
 
@@ -57,19 +59,21 @@ public class When_using_outbox_and_send_local : NServiceBusAcceptanceTest
     public async Task Should_not_send_control_message_when_nothing_was_sent()
     {
         var result = await Scenario.Define<Context>()
-            .WithEndpoint<AnEndpoint>(s => s.When(async (statelessSession, ctx) =>
+            .WithEndpoint<AnEndpoint>(s =>
             {
-                await using (var scope = ctx.ServiceProvider.CreateAsyncScope())
-                await using (var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>())
+                s.ServiceResolve(async (provider, ctx, ct) =>
                 {
-                    await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions());
+                    await using var scope = provider.CreateAsyncScope();
+                    await using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+                    await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions(), ct);
                     // No messages sent
-                    await transactionalSession.Commit(CancellationToken.None).ConfigureAwait(false);
-                }
-
-                //Send immediately dispatched message to finish the test
-                await statelessSession.SendLocal(new CompleteTestMessage());
-            }))
+                    await transactionalSession.Commit(ct).ConfigureAwait(false);
+                }, afterStart: true);
+                s.When(async (messageSession, ctx) =>
+                {
+                    await messageSession.SendLocal(new CompleteTestMessage());
+                });
+            })
             .Run();
 
         using (Assert.EnterMultipleScope())
@@ -84,18 +88,18 @@ public class When_using_outbox_and_send_local : NServiceBusAcceptanceTest
     public async Task Should_send_immediate_dispatch_messages_even_if_session_is_not_committed()
     {
         var result = await Scenario.Define<Context>()
-            .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
+            .WithEndpoint<AnEndpoint>(s => s.ServiceResolve(async (provider, ctx, ct) =>
             {
-                await using var scope = ctx.ServiceProvider.CreateAsyncScope();
+                await using var scope = provider.CreateAsyncScope();
                 await using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
-                await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions());
+                await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions(), ct);
 
                 var sendOptions = new SendOptions();
                 sendOptions.RequireImmediateDispatch();
                 sendOptions.RouteToThisEndpoint();
-                await transactionalSession.Send(new SampleMessage(), sendOptions, CancellationToken.None);
-            }))
+                await transactionalSession.Send(new SampleMessage(), sendOptions, ct);
+            }, afterStart: true))
             .Run();
 
         Assert.That(result.MessageReceived, Is.True);
@@ -106,22 +110,22 @@ public class When_using_outbox_and_send_local : NServiceBusAcceptanceTest
     public async Task Should_make_it_possible_float_ambient_transactions()
     {
         var result = await Scenario.Define<Context>()
-            .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
+            .WithEndpoint<AnEndpoint>(s => s.ServiceResolve(async (provider, ctx, ct) =>
             {
-                await using var scope = ctx.ServiceProvider.CreateAsyncScope();
+                await using var scope = provider.CreateAsyncScope();
                 await using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
                 await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions
                 {
                     UseTransactionScope = true
-                });
+                }, ct);
 
                 ctx.AmbientTransactionFoundBeforeAwait = Transaction.Current != null;
 
                 await Task.Yield();
 
                 ctx.AmbientTransactionFoundAfterAwait = Transaction.Current != null;
-            }))
+            }, afterStart: true))
             .Done(c => c.EndpointsStarted)
             .Run();
 
