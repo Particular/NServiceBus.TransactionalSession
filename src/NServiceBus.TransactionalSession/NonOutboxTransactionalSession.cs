@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+using Logging;
+using Microsoft.Extensions.Logging;
 using Persistence;
 using Transport;
 
@@ -11,8 +13,10 @@ sealed class NonOutboxTransactionalSession(ICompletableSynchronizedStorageSessio
     IMessageSession messageSession,
     IMessageDispatcher dispatcher,
     IEnumerable<IOpenSessionOptionsCustomization> customizations,
-    TransactionalSessionMetrics metrics)
-    : TransactionalSessionBase(synchronizedStorageSession, messageSession, dispatcher, customizations)
+    TransactionalSessionMetrics metrics,
+    EndpointLoggingScope endpointLoggingScope,
+    ILogger<NonOutboxTransactionalSession> logger)
+    : TransactionalSessionBase(synchronizedStorageSession, messageSession, dispatcher, customizations, endpointLoggingScope, logger)
 {
     protected override async Task OpenInternal(CancellationToken cancellationToken = default)
         => await synchronizedStorageSession.Open(null, new TransportTransaction(), Context, cancellationToken).ConfigureAwait(false);

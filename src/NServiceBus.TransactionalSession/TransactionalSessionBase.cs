@@ -6,13 +6,17 @@ using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 using Extensibility;
+using Logging;
+using Microsoft.Extensions.Logging;
 using Persistence;
 using Transport;
 
 abstract class TransactionalSessionBase(ICompletableSynchronizedStorageSession synchronizedStorageSession,
     IMessageSession messageSession,
     IMessageDispatcher dispatcher,
-    IEnumerable<IOpenSessionOptionsCustomization> customizations)
+    IEnumerable<IOpenSessionOptionsCustomization> customizations,
+    EndpointLoggingScope endpointLoggingScope,
+    ILogger logger)
     : ITransactionalSession
 {
     public ISynchronizedStorageSession SynchronizedStorageSession
@@ -98,12 +102,35 @@ abstract class TransactionalSessionBase(ICompletableSynchronizedStorageSession s
 
         Options = options;
 
+        loggingScope = logger.BeginEndpointScope(endpointLoggingScope);
+
         foreach (var customization in customizations)
         {
             customization.Apply(Options);
         }
 
-        return OpenInternal(cancellationToken);
+        var openTask = OpenInternal(cancellationToken);
+
+        if (openTask.IsCompletedSuccessfully)
+        {
+            return openTask;
+        }
+
+        return CleanupScopeOnFault(openTask, cancellationToken);
+    }
+
+    async Task CleanupScopeOnFault(Task openTask, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await openTask.ConfigureAwait(false);
+        }
+        catch (Exception e) when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
+        {
+            loggingScope?.Dispose();
+            loggingScope = null;
+            throw;
+        }
     }
 
     protected abstract Task OpenInternal(CancellationToken cancellationToken = default);
@@ -196,12 +223,16 @@ abstract class TransactionalSessionBase(ICompletableSynchronizedStorageSession s
             return;
         }
 
+        loggingScope?.Dispose();
+        loggingScope = null;
+
         disposed = true;
     }
 
     protected readonly IMessageDispatcher dispatcher = dispatcher;
     protected readonly PendingTransportOperations pendingOperations = new();
     protected bool disposed;
+    IDisposable? loggingScope;
     OpenSessionOptions? openSessionOptions;
     bool committed;
 }

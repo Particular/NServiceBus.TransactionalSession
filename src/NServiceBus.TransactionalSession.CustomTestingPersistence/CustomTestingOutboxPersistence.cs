@@ -2,6 +2,7 @@ namespace NServiceBus.AcceptanceTesting;
 
 using Features;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Outbox;
 
 sealed class CustomTestingOutboxPersistence : Feature
@@ -27,6 +28,8 @@ sealed class CustomTestingOutboxPersistence : Feature
 
         var endpointName = context.Settings.GetOrDefault<string>(ProcessorEndpointKey) ?? context.Settings.EndpointName();
 
-        context.Services.AddSingleton<IOutboxStorage>(sp => new CustomTestingOutboxStorage(sp.GetRequiredService<CustomTestingDatabase>(), endpointName));
+        context.Services.AddSingleton<IOutboxStorage>(sp => new CustomTestingOutboxStorage(
+            sp.GetRequiredService<CustomTestingDatabase>(), endpointName,
+            sp.GetRequiredService<ILogger<CustomTestingOutboxStorage>>()));
     }
 }

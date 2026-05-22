@@ -5,16 +5,17 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Transactions;
 using Extensibility;
-using Logging;
+using Microsoft.Extensions.Logging;
 using Outbox;
 using TransactionalSession;
 
-sealed class CustomTestingOutboxStorage(CustomTestingDatabase database, string endpointName) : IOutboxStorage
+sealed class CustomTestingOutboxStorage(CustomTestingDatabase database, string endpointName,
+    ILogger<CustomTestingOutboxStorage> logger) : IOutboxStorage
 {
     public Task<OutboxMessage> Get(string messageId, ContextBag context, CancellationToken cancellationToken = default)
     {
         context.TryGet<string>(CustomTestingPersistenceOpenSessionOptions.LoggerContextName, out var logContext);
-        Logger.InfoFormat("{0} - Outbox.Get", logContext ?? "Pipeline");
+        logger.LogInformation("{LogContext} - Outbox.Get", logContext ?? "Pipeline");
 
         if (context.TryGet<CustomTestingOutboxStorageResult>(out var customResult))
         {
@@ -34,20 +35,20 @@ sealed class CustomTestingOutboxStorage(CustomTestingDatabase database, string e
     public Task<IOutboxTransaction> BeginTransaction(ContextBag context, CancellationToken cancellationToken = default)
     {
         context.TryGet<string>(CustomTestingPersistenceOpenSessionOptions.LoggerContextName, out var logContext);
-        Logger.InfoFormat("{0} - Outbox.BeginTransaction", logContext ?? "Pipeline");
+        logger.LogInformation("{LogContext} - Outbox.BeginTransaction", logContext ?? "Pipeline");
 
         if (context.TryGet(out CustomTestingPersistenceOpenSessionOptions options) && options.UseTransactionScope)
         {
             _ = new TransactionScope(TransactionScopeOption.RequiresNew, TransactionScopeAsyncFlowOption.Enabled);
         }
 
-        return Task.FromResult<IOutboxTransaction>(new CustomTestingOutboxTransaction(context));
+        return Task.FromResult<IOutboxTransaction>(new CustomTestingOutboxTransaction(context, logger));
     }
 
     public Task Store(OutboxMessage message, IOutboxTransaction transaction, ContextBag context, CancellationToken cancellationToken = default)
     {
         context.TryGet<string>(CustomTestingPersistenceOpenSessionOptions.LoggerContextName, out var logContext);
-        Logger.InfoFormat("{0} - Outbox.Store", logContext ?? "Pipeline");
+        logger.LogInformation("{LogContext} - Outbox.Store", logContext ?? "Pipeline");
 
         var tx = (CustomTestingOutboxTransaction)transaction;
         tx.Enlist(() =>
@@ -70,7 +71,7 @@ sealed class CustomTestingOutboxStorage(CustomTestingDatabase database, string e
     public Task SetAsDispatched(string messageId, ContextBag context, CancellationToken cancellationToken = default)
     {
         context.TryGet<string>(CustomTestingPersistenceOpenSessionOptions.LoggerContextName, out var logContext);
-        Logger.InfoFormat("{0} - Outbox.SetAsDispatched", logContext ?? "Pipeline");
+        logger.LogInformation("{LogContext} - Outbox.SetAsDispatched", logContext ?? "Pipeline");
 
         var recordId = GetOutboxRecordId(messageId);
 
@@ -86,6 +87,4 @@ sealed class CustomTestingOutboxStorage(CustomTestingDatabase database, string e
     string GetOutboxRecordId(string messageId) => $"{endpointName}-{messageId}";
 
     static readonly Task<OutboxMessage> NoOutboxMessageTask = Task.FromResult(default(OutboxMessage));
-
-    static readonly ILog Logger = LogManager.GetLogger<CustomTestingOutboxStorage>();
 }

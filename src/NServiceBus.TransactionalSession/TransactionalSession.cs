@@ -5,7 +5,9 @@ using System.Diagnostics.Metrics;
 using System.Threading;
 using System.Threading.Tasks;
 using Features;
+using Logging;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Outbox;
 using Persistence;
 using Transport;
@@ -110,7 +112,9 @@ public abstract class TransactionalSession : Feature
                     sp.GetServices<IOpenSessionOptionsCustomization>(),
                     physicalProcessorQueueAddress,
                     informationHolder.IsSendOnly,
-                    sp.GetRequiredService<TransactionalSessionMetrics>());
+                    sp.GetRequiredService<TransactionalSessionMetrics>(),
+                    sp.GetRequiredService<EndpointLoggingScope>(),
+                    sp.GetRequiredService<ILogger<OutboxTransactionalSession>>());
             }
             else
             {
@@ -119,7 +123,9 @@ public abstract class TransactionalSession : Feature
                     informationHolder.MessageSession ?? throw new InvalidOperationException("Message session is not available"),
                     sp.GetRequiredService<IMessageDispatcher>(),
                     sp.GetServices<IOpenSessionOptionsCustomization>(),
-                    sp.GetRequiredService<TransactionalSessionMetrics>());
+                    sp.GetRequiredService<TransactionalSessionMetrics>(),
+                    sp.GetRequiredService<EndpointLoggingScope>(),
+                    sp.GetRequiredService<ILogger<NonOutboxTransactionalSession>>());
             }
 
             return transactionalSession;
@@ -143,7 +149,8 @@ public abstract class TransactionalSession : Feature
                 sp.GetRequiredService<ITransportAddressResolver>()
                     .ToTransportAddress(sp.GetRequiredService<InformationHolderToAvoidClosures>()
                         .ControlMessageProcessorAddress),
-                sp.GetRequiredService<TransactionalSessionMetrics>()
+                sp.GetRequiredService<TransactionalSessionMetrics>(),
+                sp.GetRequiredService<ILogger<TransactionalSessionDelayControlMessageBehavior>>()
             ), "Transaction commit control message delay behavior");
 
         context.Pipeline.Register(static sp =>

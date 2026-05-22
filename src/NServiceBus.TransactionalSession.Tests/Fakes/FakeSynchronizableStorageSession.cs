@@ -13,6 +13,7 @@ class FakeSynchronizableStorageSession : ICompletableSynchronizedStorageSession
 {
     public List<(IOutboxTransaction, ContextBag)> OpenedOutboxTransactionSessions { get; } = [];
     public List<ContextBag> OpenedTransactionSessions { get; } = [];
+    public Func<ContextBag, Task> OpenCallback { get; set; }
     public Func<IOutboxTransaction, ContextBag, bool> TryOpenCallback { get; set; }
     public Action CompleteCallback { get; set; } = null;
     public bool Completed { get; private set; }
@@ -45,7 +46,7 @@ class FakeSynchronizableStorageSession : ICompletableSynchronizedStorageSession
     public Task Open(ContextBag contextBag, CancellationToken cancellationToken = new())
     {
         OpenedTransactionSessions.Add(contextBag);
-        return Task.CompletedTask;
+        return OpenCallback?.Invoke(contextBag) ?? Task.CompletedTask;
     }
 
     public Task CompleteAsync(CancellationToken cancellationToken = new())

@@ -15,9 +15,9 @@ public class When_outbox_commits_after_control_message : NServiceBusAcceptanceTe
         await Assert.ThatAsync(async () =>
         {
             await Scenario.Define<Context>()
-                .WithEndpoint<SenderEndpoint>(e => e.When(async (_, ctx) =>
+                .WithEndpoint<SenderEndpoint>(e => e.ServiceResolve(async (provider, ctx, ct) =>
                 {
-                    await using var scope = ctx.ServiceProvider.CreateAsyncScope();
+                    await using var scope = provider.CreateAsyncScope();
                     await using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
                     var options = new CustomTestingPersistenceOpenSessionOptions
@@ -27,10 +27,10 @@ public class When_outbox_commits_after_control_message : NServiceBusAcceptanceTe
                         TransactionCommitTaskCompletionSource = ctx.TransactionTaskCompletionSource
                     };
 
-                    await transactionalSession.Open(options);
-                    await transactionalSession.Send(new SomeMessage());
-                    await transactionalSession.Commit();
-                }))
+                    await transactionalSession.Open(options, ct);
+                    await transactionalSession.Send(new SomeMessage(), ct);
+                    await transactionalSession.Commit(ct);
+                }, afterStart: true))
                 .WithEndpoint<ReceiverEndpoint>()
                 .Run();
         }, Throws.Exception.Message.StartsWith("Failed to commit the transactional session. This might happen if the maximum commit duration is exceeded"));

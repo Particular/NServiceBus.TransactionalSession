@@ -12,21 +12,21 @@ public class When_not_using_outbox_send_only : NServiceBusAcceptanceTest
     public async Task Should_send_messages_on_transactional_session_commit()
     {
         var result = await Scenario.Define<Context>()
-            .WithEndpoint<SendOnlyEndpoint>(s => s.When(async (_, ctx) =>
+            .WithEndpoint<SendOnlyEndpoint>(s => s.ServiceResolve(async (provider, ctx, ct) =>
             {
-                await using var scope = ctx.ServiceProvider.CreateAsyncScope();
+                await using var scope = provider.CreateAsyncScope();
                 await using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
-                await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions());
+                await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions(), ct);
 
                 var options = new SendOptions();
 
                 options.SetDestination(Conventions.EndpointNamingConvention.Invoke(typeof(AnotherEndpoint)));
 
-                await transactionalSession.Send(new SampleMessage(), options);
+                await transactionalSession.Send(new SampleMessage(), options, ct);
 
-                await transactionalSession.Commit();
-            }))
+                await transactionalSession.Commit(ct);
+            }, afterStart: true))
             .WithEndpoint<AnotherEndpoint>()
             .Run();
 

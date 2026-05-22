@@ -11,17 +11,17 @@ public class When_not_using_outbox : NServiceBusAcceptanceTest
     public async Task Should_send_messages_on_transactional_session_commit()
     {
         var result = await Scenario.Define<Context>()
-            .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
+            .WithEndpoint<AnEndpoint>(s => s.ServiceResolve(async (provider, ctx, ct) =>
             {
-                await using var scope = ctx.ServiceProvider.CreateAsyncScope();
+                await using var scope = provider.CreateAsyncScope();
                 await using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
 
-                await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions());
+                await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions(), ct);
 
-                await transactionalSession.SendLocal(new SampleMessage());
+                await transactionalSession.SendLocal(new SampleMessage(), ct);
 
-                await transactionalSession.Commit();
-            }))
+                await transactionalSession.Commit(ct);
+            }, afterStart: true))
             .Run();
 
         Assert.That(result.MessageReceived, Is.True);
@@ -31,19 +31,21 @@ public class When_not_using_outbox : NServiceBusAcceptanceTest
     public async Task Should_not_send_messages_if_session_is_not_committed()
     {
         var result = await Scenario.Define<Context>()
-            .WithEndpoint<AnEndpoint>(s => s.When(async (messageSession, ctx) =>
+            .WithEndpoint<AnEndpoint>(s =>
             {
-                await using (var scope = ctx.ServiceProvider.CreateAsyncScope())
-                await using (var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>())
+                s.ServiceResolve(async (provider, ctx, ct) =>
                 {
-                    await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions());
+                    await using var scope = provider.CreateAsyncScope();
+                    await using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+                    await transactionalSession.Open(new CustomTestingPersistenceOpenSessionOptions(), ct);
 
-                    await transactionalSession.SendLocal(new SampleMessage());
-                }
-
-                //Send immediately dispatched message to finish the test
-                await messageSession.SendLocal(new CompleteTestMessage());
-            }))
+                    await transactionalSession.SendLocal(new SampleMessage(), ct);
+                }, afterStart: true);
+                s.When(async (messageSession, ctx) =>
+                {
+                    await messageSession.SendLocal(new CompleteTestMessage());
+                });
+            })
             .Run();
 
         using (Assert.EnterMultipleScope())
