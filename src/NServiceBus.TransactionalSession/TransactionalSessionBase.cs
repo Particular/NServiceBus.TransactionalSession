@@ -109,7 +109,28 @@ abstract class TransactionalSessionBase(ICompletableSynchronizedStorageSession s
             customization.Apply(Options);
         }
 
-        return OpenInternal(cancellationToken);
+        var openTask = OpenInternal(cancellationToken);
+
+        if (openTask.IsCompletedSuccessfully)
+        {
+            return openTask;
+        }
+
+        return CleanupScopeOnFault(openTask, cancellationToken);
+    }
+
+    async Task CleanupScopeOnFault(Task openTask, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await openTask.ConfigureAwait(false);
+        }
+        catch (Exception e) when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
+        {
+            loggingScope?.Dispose();
+            loggingScope = null;
+            throw;
+        }
     }
 
     protected abstract Task OpenInternal(CancellationToken cancellationToken = default);

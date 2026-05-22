@@ -219,4 +219,30 @@ public class TransactionalSessionTests
 
         Assert.That(synchronizedStorageSession.Disposed, Is.True);
     }
+
+    [Test]
+    public async Task Open_should_clean_up_logging_scope_when_open_fails()
+    {
+        var synchronizedStorageSession = new FakeSynchronizableStorageSession
+        {
+            OpenCallback = async _ =>
+            {
+                await Task.Yield();
+                throw new InvalidOperationException("open failed");
+            }
+        };
+
+        var session = new NonOutboxTransactionalSession(
+            synchronizedStorageSession,
+            new FakeMessageSession(),
+            new FakeDispatcher(),
+            [],
+            new TransactionalSessionMetrics(new TestMeterFactory(), "endpointName"),
+            new EndpointLoggingScope { EndpointName = "endpointName" },
+            new FakeLogger<NonOutboxTransactionalSession>());
+
+        Assert.ThrowsAsync<InvalidOperationException>(async () => await session.Open(new FakeOpenSessionOptions()));
+
+        Assert.DoesNotThrow(() => session.Dispose());
+    }
 }
