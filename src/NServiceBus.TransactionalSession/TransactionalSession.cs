@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Features;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Outbox;
 using Persistence;
 using Transport;
@@ -143,7 +144,8 @@ public abstract class TransactionalSession : Feature
                 sp.GetRequiredService<ITransportAddressResolver>()
                     .ToTransportAddress(sp.GetRequiredService<InformationHolderToAvoidClosures>()
                         .ControlMessageProcessorAddress),
-                sp.GetRequiredService<TransactionalSessionMetrics>()
+                sp.GetRequiredService<TransactionalSessionMetrics>(),
+                sp.GetRequiredService<ILogger<TransactionalSessionDelayControlMessageBehavior>>()
             ), "Transaction commit control message delay behavior");
 
         context.Pipeline.Register(static sp =>

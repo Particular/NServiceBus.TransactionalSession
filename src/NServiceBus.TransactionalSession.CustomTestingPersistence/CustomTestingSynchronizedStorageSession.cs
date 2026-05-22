@@ -5,13 +5,14 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Transactions;
 using Extensibility;
-using Logging;
+using Microsoft.Extensions.Logging;
 using Outbox;
 using Persistence;
 using TransactionalSession;
 using Transport;
 
-sealed class CustomTestingSynchronizedStorageSession : ICompletableSynchronizedStorageSession
+sealed class CustomTestingSynchronizedStorageSession(ILogger<CustomTestingSynchronizedStorageSession> logger)
+    : ICompletableSynchronizedStorageSession
 {
     AcceptanceTestingTransaction Transaction { get; set; }
 
@@ -22,7 +23,7 @@ sealed class CustomTestingSynchronizedStorageSession : ICompletableSynchronizedS
             return;
         }
 
-        Logger.InfoFormat("{0} - StorageSession.Dispose", logContext ?? "Pipeline");
+        logger.LogInformation("{LogContext} - StorageSession.Dispose", logContext ?? "Pipeline");
 
         Transaction = null;
     }
@@ -38,7 +39,7 @@ sealed class CustomTestingSynchronizedStorageSession : ICompletableSynchronizedS
         CancellationToken cancellationToken = default)
     {
         context.TryGet(CustomTestingPersistenceOpenSessionOptions.LoggerContextName, out logContext);
-        Logger.InfoFormat("{0} - StorageSession.TryOpen(OutboxTransaction)", logContext ?? "Pipeline");
+        logger.LogInformation("{LogContext} - StorageSession.TryOpen(OutboxTransaction)", logContext ?? "Pipeline");
 
         if (transaction is CustomTestingOutboxTransaction inMemOutboxTransaction)
         {
@@ -54,7 +55,7 @@ sealed class CustomTestingSynchronizedStorageSession : ICompletableSynchronizedS
         CancellationToken cancellationToken = default)
     {
         context.TryGet(CustomTestingPersistenceOpenSessionOptions.LoggerContextName, out logContext);
-        Logger.InfoFormat("{0} - StorageSession.TryOpen(TransportTransaction)", logContext ?? "Pipeline");
+        logger.LogInformation("{LogContext} - StorageSession.TryOpen(TransportTransaction)", logContext ?? "Pipeline");
 
         if (!transportTransaction.TryGet(out Transaction ambientTransaction))
         {
@@ -70,7 +71,7 @@ sealed class CustomTestingSynchronizedStorageSession : ICompletableSynchronizedS
     public Task Open(ContextBag contextBag, CancellationToken cancellationToken = default)
     {
         contextBag.TryGet(CustomTestingPersistenceOpenSessionOptions.LoggerContextName, out logContext);
-        Logger.InfoFormat("{0} - StorageSession.Open", logContext ?? "Pipeline");
+        logger.LogInformation("{LogContext} - StorageSession.Open", logContext ?? "Pipeline");
 
         ownsTransaction = true;
         Transaction = new AcceptanceTestingTransaction();
@@ -79,7 +80,7 @@ sealed class CustomTestingSynchronizedStorageSession : ICompletableSynchronizedS
 
     public Task CompleteAsync(CancellationToken cancellationToken = default)
     {
-        Logger.InfoFormat("{0} - StorageSession.CompleteAsync", logContext ?? "Pipeline");
+        logger.LogInformation("{LogContext} - StorageSession.CompleteAsync", logContext ?? "Pipeline");
 
         if (ownsTransaction)
         {
@@ -119,6 +120,4 @@ sealed class CustomTestingSynchronizedStorageSession : ICompletableSynchronizedS
 
         public void InDoubt(Enlistment enlistment) => enlistment.Done();
     }
-
-    static readonly ILog Logger = LogManager.GetLogger<CustomTestingSynchronizedStorageSession>();
 }
