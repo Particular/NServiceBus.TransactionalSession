@@ -19,8 +19,8 @@ This repository builds the NServiceBus.TransactionalSession package, which enabl
 
 ## Architecture and design
 
-No architecture decision records are currently maintained in this repository.
+- [Architecture and design decisions](decisions/) — where to record new decisions
 
-## Guidelines
+### Decisions recorded in pull requests
 
-No repository-specific engineering guidelines are currently documented.
+- Dispatch the Outbox control message outside the transaction so it can be sent immediately — [#403](https://github.com/Particular/NServiceBus.TransactionalSession/pull/403)
